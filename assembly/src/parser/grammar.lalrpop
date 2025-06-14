@@ -49,6 +49,7 @@ extern {
         "]" => Token::Rbracket,
         "add" => Token::Add,
         "adv" => Token::Adv,
+        "adv_map" => Token::AdvMap,
         "insert_hdword" => Token::InsertHdword,
         "insert_hdword_d" => Token::InsertHdwordWithDomain,
         "insert_hperm" => Token::InsertHperm,
@@ -255,6 +256,7 @@ Form: Form = {
     Doc,
     Import,
     Const,
+    AdvMap,
     Begin,
     Proc,
 }
@@ -295,6 +297,30 @@ Const: Form = {
         Form::Constant(Constant::new(
             span!(source_file.id(), l, r),
             name,
+            value,
+        ))
+    }
+}
+
+MaybeAdvMapKey: Option<Span<WordValue>> = {
+    <l:@L> "(" <value:IntValue> ")" <r:@R> =>? {
+        match value {
+            IntValue::Word(word) => Ok(Some(Span::new(span!(source_file.id(), l, r), word))),
+            _ => {
+                Err(ParseError::User { error: ParsingError::InvalidAdvMapKey { span: span!(source_file.id(), l, r) } })
+            }
+        }
+    },
+    => None
+}
+
+
+AdvMap: Form = {
+    <l:@L> "adv_map" "." <name:ConstantName> <key:MaybeAdvMapKey> "=" <value:Felt+> <r:@R> => {
+        Form::AdviceMapEntry(AdviceMapEntry::new(
+            span!(source_file.id(), l, r),
+            name,
+            key,
             value,
         ))
     }
@@ -1634,6 +1660,7 @@ OpcodeName: Ident = {
 Opcode: &'static str = {
     "add" => "add",
     "adv" => "adv",
+    "adv_map" => "adv_map",
     "adv_loadw" => "adv_loadw",
     "adv_pipe" => "adv_pipe",
     "adv_push" => "adv_push",

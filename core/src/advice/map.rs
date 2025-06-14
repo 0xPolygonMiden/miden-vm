@@ -33,9 +33,31 @@ impl AdviceMap {
         self.0.get(key).map(|v| v.as_slice())
     }
 
-    /// Inserts a key value pair in the advice map and returns the inserted value.
-    pub fn insert(&mut self, key: RpoDigest, value: Vec<Felt>) -> Option<Vec<Felt>> {
-        self.0.insert(key, value)
+    /// Inserts a key-value pair in the advice map.
+    /// Returns None if the insertion was successful, that is if `key` was not present or it was
+    /// already bound to `value`. Returns Some(key, new_value, old_value) in case of failure, that
+    /// is if `key` was already present with a value `old_value` different than `new_value`.
+    pub fn insert(
+        &mut self,
+        key: RpoDigest,
+        value: Vec<Felt>,
+    ) -> Option<(RpoDigest, Vec<Felt>, Vec<Felt>)> {
+        match self.get(&key) {
+            Some(stored_value) => {
+                if value != stored_value {
+                    // key present with different value
+                    Some((key, value, stored_value.to_vec()))
+                } else {
+                    // key already present with the same value
+                    None
+                }
+            },
+            None => {
+                // missing key is inserted
+                self.0.insert(key, value);
+                None
+            },
+        }
     }
 
     /// Removes the value associated with the key and returns the removed element.
@@ -51,6 +73,16 @@ impl AdviceMap {
     /// Returns true if the advice map is empty.
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
+    }
+
+    /// Merges two advice maps using insert.
+    pub fn merge(&mut self, other: &AdviceMap) -> Option<(RpoDigest, Vec<Felt>, Vec<Felt>)> {
+        for (key, value) in other.iter() {
+            if let Some(error) = self.insert(*key, value.clone()) {
+                return Some(error);
+            }
+        }
+        None
     }
 }
 
@@ -89,7 +121,7 @@ impl KvMap<RpoDigest, Vec<Felt>> for AdviceMap {
     }
 
     fn insert(&mut self, key: RpoDigest, value: Vec<Felt>) -> Option<Vec<Felt>> {
-        self.insert(key, value)
+        self.0.insert(key, value)
     }
 
     fn remove(&mut self, key: &RpoDigest) -> Option<Vec<Felt>> {

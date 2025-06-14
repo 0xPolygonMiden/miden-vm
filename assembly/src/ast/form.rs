@@ -1,6 +1,6 @@
 use alloc::string::String;
 
-use super::{Block, Constant, Export, Import};
+use super::{AdviceMapEntry, Block, Constant, Export, Import};
 use crate::{SourceSpan, Span, Spanned};
 
 /// This type represents the top-level forms of a Miden Assembly module
@@ -18,6 +18,8 @@ pub enum Form {
     Begin(Block),
     /// A procedure
     Procedure(Export),
+    /// An entry into the Advice Map
+    AdviceMapEntry(AdviceMapEntry),
 }
 
 impl From<Span<String>> for Form {
@@ -54,7 +56,9 @@ impl Spanned for Form {
     fn span(&self) -> SourceSpan {
         match self {
             Self::ModuleDoc(spanned) | Self::Doc(spanned) => spanned.span(),
-            Self::Import(Import { span, .. }) | Self::Constant(Constant { span, .. }) => *span,
+            Self::Import(Import { span, .. })
+            | Self::Constant(Constant { span, .. })
+            | Self::AdviceMapEntry(AdviceMapEntry { span, .. }) => *span,
             Self::Begin(spanned) => spanned.span(),
             Self::Procedure(spanned) => spanned.span(),
         }

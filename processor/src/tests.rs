@@ -3,7 +3,7 @@ use alloc::string::ToString;
 
 use assembly::{Assembler, assert_diagnostic_lines, regex, source_file, testing::TestContext};
 use test_utils::{
-    build_test_by_mode,
+    build_test, build_test_by_mode,
     crypto::{init_merkle_leaves, init_merkle_store},
 };
 use vm_core::{
@@ -12,6 +12,39 @@ use vm_core::{
 };
 
 use super::*;
+
+// AdviceMap inlined in the script
+// ------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_advice_map_inline() {
+    let source = "\
+adv_map.A=2
+
+begin
+  push.A
+  adv.push_mapval
+  adv_push.1
+  push.2
+  assert_eq
+  dropw
+end";
+
+    let build_test = build_test!(source);
+    //    std::dbg!(build_test.execute());
+    let _err = build_test.execute().expect_err("expected error");
+
+    // assert_diagnostic_lines!(
+    //     err,
+    //     "value for key 00000000000000000000000000000000ffffffff00000000feffffff01000000 not
+    // present in the advice map",     regex!(r#",-\[test[\d]+:3:31\]"#),
+    //     " 2 |         begin",
+    //     " 3 |             swap swap trace.2 adv.push_mapvaln",
+    //     "   :                               ^^^^^^^^^^^^^^^^",
+    //     "4 |         end",
+    //     "   `----"
+    // );
+}
 
 // AdviceMapKeyAlreadyPresent
 // ------------------------------------------------------------------------------------------------
@@ -426,7 +459,7 @@ fn test_diagnostic_invalid_stack_depth_on_return_dyncall() {
         end
 
         begin
-            procref.foo mem_storew.100 dropw push.100 
+            procref.foo mem_storew.100 dropw push.100
             dyncall
         end";
 
@@ -453,7 +486,7 @@ fn test_diagnostic_log_argument_zero() {
     // taking the log of 0 should result in an error
     let source = "
         begin
-            trace.2 ilog2    
+            trace.2 ilog2
         end";
 
     let build_test = build_test_by_mode!(true, source, &[]);
@@ -662,7 +695,7 @@ fn test_diagnostic_no_mast_forest_with_procedure() {
         let src = "
         export.dummy_proc
             push.1
-        end 
+        end
     ";
         source_manager.load(module_name, src.to_string())
     };

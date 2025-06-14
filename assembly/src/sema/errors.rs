@@ -193,6 +193,11 @@ pub enum SemanticAnalysisError {
         #[label]
         span: SourceSpan,
     },
+    #[error("advmap key already defined")]
+    AdvMapKeyAlreadyDefined {
+        #[label]
+        span: SourceSpan,
+    },
 }
 
 /// Represents a system limit that was exceeded
