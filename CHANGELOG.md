@@ -5,7 +5,7 @@
 #### Changes
 
 - Removed the obsolete `RpoFalcon512` decorator and associated structs (#1872).
-- Licensed the project under Apache 2.0 license (in addition to MIT) (#1882).
+- Licensed the project under the Apache 2.0 license (in addition to the MIT) (#1882).
 
 ## 0.15.0 (2025-06-06)
 
