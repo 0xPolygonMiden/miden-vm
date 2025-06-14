@@ -330,5 +330,4 @@ When compiled with `concurrent` feature enabled, the VM will generate STARK proo
 Internally, we use [rayon](https://github.com/rayon-rs/rayon) for parallel computations. To control the number of threads used to generate a STARK proof, you can use `RAYON_NUM_THREADS` environment variable.
 
 ## License
-
-This project is [MIT licensed](../LICENSE).
+This project is dual-licensed under the [MIT](http://opensource.org/licenses/MIT) and [Apache 2.0](https://opensource.org/license/apache-2-0) licenses.
