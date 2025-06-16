@@ -145,8 +145,8 @@ pub enum LinkLibraryKind {
     /// and that the referenced symbol is resolvable by the VM.
     ///
     /// Concretely, the digest corresponding to a referenced procedure symbol will be linked as a
-    /// [`core::mast::ExternalNode`], rather than including the procedure in the assembled MAST,
-    /// and referencing the procedure via [`core::mast::MastNodeId`].
+    /// [`vm_core::mast::ExternalNode`], rather than including the procedure in the assembled MAST,
+    /// and referencing the procedure via [`vm_core::mast::MastNodeId`].
     #[default]
     Dynamic,
     /// A statically-linked library.
@@ -157,7 +157,7 @@ pub enum LinkLibraryKind {
     ///
     /// Concretely, a statically linked procedure will have its root, and all reachable nodes found
     /// in the MAST of the library, included in the assembled MAST, and referenced via
-    /// [`core::mast::MastNodeId`].
+    /// [`vm_core::mast::MastNodeId`].
     ///
     /// Statically linked symbols are thus merged into the assembled artifact as if they had been
     /// defined in your own project, and the library they were originally defined in will not be

@@ -33,11 +33,11 @@ mod mast_forest_merger_tests;
 
 use self::{
     basic_block_builder::BasicBlockBuilder,
-    linker::{CallerInfo, LinkLibrary, LinkLibraryKind, Linker, ResolvedTarget},
+    linker::{CallerInfo, LinkLibrary, Linker, ResolvedTarget},
 };
 pub use self::{
     id::{GlobalProcedureIndex, ModuleIndex},
-    linker::LinkerError,
+    linker::{LinkLibraryKind, LinkerError},
     procedure::{Procedure, ProcedureContext},
 };
 
@@ -85,10 +85,10 @@ pub use self::{
 /// * If you have source code, or a [`ast::Module`], see [`Self::compile_and_statically_link`]
 /// * If you need to reference procedures from a previously assembled [`Library`], but do not want
 ///   to include the MAST of those procedures in the assembled artifact, you want to _dynamically
-///   link_ that library, see [`Self::link_dynamically`] for more.
+///   link_ that library, see [`Self::link_dynamic_library`] for more.
 /// * If you want to incorporate referenced procedures from a previously assembled [`Library`] into
 ///   the assembled artifact, you want to _statically link_ that library, see
-///   [`Self::link_statically`] for more.
+///   [`Self::link_static_library`] for more.
 #[derive(Clone)]
 pub struct Assembler {
     /// The source manager to use for compilation and source location information
@@ -290,7 +290,7 @@ impl Assembler {
 
     /// Dynamically link against `library` during assembly.
     ///
-    /// See [`Self::add_dylib`] for more details.
+    /// See [`Self::link_dynamic_library`] for more details.
     pub fn with_dynamic_library(mut self, library: impl AsRef<Library>) -> Result<Self, Report> {
         self.link_dynamic_library(library)?;
         Ok(self)

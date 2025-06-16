@@ -35,7 +35,7 @@ pub use vm_core::mast;
 pub use vm_core::utils;
 
 pub use self::{
-    assembler::{Assembler, LinkerError},
+    assembler::{Assembler, LinkLibraryKind, LinkerError},
     compile::{Compile, Options as CompileOptions},
     diagnostics::{
         DefaultSourceManager, Report, SourceFile, SourceId, SourceManager, SourceSpan, Span,
