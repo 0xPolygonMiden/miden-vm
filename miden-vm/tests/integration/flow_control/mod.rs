@@ -548,7 +548,7 @@ fn procref() -> Result<(), Report> {
         let mut parser = Module::parser(ModuleKind::Library);
         let module = parser.parse_str(module_path, module_source, &source_manager)?;
         let library = Assembler::new(source_manager)
-            .with_library(StdLibrary::default())
+            .with_dynamic_library(StdLibrary::default())
             .unwrap()
             .assemble_library([module])
             .unwrap();

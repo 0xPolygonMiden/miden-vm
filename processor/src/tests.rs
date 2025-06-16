@@ -685,7 +685,7 @@ fn test_diagnostic_no_mast_forest_with_procedure() {
 
     let program = Assembler::new(source_manager.clone())
         .with_debug_mode(true)
-        .with_library(&library)
+        .with_dynamic_library(&library)
         .unwrap()
         .assemble_program(program_source)
         .unwrap();

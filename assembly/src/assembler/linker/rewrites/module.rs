@@ -17,7 +17,7 @@ use crate::{
 // ================================================================================================
 
 /// A [ModuleRewriter] handles applying all of the module-wide rewrites to a [Module] that is being
-/// added to a [ModuleGraph]. These rewrites include:
+/// added to the module graph of the linker. These rewrites include:
 ///
 /// * Resolving, at least partially, all of the invocation targets in procedures of the module, and
 ///   rewriting those targets as concretely as possible OR as phantom calls representing procedures
@@ -61,7 +61,7 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
         kind: InvokeKind,
         target: &mut InvocationTarget,
     ) -> ControlFlow<LinkerError> {
-        log::debug!(target: "module-graph", "    * rewriting {kind} target {target}");
+        log::debug!(target: "linker", "    * rewriting {kind} target {target}");
         let caller = CallerInfo {
             span: target.span(),
             module: self.module_id,
@@ -71,11 +71,11 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
             Err(err) => return ControlFlow::Break(err),
             Ok(ResolvedTarget::Phantom(_)) => (),
             Ok(ResolvedTarget::Exact { .. }) => {
-                log::debug!(target: "module-graph", "    | target is already resolved exactly");
+                log::debug!(target: "linker", "    | target is already resolved exactly");
                 self.invoked.insert(Invoke { kind, target: target.clone() });
             },
             Ok(ResolvedTarget::Resolved { target: new_target, .. }) => {
-                log::debug!(target: "module-graph", "    | target resolved to {new_target}");
+                log::debug!(target: "linker", "    | target resolved to {new_target}");
                 *target = new_target;
                 self.invoked.insert(Invoke { kind, target: target.clone() });
             },
@@ -87,7 +87,7 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
 
 impl<'a, 'b: 'a> VisitMut<LinkerError> for ModuleRewriter<'a, 'b> {
     fn visit_mut_procedure(&mut self, procedure: &mut Procedure) -> ControlFlow<LinkerError> {
-        log::debug!(target: "module-graph", "  | visiting {}", procedure.name());
+        log::debug!(target: "linker", "  | visiting {}", procedure.name());
         self.invoked.clear();
         self.invoked.extend(procedure.invoked().cloned());
         visit::visit_mut_procedure(self, procedure)?;

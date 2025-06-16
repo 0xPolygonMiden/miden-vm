@@ -450,7 +450,7 @@ mod use_std_kernel {
             if let Some(lib_dir) = lib_dir {
                 let lib_dir = lib_dir.as_ref();
                 let namespace = LibraryNamespace::new("kernel").expect("invalid namespace");
-                assembler.compile_and_link_from_dir(namespace, lib_dir)?;
+                assembler.compile_and_statically_link_from_dir(namespace, lib_dir)?;
             }
 
             assembler.assemble_kernel(sys_module_path.as_ref())

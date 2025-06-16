@@ -38,7 +38,7 @@ fn nested_blocks() -> Result<(), Report> {
             .unwrap();
 
         let mut assembler = Assembler::with_kernel(context.source_manager(), kernel_lib);
-        assembler.link_library(dummy_library).unwrap();
+        assembler.link_dynamic_library(dummy_library).unwrap();
 
         assembler
     };
@@ -308,7 +308,8 @@ fn explicit_fully_qualified_procedure_references() -> Result<(), Report> {
     let baz = context.parse_module_with_path(BAZ_NAME.parse().unwrap(), BAZ)?;
     let library = context.assemble_library([bar, baz]).unwrap();
 
-    let assembler = Assembler::new(context.source_manager()).with_library(&library).unwrap();
+    let assembler =
+        Assembler::new(context.source_manager()).with_dynamic_library(&library).unwrap();
 
     let program = r#"
     begin
@@ -342,7 +343,8 @@ fn re_exports() -> Result<(), Report> {
     let baz = context.parse_module_with_path(BAZ_NAME.parse().unwrap(), BAZ)?;
     let library = context.assemble_library([bar, baz]).unwrap();
 
-    let assembler = Assembler::new(context.source_manager()).with_library(&library).unwrap();
+    let assembler =
+        Assembler::new(context.source_manager()).with_dynamic_library(&library).unwrap();
 
     let program = r#"
     use.foo::baz
@@ -384,7 +386,7 @@ fn module_ordering_can_be_arbitrary() -> Result<(), Report> {
     let c = context.parse_module_with_path(C_NAME.parse().unwrap(), C)?;
 
     let mut assembler = Assembler::new(context.source_manager());
-    assembler.compile_and_link_module(b)?.compile_and_link_module(a)?;
+    assembler.compile_and_statically_link(b)?.compile_and_statically_link(a)?;
     assembler.assemble_library([c])?;
 
     Ok(())

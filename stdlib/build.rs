@@ -22,6 +22,7 @@ fn main() -> Result<()> {
     println!("cargo:rerun-if-changed=asm");
     println!("cargo:rerun-if-changed=../assembly/src");
 
+    // Enable debug tracing to stderr via the MIDEN_LOG environment variable, if present
     env_logger::Builder::from_env("MIDEN_LOG").format_timestamp(None).init();
 
     let manifest_dir = env!("CARGO_MANIFEST_DIR");

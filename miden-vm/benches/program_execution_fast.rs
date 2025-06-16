@@ -43,7 +43,9 @@ fn program_execution_fast(c: &mut Criterion) {
                 let file_stem = entry.path().file_stem().unwrap().to_string_lossy();
                 group.bench_function(file_stem, |bench| {
                     let mut assembler = Assembler::default();
-                    assembler.link_library(StdLibrary::default()).expect("failed to load stdlib");
+                    assembler
+                        .link_dynamic_library(StdLibrary::default())
+                        .expect("failed to load stdlib");
                     let program = assembler
                         .assemble_program(&source)
                         .expect("Failed to compile test source.");

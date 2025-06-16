@@ -15,12 +15,12 @@ use crate::{
 /// [MaybeRewriteCheck] is a simple analysis pass over a [Module], that looks for evidence that new
 /// information has been found that would result in at least one rewrite to the module body.
 ///
-/// This pass is intended for modules that were already added to a [super::super::ModuleGraph], and
-/// so have been rewritten at least once before. When new modules are added to the graph, the
-/// introduction of those modules may allow us to resolve invocation targets that were previously
-/// unresolvable, or that resolved as phantoms due to missing definitions. When that occurs, we
-/// want to go back and rewrite all of the modules that can be further refined as a result of that
-/// additional information.
+/// This pass is intended for modules that were already added to the module graph of the linker, and
+/// processed at least once, and so have been rewritten at least once before. When new modules are
+/// added to the graph, the introduction of those modules may allow us to resolve invocation targets
+/// that were previously unresolvable, or that resolved as phantoms due to missing definitions. When
+/// that occurs, we want to go back and rewrite all of the modules that can be further refined as a
+/// result of that additional information.
 pub struct MaybeRewriteCheck<'a, 'b: 'a> {
     resolver: &'a NameResolver<'b>,
 }

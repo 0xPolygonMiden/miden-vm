@@ -1188,7 +1188,7 @@ begin
     trace(1)
 end";
     let program = Assembler::new(context.source_manager())
-        .with_library(lib)?
+        .with_dynamic_library(lib)?
         .assemble_program(program_source)?;
     assert_str_eq!(expected, format!("{program}"));
 
@@ -2295,7 +2295,7 @@ fn program_with_reexported_proc_in_another_library() -> TestResult {
 
     let dummy_library = {
         let mut assembler = Assembler::new(source_manager);
-        assembler.compile_and_link_module(ref_ast)?;
+        assembler.compile_and_statically_link(ref_ast)?;
         assembler.assemble_library([ast])?
     };
 
@@ -3014,7 +3014,7 @@ fn test_compiled_library() {
     // Compile program that uses compiled library
     let mut assembler = Assembler::new(context.source_manager());
 
-    assembler.link_library(&compiled_library).unwrap();
+    assembler.link_dynamic_library(&compiled_library).unwrap();
 
     let program_source = "
     use.mylib::mod1
@@ -3075,7 +3075,7 @@ fn test_reexported_proc_with_same_name_as_local_proc_diff_locals() {
     // Compile program that uses compiled library
     let mut assembler = Assembler::new(context.source_manager());
 
-    assembler.link_library(&compiled_library).unwrap();
+    assembler.link_dynamic_library(&compiled_library).unwrap();
 
     let program_source = "
     use.test::mod1
@@ -3164,7 +3164,7 @@ fn vendoring() -> TestResult {
         let mod2 = mod_parser.parse(LibraryPath::new("test::mod2").unwrap(), source).unwrap();
 
         let mut assembler = Assembler::default();
-        assembler.link_vendored_library(vendor_lib)?;
+        assembler.link_static_library(vendor_lib)?;
         assembler.assemble_library([mod2]).unwrap()
     };
 

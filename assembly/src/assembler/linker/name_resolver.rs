@@ -17,9 +17,9 @@ use crate::{
 
 /// The bare minimum information needed about a module in order to include it in name resolution.
 ///
-/// We use this to represent modules that are not yet in the [ModuleGraph], but that we need to
-/// include in name resolution in order to be able to fully resolve all names for a given set of
-/// modules.
+/// We use this to represent information about pending modules that are not yet in the module graph
+/// of the linker, but that we need to include in name resolution in order to be able to fully
+/// resolve all names for a given set of modules.
 struct ThinModule {
     index: ModuleIndex,
     path: LibraryPath,

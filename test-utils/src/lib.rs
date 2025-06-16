@@ -317,12 +317,12 @@ impl Test {
                         CompileOptions::new(ModuleKind::Library, path.clone()).unwrap(),
                     )
                     .expect("invalid masm source code");
-                assembler.compile_and_link_module(module).expect("failed to link module");
+                assembler.compile_and_statically_link(module).expect("failed to link module");
                 assembler
             })
             .with_debug_mode(self.in_debug_mode);
         for library in &self.libraries {
-            assembler.link_library(library).unwrap();
+            assembler.link_dynamic_library(library).unwrap();
         }
 
         Ok((assembler.assemble_program(self.source.clone())?, kernel_lib))

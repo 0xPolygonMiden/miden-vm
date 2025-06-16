@@ -147,11 +147,11 @@ impl ProgramFile {
         let mut assembler =
             Assembler::new(self.source_manager.clone()).with_debug_mode(debug.is_on());
         assembler
-            .link_library(StdLibrary::default())
+            .link_dynamic_library(StdLibrary::default())
             .wrap_err("Failed to load stdlib")?;
 
         for library in libraries {
-            assembler.link_library(library).wrap_err("Failed to load libraries")?;
+            assembler.link_dynamic_library(library).wrap_err("Failed to load libraries")?;
         }
 
         let program: Program = assembler

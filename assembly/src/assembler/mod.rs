@@ -33,7 +33,7 @@ mod mast_forest_merger_tests;
 
 use self::{
     basic_block_builder::BasicBlockBuilder,
-    linker::{CallerInfo, Linker, ResolvedTarget},
+    linker::{CallerInfo, LinkLibrary, LinkLibraryKind, Linker, ResolvedTarget},
 };
 pub use self::{
     id::{GlobalProcedureIndex, ModuleIndex},
@@ -82,35 +82,34 @@ pub use self::{
 /// references to procedures which are externally-defined (i.e. not defined in any of the modules
 /// provided to the `assemble_*` function you called). There are a few different ways to do this:
 ///
-/// * If you have source code, or a [`ast::Module`], see [`Self::compile_and_link_module`]
-/// * If you need to reference procedures from a previously assembled [`Library`] , see
-///   [`Self::link_library`].
+/// * If you have source code, or a [`ast::Module`], see [`Self::compile_and_statically_link`]
+/// * If you need to reference procedures from a previously assembled [`Library`], but do not want
+///   to include the MAST of those procedures in the assembled artifact, you want to _dynamically
+///   link_ that library, see [`Self::link_dynamically`] for more.
 /// * If you want to incorporate referenced procedures from a previously assembled [`Library`] into
-///   the assembled artifact, see [`Self::link_vendored_library`].
+///   the assembled artifact, you want to _statically link_ that library, see
+///   [`Self::link_statically`] for more.
 #[derive(Clone)]
 pub struct Assembler {
     /// The source manager to use for compilation and source location information
     source_manager: Arc<dyn SourceManager + Send + Sync>,
     /// The global [ModuleGraph] for this assembler.
-    module_graph: Linker,
+    linker: Linker,
     /// Whether to treat warning diagnostics as errors
     warnings_as_errors: bool,
     /// Whether the assembler enables extra debugging information.
     in_debug_mode: bool,
-    /// Collects libraries that can be used during assembly to vendor procedures.
-    vendored_libraries: BTreeMap<RpoDigest, Library>,
 }
 
 impl Default for Assembler {
     fn default() -> Self {
         let source_manager = Arc::new(crate::DefaultSourceManager::default());
-        let module_graph = Linker::new(source_manager.clone());
+        let linker = Linker::new(source_manager.clone());
         Self {
             source_manager,
-            module_graph,
+            linker,
             warnings_as_errors: false,
             in_debug_mode: false,
-            vendored_libraries: BTreeMap::new(),
         }
     }
 }
@@ -120,13 +119,12 @@ impl Default for Assembler {
 impl Assembler {
     /// Start building an [Assembler]
     pub fn new(source_manager: Arc<dyn SourceManager + Send + Sync>) -> Self {
-        let module_graph = Linker::new(source_manager.clone());
+        let linker = Linker::new(source_manager.clone());
         Self {
             source_manager,
-            module_graph,
+            linker,
             warnings_as_errors: false,
             in_debug_mode: false,
-            vendored_libraries: BTreeMap::new(),
         }
     }
 
@@ -136,10 +134,10 @@ impl Assembler {
         kernel_lib: KernelLibrary,
     ) -> Self {
         let (kernel, kernel_module, _) = kernel_lib.into_parts();
-        let module_graph = Linker::with_kernel(source_manager.clone(), kernel, kernel_module);
+        let linker = Linker::with_kernel(source_manager.clone(), kernel, kernel_module);
         Self {
             source_manager,
-            module_graph,
+            linker,
             ..Default::default()
         }
     }
@@ -167,18 +165,22 @@ impl Assembler {
 // ------------------------------------------------------------------------------------------------
 /// Dependency Management
 impl Assembler {
-    /// Ensures `module` is compiled, and registers it with the linker.
+    /// Ensures `module` is compiled, and then statically links it into the final artifact.
     ///
     /// The given module must be a library module, or an error will be returned.
     #[inline]
-    pub fn compile_and_link_module(&mut self, module: impl Compile) -> Result<&mut Self, Report> {
-        self.compile_and_link_modules([module])
+    pub fn compile_and_statically_link(
+        &mut self,
+        module: impl Compile,
+    ) -> Result<&mut Self, Report> {
+        self.compile_and_statically_link_all([module])
     }
 
-    /// Compiles the given modules, and registers them with the linker.
+    /// Ensures every module in `modules` is compiled, and then statically links them into the final
+    /// artifact.
     ///
     /// All of the given modules must be library modules, or an error will be returned.
-    pub fn compile_and_link_modules(
+    pub fn compile_and_statically_link_all(
         &mut self,
         modules: impl IntoIterator<Item = impl Compile>,
     ) -> Result<&mut Self, Report> {
@@ -195,13 +197,13 @@ impl Assembler {
             })
             .collect::<Result<Vec<_>, Report>>()?;
 
-        self.module_graph.link_modules(modules)?;
+        self.linker.link_modules(modules)?;
 
         Ok(self)
     }
 
-    /// Compiles all Miden Assembly modules in the provided directory, and registers them with the
-    /// linker.
+    /// Compiles all Miden Assembly modules in the provided directory, and then statically links
+    /// them into the final artifact.
     ///
     /// When compiling each module, the path of the module is derived by appending path components
     /// corresponding to the relative path of the module in `dir`, to `namespace`. If a source file
@@ -212,28 +214,56 @@ impl Assembler {
     /// directory at path `~/masm`. Now, let's look at how various file system paths would get
     /// translated to their corresponding module paths:
     ///
-    /// | file path | module path |
-    /// |-----------|-------------|
-    /// | ~/masm/mod.masm     | "my_lib" |
-    /// | ~/masm/foo.masm     | "my_lib::foo" |
-    /// | ~/masm/bar/mod.masm | "my_lib::bar" |
+    /// | file path           | module path        |
+    /// |---------------------|--------------------|
+    /// | ~/masm/mod.masm     | "my_lib"           |
+    /// | ~/masm/foo.masm     | "my_lib::foo"      |
+    /// | ~/masm/bar/mod.masm | "my_lib::bar"      |
     /// | ~/masm/bar/baz.masm | "my_lib::bar::baz" |
     #[cfg(feature = "std")]
-    pub fn compile_and_link_from_dir(
+    pub fn compile_and_statically_link_from_dir(
         &mut self,
         namespace: crate::LibraryNamespace,
         dir: &std::path::Path,
     ) -> Result<(), Report> {
         let modules = crate::parser::read_modules_from_dir(namespace, dir, &self.source_manager)?;
-        self.module_graph.link_modules(modules)?;
+        self.linker.link_modules(modules)?;
         Ok(())
     }
 
-    /// Registers `library` with the linker, so that its exports can be referenced during assembly.
+    /// Links the final artifact against `library`.
     ///
-    /// This function does not include the contents of `library` in the final assembly, and as a
-    /// result, the assembled artifact depends on `library`, and requires it to be provided
-    /// separately to the VM at runtime.
+    /// The way in which procedures referenced in `library` will be linked by the final artifact is
+    /// determined by `kind`:
+    ///
+    /// * [`LinkLibraryKind::Dynamic`] inserts a reference to the procedure in the assembled MAST,
+    ///   but not the MAST of the procedure itself. Consequently, it is necessary to provide both
+    ///   the assembled artifact _and_ `library` to the VM when executing the program, otherwise the
+    ///   procedure reference will not be resolvable at runtime.
+    /// * [`LinkLibraryKind::Static`] includes the MAST of the referenced procedure in the final
+    ///   artifact, including any code reachable from that procedure contained in `library`. The
+    ///   resulting artifact does not require `library` to be provided to the VM when executing it,
+    ///   as all procedure references were resolved ahead of time.
+    pub fn link_library(
+        &mut self,
+        library: impl AsRef<Library>,
+        kind: LinkLibraryKind,
+    ) -> Result<(), Report> {
+        self.linker
+            .link_library(LinkLibrary {
+                library: Arc::new(library.as_ref().clone()),
+                kind,
+            })
+            .map_err(Report::from)
+    }
+
+    /// Dynamically link against `library` during assembly.
+    ///
+    /// This makes it possible to resolve references to procedures exported by the library during
+    /// assembly, without including code from the library into the assembled artifact.
+    ///
+    /// Dynamic linking produces smaller binaries, but requires you to provide `library` to the VM
+    /// at runtime when executing the assembled artifact.
     ///
     /// Internally, calls to procedures exported from `library` will be lowered to a
     /// [`vm_core::mast::ExternalNode`] in the resulting MAST. These nodes represent an indirect
@@ -252,45 +282,39 @@ impl Assembler {
     /// around during a deprecation period. It is just something to be aware of if you notice, for
     /// example, unexpected procedure paths or source locations in diagnostics - it could be due
     /// to this edge case.
-    pub fn link_library(&mut self, library: impl AsRef<Library>) -> Result<(), Report> {
-        self.module_graph
-            .link_assembled_modules(library.as_ref().module_infos())
-            .map_err(Report::from)?;
-        Ok(())
+    pub fn link_dynamic_library(&mut self, library: impl AsRef<Library>) -> Result<(), Report> {
+        self.linker
+            .link_library(LinkLibrary::dynamic(Arc::new(library.as_ref().clone())))
+            .map_err(Report::from)
     }
 
-    /// Registers 'library' with the linker, so that its exports can be referenced during assembly.
+    /// Dynamically link against `library` during assembly.
     ///
-    /// See [`Self::link_library`] for more details.
-    pub fn with_library(mut self, library: impl AsRef<Library>) -> Result<Self, Report> {
-        self.link_library(library)?;
+    /// See [`Self::add_dylib`] for more details.
+    pub fn with_dynamic_library(mut self, library: impl AsRef<Library>) -> Result<Self, Report> {
+        self.link_dynamic_library(library)?;
         Ok(self)
     }
 
-    /// Registers `library` with the linker, and additionally, ensures that the assembler includes
-    /// any code referenced in `library`, into the final assembly.
+    /// Statically link against `library` during assembly.
     ///
-    /// This is in contrast to [`Self::link_library`], which explicitly avoids including any code
-    /// from a linked library into the final assembly. Instead, by including all of the parts of
-    /// `library` needed by the final assembly, the assembled artifact can be executed by the
-    /// processor without providing `library`. Assuming all linked libraries are vendored, the
-    /// resulting artifact is entirely self-contained.
+    /// This makes it possible to resolve references to procedures exported by the library during
+    /// assembly, and ensure that the referenced procedure and any code reachable from it in that
+    /// library, are included in the assembled artifact.
     ///
-    /// The only downside to this, is that it makes the size of the assembled artifact larger. How
-    /// much depends on the amount of code in `library` that is referenced.
-    pub fn link_vendored_library(&mut self, library: impl AsRef<Library>) -> Result<(), Report> {
-        self.link_library(&library)?;
-        self.vendored_libraries
-            .insert(*library.as_ref().digest(), library.as_ref().clone());
-        Ok(())
+    /// Static linking produces larger binaries, but allows you to produce self-contained artifacts
+    /// that avoid the requirement that you provide `library` to the VM at runtime.
+    pub fn link_static_library(&mut self, library: impl AsRef<Library>) -> Result<(), Report> {
+        self.linker
+            .link_library(LinkLibrary::r#static(Arc::new(library.as_ref().clone())))
+            .map_err(Report::from)
     }
 
-    /// Registers `library` with the linker, and additionally, ensures that the assembler includes
-    /// any code referenced in `library`, into the final assembly.
+    /// Statically link against `library` during assembly.
     ///
-    /// See [`Self::link_vendored_library`]
-    pub fn with_vendored_library(mut self, library: impl AsRef<Library>) -> Result<Self, Report> {
-        self.link_vendored_library(library)?;
+    /// See [`Self::link_static_library`]
+    pub fn with_static_library(mut self, library: impl AsRef<Library>) -> Result<Self, Report> {
+        self.link_static_library(library)?;
         Ok(self)
     }
 }
@@ -312,7 +336,7 @@ impl Assembler {
     ///
     /// If the assembler was instantiated without a kernel, the internal kernel will be empty.
     pub fn kernel(&self) -> &Kernel {
-        self.module_graph.kernel()
+        self.linker.kernel()
     }
 
     /// Returns a link to the source manager used by this assembler.
@@ -322,8 +346,8 @@ impl Assembler {
 
     #[cfg(any(test, feature = "testing"))]
     #[doc(hidden)]
-    pub fn module_graph(&self) -> &Linker {
-        &self.module_graph
+    pub fn linker(&self) -> &Linker {
+        &self.linker
     }
 }
 
@@ -379,16 +403,23 @@ impl Assembler {
         mut self,
         modules: impl IntoIterator<Item = Box<ast::Module>>,
     ) -> Result<Library, Report> {
-        let module_indices = self.module_graph.link(modules)?;
+        let module_indices = self.linker.link(modules)?;
 
-        let mut mast_forest_builder = MastForestBuilder::new(self.vendored_libraries.values())?;
+        let staticlibs = self.linker.link_libraries().filter_map(|lib| {
+            if matches!(lib.kind, LinkLibraryKind::Static) {
+                Some(lib.library.as_ref())
+            } else {
+                None
+            }
+        });
+        let mut mast_forest_builder = MastForestBuilder::new(staticlibs)?;
         let mut exports = {
             let mut exports = BTreeMap::new();
 
             for module_idx in module_indices {
                 // Note: it is safe to use `unwrap_ast()` here, since all of the modules contained
                 // in `module_indices` are in AST form by definition.
-                let ast_module = self.module_graph[module_idx].unwrap_ast().clone();
+                let ast_module = self.linker[module_idx].unwrap_ast().clone();
 
                 for (proc_idx, fqn) in ast_module.exported_procedures() {
                     let gid = module_idx + proc_idx;
@@ -433,18 +464,25 @@ impl Assembler {
         assert!(program.is_executable());
 
         // Recompute graph with executable module, and start compiling
-        let module_index = self.module_graph.link([program])?[0];
+        let module_index = self.linker.link([program])?[0];
 
         // Find the executable entrypoint Note: it is safe to use `unwrap_ast()` here, since this is
         // the module we just added, which is in AST representation.
-        let entrypoint = self.module_graph[module_index]
+        let entrypoint = self.linker[module_index]
             .unwrap_ast()
             .index_of(|p| p.is_main())
             .map(|index| GlobalProcedureIndex { module: module_index, index })
             .ok_or(SemanticAnalysisError::MissingEntrypoint)?;
 
-        // Compile the module graph rooted at the entrypoint
-        let mut mast_forest_builder = MastForestBuilder::new(self.vendored_libraries.values())?;
+        // Compile the linked module graph rooted at the entrypoint
+        let staticlibs = self.linker.link_libraries().filter_map(|lib| {
+            if matches!(lib.kind, LinkLibraryKind::Static) {
+                Some(lib.library.as_ref())
+            } else {
+                None
+            }
+        });
+        let mut mast_forest_builder = MastForestBuilder::new(staticlibs)?;
 
         self.compile_subgraph(entrypoint, &mut mast_forest_builder)?;
         let entry_node_id = mast_forest_builder
@@ -459,12 +497,12 @@ impl Assembler {
         Ok(Program::with_kernel(
             mast_forest.into(),
             entry_node_id,
-            self.module_graph.kernel().clone(),
+            self.linker.kernel().clone(),
         ))
     }
 
-    /// Compile the uncompiled procedure in the module graph which are members of the subgraph
-    /// rooted at `root`, placing them in the MAST forest builder once compiled.
+    /// Compile the uncompiled procedure in the linked module graph which are members of the
+    /// subgraph rooted at `root`, placing them in the MAST forest builder once compiled.
     ///
     /// Returns an error if any of the provided Miden Assembly is invalid.
     fn compile_subgraph(
@@ -473,20 +511,20 @@ impl Assembler {
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<(), Report> {
         let mut worklist: Vec<GlobalProcedureIndex> = self
-            .module_graph
+            .linker
             .topological_sort_from_root(root)
             .map_err(|cycle| {
                 let iter = cycle.into_node_ids();
                 let mut nodes = Vec::with_capacity(iter.len());
                 for node in iter {
-                    let module = self.module_graph[node.module].path();
-                    let proc = self.module_graph.get_procedure_unsafe(node);
+                    let module = self.linker[node.module].path();
+                    let proc = self.linker.get_procedure_unsafe(node);
                     nodes.push(format!("{}::{}", module, proc.name()));
                 }
                 LinkerError::Cycle { nodes: nodes.into() }
             })?
             .into_iter()
-            .filter(|&gid| self.module_graph.get_procedure_unsafe(gid).is_ast())
+            .filter(|&gid| self.linker.get_procedure_unsafe(gid).is_ast())
             .collect();
 
         assert!(!worklist.is_empty());
@@ -505,11 +543,11 @@ impl Assembler {
         while let Some(procedure_gid) = worklist.pop() {
             // If we have already compiled this procedure, do not recompile
             if let Some(proc) = mast_forest_builder.get_procedure(procedure_gid) {
-                self.module_graph.register_procedure_root(procedure_gid, proc.mast_root())?;
+                self.linker.register_procedure_root(procedure_gid, proc.mast_root())?;
                 continue;
             }
             // Fetch procedure metadata from the graph
-            let module = match &self.module_graph[procedure_gid.module] {
+            let module = match &self.linker[procedure_gid.module] {
                 ModuleLink::Ast(ast_module) => ast_module,
                 // Note: if the containing module is in `Info` representation, there is nothing to
                 // compile.
@@ -544,8 +582,7 @@ impl Assembler {
                     // be added to the forest.
 
                     // Cache the compiled procedure
-                    self.module_graph
-                        .register_procedure_root(procedure_gid, procedure.mast_root())?;
+                    self.linker.register_procedure_root(procedure_gid, procedure.mast_root())?;
                     mast_forest_builder.insert_procedure(procedure_gid, procedure)?;
                 },
                 Export::Alias(proc_alias) => {
@@ -575,7 +612,7 @@ impl Assembler {
                     let procedure = pctx.into_procedure(proc_mast_root, proc_node_id);
 
                     // Make the MAST root available to all dependents
-                    self.module_graph.register_procedure_root(procedure_gid, proc_mast_root)?;
+                    self.linker.register_procedure_root(procedure_gid, proc_mast_root)?;
                     mast_forest_builder.insert_procedure(procedure_gid, procedure)?;
                 },
             }
@@ -595,7 +632,7 @@ impl Assembler {
 
         let num_locals = proc_ctx.num_locals();
 
-        let wrapper_proc = self.module_graph.get_procedure_unsafe(gid);
+        let wrapper_proc = self.linker.get_procedure_unsafe(gid);
         let proc = wrapper_proc.unwrap_ast().unwrap_procedure();
         let proc_body_id = if num_locals > 0 {
             // For procedures with locals, we need to update fmp register before and after the
@@ -831,7 +868,7 @@ impl Assembler {
             module: proc_ctx.id().module,
             kind,
         };
-        let resolved = self.module_graph.resolve_target(&caller, target)?;
+        let resolved = self.linker.resolve_target(&caller, target)?;
         match resolved {
             ResolvedTarget::Phantom(mast_root) => self.ensure_valid_procedure_mast_root(
                 kind,
@@ -844,7 +881,7 @@ impl Assembler {
                     Some(proc) => Ok(proc.body_node_id()),
                     // We didn't find the procedure in our current MAST forest. We still need to
                     // check if it exists in one of a library dependency.
-                    None => match self.module_graph.get_procedure_unsafe(gid) {
+                    None => match self.linker.get_procedure_unsafe(gid) {
                         ProcedureLink::Info(p) => self.ensure_valid_procedure_mast_root(
                             kind,
                             target.span(),
@@ -852,7 +889,7 @@ impl Assembler {
                             mast_forest_builder,
                         ),
                         ProcedureLink::Ast(_) => panic!(
-                            "AST procedure {gid:?} exits in the module graph but not in the MastForestBuilder"
+                            "AST procedure {gid:?} exists in the linker, but not in the MastForestBuilder"
                         ),
                     },
                 }
@@ -894,17 +931,16 @@ impl Assembler {
                     );
                 }
                 let maybe_kernel_path = proc.path();
-                let module =
-                    self.module_graph.find_module(maybe_kernel_path).unwrap_or_else(|| {
-                        panic!(
-                            "linker failed to validate syscall correctly: {}",
-                            Report::new(LinkerError::InvalidSysCallTarget {
-                                span,
-                                source_file: current_source_file.clone(),
-                                callee: proc.fully_qualified_name().clone().into(),
-                            })
-                        )
-                    });
+                let module = self.linker.find_module(maybe_kernel_path).unwrap_or_else(|| {
+                    panic!(
+                        "linker failed to validate syscall correctly: {}",
+                        Report::new(LinkerError::InvalidSysCallTarget {
+                            span,
+                            source_file: current_source_file.clone(),
+                            callee: proc.fully_qualified_name().clone().into(),
+                        })
+                    )
+                });
                 // Note: this module is guaranteed to be of AST variant, since we have the
                 // AST of a procedure contained in it (i.e. `proc`). Hence, it must be that
                 // the entire module is in AST representation as well.

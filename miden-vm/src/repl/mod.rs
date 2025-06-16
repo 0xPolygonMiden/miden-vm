@@ -308,7 +308,7 @@ fn execute(
     let mut assembler = Assembler::default();
 
     for library in provided_libraries {
-        assembler.link_library(library).map_err(|err| format!("{err}"))?;
+        assembler.link_dynamic_library(library).map_err(|err| format!("{err}"))?;
     }
 
     let source_manager = assembler.source_manager();

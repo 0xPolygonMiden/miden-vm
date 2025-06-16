@@ -19,7 +19,7 @@ pub use self::{
 };
 use super::{GlobalProcedureIndex, ModuleIndex};
 use crate::{
-    LibraryNamespace, LibraryPath, SourceManager, Spanned,
+    Library, LibraryNamespace, LibraryPath, SourceManager, Spanned,
     ast::{
         Export, InvocationTarget, InvokeKind, Module, ProcedureIndex, ProcedureName,
         ResolvedProcedure,
@@ -113,11 +113,96 @@ pub struct PreLinkModule {
     pub module_index: ModuleIndex,
 }
 
+/// Represents an assembled module or modules to use when resolving references while linking,
+/// as well as the method by which referenced symbols will be linked into the assembled MAST.
+#[derive(Clone)]
+pub struct LinkLibrary {
+    /// The library to link
+    pub library: Arc<Library>,
+    /// How to link against this library
+    pub kind: LinkLibraryKind,
+}
+
+impl LinkLibrary {
+    /// Dynamically link against `library`
+    pub fn dynamic(library: Arc<Library>) -> Self {
+        Self { library, kind: LinkLibraryKind::Dynamic }
+    }
+
+    /// Statically link `library`
+    pub fn r#static(library: Arc<Library>) -> Self {
+        Self { library, kind: LinkLibraryKind::Static }
+    }
+}
+
+/// Represents how a library should be linked into the assembled MAST
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum LinkLibraryKind {
+    /// A dynamically-linked library.
+    ///
+    /// References to symbols of dynamically-linked libraries expect to have those symbols resolved
+    /// at runtime, i.e. it is expected that the library was loaded (or will be loaded on-demand),
+    /// and that the referenced symbol is resolvable by the VM.
+    ///
+    /// Concretely, the digest corresponding to a referenced procedure symbol will be linked as a
+    /// [`core::mast::ExternalNode`], rather than including the procedure in the assembled MAST,
+    /// and referencing the procedure via [`core::mast::MastNodeId`].
+    #[default]
+    Dynamic,
+    /// A statically-linked library.
+    ///
+    /// References to symbols of statically-linked libraries expect to be resolvable by the linker,
+    /// during assembly, i.e. it is expected that the library was provided to the assembler/linker
+    /// as an input, and that the entire definition of the referenced symbol is available.
+    ///
+    /// Concretely, a statically linked procedure will have its root, and all reachable nodes found
+    /// in the MAST of the library, included in the assembled MAST, and referenced via
+    /// [`core::mast::MastNodeId`].
+    ///
+    /// Statically linked symbols are thus merged into the assembled artifact as if they had been
+    /// defined in your own project, and the library they were originally defined in will not be
+    /// required to be provided at runtime, as is the case with dynamically-linked libraries.
+    Static,
+}
+
 // LINKER
 // ================================================================================================
 
+/// The [`Linker`] is responsible for analyzing the input modules and libraries provided to the
+/// assembler, and _linking_ them together.
+///
+/// The core conceptual data structure of the linker is the _module graph_, which is implemented
+/// by a vector of module nodes, and a _call graph_, which is implemented as an adjacency matrix
+/// of procedure nodes and the outgoing edges from those nodes, representing references from that
+/// procedure to another symbol (typically as the result of procedure invocation, hence "call"
+/// graph).
+///
+/// Each procedure known to the linker is given a _global procedure index_, which is actually a
+/// pair of indices: a _module index_ (which indexes into the vector of module nodes), and a
+/// _procedure index_ (which indexes into the set of procedures defined by a module). These global
+/// procedure indices function as a unique identifier within the linker, to a specific procedure,
+/// and can be resolved to either the procedure AST, or to metadata about the procedure MAST.
+///
+/// The process of linking involves two phases:
+///
+/// 1. Setting up the linker context, by providing the set of libraries and/or input modules to link
+/// 2. Analyzing and rewriting the module graph, as needed, to ensure that all procedure references
+///    are resolved to either a concrete definition, or a "phantom" reference in the form of a MAST
+///    root.
+///
+/// The assembler will call [`Self::link`] once it has provided all inputs that it wants to link,
+/// which will, when successful, return the set of module indices corresponding to the modules that
+/// comprise the public interface of the assembled artifact. The assembler then constructs the MAST
+/// starting from the exported procedures of those modules, recursively tracing the call graph
+/// based on whether or not the callee is statically or dynamically linked. In the static linking
+/// case, any procedures referenced in a statically-linked library or module will be included in
+/// the assembled artifact. In the dynamic linking case, referenced procedures are instead
+/// referenced in the assembled artifact only by their MAST root.
 #[derive(Clone)]
 pub struct Linker {
+    /// The set of libraries to link against.
+    libraries: BTreeMap<RpoDigest, LinkLibrary>,
+    /// The nodes of the module graph data structure maintained by the linker.
     modules: Vec<Option<ModuleLink>>,
     /// The set of modules pending additional processing before adding them to the graph.
     ///
@@ -134,8 +219,13 @@ pub struct Linker {
     /// The set of MAST roots which have procedure definitions in this graph. There can be
     /// multiple procedures bound to the same root due to having identical code.
     procedures_by_mast_root: BTreeMap<RpoDigest, SmallVec<[GlobalProcedureIndex; 1]>>,
+    /// The index of the kernel module in `modules`, if present
     kernel_index: Option<ModuleIndex>,
+    /// The kernel library being linked against.
+    ///
+    /// This is always provided, with an empty kernel being the default.
     kernel: Kernel,
+    /// The source manager to use when emitting diagnostics.
     source_manager: Arc<dyn SourceManager>,
 }
 
@@ -145,6 +235,7 @@ impl Linker {
     /// Instantiate a new [Linker], using the provided [SourceManager] to resolve source info.
     pub fn new(source_manager: Arc<dyn SourceManager>) -> Self {
         Self {
+            libraries: Default::default(),
             modules: Default::default(),
             pending: Default::default(),
             callgraph: Default::default(),
@@ -155,7 +246,33 @@ impl Linker {
         }
     }
 
-    /// Registers `modules` with the linker.
+    /// Registers `library` and all of its modules with the linker, according to its kind
+    pub fn link_library(&mut self, library: LinkLibrary) -> Result<(), LinkerError> {
+        use alloc::collections::btree_map::Entry;
+
+        match self.libraries.entry(*library.library.digest()) {
+            Entry::Vacant(entry) => {
+                entry.insert(library.clone());
+                self.link_assembled_modules(library.library.module_infos())
+            },
+            Entry::Occupied(mut entry) => {
+                let prev = entry.get_mut();
+
+                // If the same library is linked both dynamically and statically, prefer static
+                // linking always.
+                if matches!(prev.kind, LinkLibraryKind::Dynamic) {
+                    prev.kind = library.kind;
+                }
+
+                Ok(())
+            },
+        }
+    }
+
+    /// Registers a set of MAST modules with the linker.
+    ///
+    /// If called directly, the modules will default to being dynamically linked. You must use
+    /// [`Self::link_library`] if you wish to statically link a set of assembled modules.
     pub fn link_assembled_modules(
         &mut self,
         modules: impl IntoIterator<Item = ModuleInfo>,
@@ -167,12 +284,15 @@ impl Linker {
         Ok(())
     }
 
-    /// Registers `module` with the linker.
+    /// Registers a MAST module with the linker.
+    ///
+    /// If called directly, the module will default to being dynamically linked. You must use
+    /// [`Self::link_library`] if you wish to statically link `module`.
     pub fn link_assembled_module(
         &mut self,
         module: ModuleInfo,
     ) -> Result<ModuleIndex, LinkerError> {
-        log::debug!(target: "module-graph", "adding pre-assembled module {} to module graph", module.path());
+        log::debug!(target: "linker", "adding pre-assembled module {} to module graph", module.path());
 
         let module_path = module.path();
         let is_duplicate =
@@ -191,7 +311,12 @@ impl Linker {
         Ok(module_index)
     }
 
-    /// Adds `modules` to the set of modules to be linked into the final assembly.
+    /// Registers an AST module with the linker.
+    ///
+    /// Modules provided to this method are presumed to be dynamically linked, unless specifically
+    /// handled otherwise by the assembler. In particular, the assembler will only statically link
+    /// the set of AST modules provided to [`Self::link`], as they are expected to comprise the
+    /// public interface of the assembled artifact.
     ///
     /// # Errors
     ///
@@ -212,7 +337,7 @@ impl Linker {
     }
 
     fn link_module(&mut self, module: Box<Module>) -> Result<ModuleIndex, LinkerError> {
-        log::debug!(target: "module-graph", "adding unprocessed module {}", module.path());
+        log::debug!(target: "linker", "adding unprocessed module {}", module.path());
         let module_path = module.path();
 
         let is_duplicate =
@@ -240,7 +365,7 @@ impl Linker {
 // ------------------------------------------------------------------------------------------------
 /// Kernels
 impl Linker {
-    /// Returns a new [ModuleGraph] instantiated from the provided kernel and kernel info module.
+    /// Returns a new [Linker] instantiated from the provided kernel and kernel info module.
     ///
     /// Note: it is assumed that kernel and kernel_module are consistent, but this is not checked.
     ///
@@ -252,7 +377,7 @@ impl Linker {
     ) -> Self {
         assert!(!kernel.is_empty());
         assert_eq!(kernel_module.path(), &LibraryPath::from(LibraryNamespace::Kernel));
-        log::debug!(target: "module-graph", "instantiating module graph with kernel {}", kernel_module.path());
+        log::debug!(target: "linker", "instantiating linker with kernel {}", kernel_module.path());
 
         let mut graph = Self::new(source_manager);
         let kernel_index = graph
@@ -291,16 +416,15 @@ impl Linker {
         Ok(module_indices)
     }
 
-    /// Recompute the module graph.
+    /// Compute the module graph from the set of pending modules, and link it, rewriting any AST
+    /// modules with unresolved, or partially-resolved, symbol references.
     ///
-    /// This should be called any time `add_module`, `add_library`, etc., are called, when all such
-    /// modifications to the graph are complete. For example, if you have a pair of libraries, a
-    /// kernel module, and a program module that you want to compile together, you can call the
-    /// various graph builder methods to add those modules to the pending set. Doing so does some
-    /// initial sanity checking, but the bulk of the analysis work is done once the set of modules
-    /// is final, and we can reason globally about a program or library.
+    /// This should be called any time you add more libraries or modules to the module graph, to
+    /// ensure that the graph is valid, and that there are no unresolved references. In general,
+    /// you will only instantiate the linker, build up the graph, and link a single time; but you
+    /// can re-use the linker to build multiple artifacts as well.
     ///
-    /// When this function is called, some initial information is calculated about the modules
+    /// When this function is called, some initial information is calculated about the AST modules
     /// which are to be added to the graph, and then each module is visited to perform a deeper
     /// analysis than can be done by the `sema` module, as we now have the full set of modules
     /// available to do import resolution, and to rewrite invoke targets with their absolute paths
@@ -331,7 +455,7 @@ impl Linker {
     /// operation not supported by the current configuration. Basically, for any reason that would
     /// cause the resulting graph to represent an invalid program.
     fn link_and_rewrite(&mut self) -> Result<(), LinkerError> {
-        log::debug!(target: "module-graph", "processing {} new modules, and recomputing module graph", self.pending.len());
+        log::debug!(target: "linker", "processing {} new modules, and recomputing module graph", self.pending.len());
 
         // It is acceptable for there to be no changes, but if the graph is empty and no changes
         // are being made, we treat that as an error
@@ -350,7 +474,7 @@ impl Linker {
         let pending = core::mem::take(&mut self.pending);
         for PreLinkModule { module: pending_module, module_index } in pending.iter() {
             log::debug!(
-                target: "module-graph",
+                target: "linker",
                 "adding procedures from pending module {} (index {}) to call graph",
                 pending_module.path(),
                 module_index.as_usize()
@@ -382,19 +506,19 @@ impl Linker {
 
         // Visit all of the newly-added modules and perform any rewrites to AST modules.
         for PreLinkModule { mut module, module_index } in pending.into_iter() {
-            log::debug!(target: "module-graph", "rewriting pending module {} (index {})", module.path(), module_index.as_usize());
+            log::debug!(target: "linker", "rewriting pending module {} (index {})", module.path(), module_index.as_usize());
 
             let mut rewriter = ModuleRewriter::new(&resolver);
             rewriter.apply(module_index, &mut module)?;
 
             log::debug!(
-                target: "module-graph",
+                target: "linker",
                 "processing procedures of pending module {} (index {})",
                 module.path(),
                 module_index.as_usize()
             );
             for (index, procedure) in module.procedures().enumerate() {
-                log::debug!(target: "module-graph", "  * processing {} at index {index}", procedure.name());
+                log::debug!(target: "linker", "  * processing {} at index {index}", procedure.name());
 
                 let procedure_id = ProcedureIndex::new(index);
                 let gid = GlobalProcedureIndex {
@@ -404,7 +528,7 @@ impl Linker {
 
                 // Add edge to the call graph to represent dependency on aliased procedures
                 if let Export::Alias(alias) = procedure {
-                    log::debug!(target: "module-graph", "  | resolving alias {}..", alias.target());
+                    log::debug!(target: "linker", "  | resolving alias {}..", alias.target());
 
                     let caller = CallerInfo {
                         span: alias.span(),
@@ -416,7 +540,7 @@ impl Linker {
                         resolver.resolve_target(&caller, &target)?.into_global_id()
                     {
                         log::debug!(
-                            target: "module-graph",
+                            target: "linker",
                             "  | resolved alias to gid {:?}:{:?}",
                             callee.module,
                             callee.index
@@ -427,7 +551,7 @@ impl Linker {
 
                 // Add edges to all transitive dependencies of this procedure due to calls
                 for invoke in procedure.invoked() {
-                    log::debug!(target: "module-graph", "  | recording {} dependency on {}", invoke.kind, &invoke.target);
+                    log::debug!(target: "linker", "  | recording {} dependency on {}", invoke.kind, &invoke.target);
 
                     let caller = CallerInfo {
                         span: invoke.span(),
@@ -438,7 +562,7 @@ impl Linker {
                         resolver.resolve_target(&caller, &invoke.target)?.into_global_id()
                     {
                         log::debug!(
-                            target: "module-graph",
+                            target: "linker",
                             "  | resolved dependency to gid {}:{}",
                             callee.module.as_usize(),
                             callee.index.as_usize()
@@ -477,7 +601,7 @@ impl Linker {
 
             match module {
                 ModuleLink::Ast(module) => {
-                    log::debug!(target: "module-graph", "re-analyzing module {} (index {})", module.path(), module_index.as_usize());
+                    log::debug!(target: "linker", "re-analyzing module {} (index {})", module.path(), module_index.as_usize());
                     // Re-analyze the module, and if we needed to clone-on-write, the new module
                     // will be returned. Otherwise, `Ok(None)` indicates that
                     // the module is unchanged, and `Err` indicates that
@@ -531,6 +655,11 @@ impl Linker {
 // ------------------------------------------------------------------------------------------------
 /// Accessors/Queries
 impl Linker {
+    /// Get an iterator over the external libraries the linker has linked against
+    pub fn link_libraries(&self) -> impl Iterator<Item = &LinkLibrary> {
+        self.libraries.values()
+    }
+
     /// Compute the topological sort of the callgraph rooted at `caller`
     pub fn topological_sort_from_root(
         &self,
@@ -539,7 +668,7 @@ impl Linker {
         self.callgraph.toposort_caller(caller)
     }
 
-    /// Fetch a [WrapperProcedure] by [GlobalProcedureIndex].
+    /// Fetch a [ProcedureLink] by its [GlobalProcedureIndex].
     ///
     /// # Panics
     /// - Panics if index is invalid.

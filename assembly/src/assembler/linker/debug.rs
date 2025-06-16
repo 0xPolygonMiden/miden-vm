@@ -4,7 +4,7 @@ use super::*;
 
 impl fmt::Debug for Linker {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("ModuleGraph")
+        f.debug_struct("Linker")
             .field("nodes", &DisplayModuleGraphNodes(&self.modules))
             .field("graph", &DisplayModuleGraph(self))
             .finish()
