@@ -387,15 +387,19 @@ where
 
 /// Returns the operation unique label for memory operations.
 ///
-/// The memory operation label is currently the only label that is built differently (or *simpler*)
-/// from the other chiplets. We should refactor the other chiplets to use a similar (simpler)
-/// approach.
+/// The memory selector flags are `[1, 1, 0, is_read, is_word_access]`.
+/// The flag is derived as the big-endian representation of these flags, plus one.
+/// They are also defined in [`chiplets::memory`](miden_air::trace::chiplets::memory).
 fn get_memory_op_label(is_read: Felt, is_word_access: Felt) -> Felt {
-    const MEMORY_SELECTOR: u8 = 0b110;
-    // Equivalent to `is_read << 1`
-    let is_read_left_shift_1 = is_read + is_read;
+    let is_read = (is_read == ONE) as u8;
+    let is_word_access = (is_word_access == ONE) as u8;
 
-    Felt::from(MEMORY_SELECTOR << 2) + is_read_left_shift_1 + is_word_access
+    const MEMORY_SELECTOR_FLAG_BASE: u8 = 0b00_011 + 1;
+    const OP_FLAG_SHIFT: u8 = 3;
+
+    let op_flag = is_word_access + 2 * is_read;
+
+    Felt::from(MEMORY_SELECTOR_FLAG_BASE + (op_flag << OP_FLAG_SHIFT))
 }
 
 // MESSAGES
