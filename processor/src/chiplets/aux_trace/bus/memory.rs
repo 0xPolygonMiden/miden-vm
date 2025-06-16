@@ -396,10 +396,10 @@ fn get_memory_op_label(is_read: Felt, is_word_access: Felt) -> Felt {
     let is_read = (is_read == ONE) as u8;
     let is_word_access = (is_word_access == ONE) as u8;
 
-    const MEMORY_SELECTOR_FLAG_BASE: u8 = 0b00_011 + 1;
+    const MEMORY_SELECTOR_FLAG_BASE: u8 = 0b011 + 1;
     const OP_FLAG_SHIFT: u8 = 3;
 
-    let op_flag = is_word_access + 2 * is_read;
+    let op_flag = is_read + 2 * is_word_access;
 
     Felt::from(MEMORY_SELECTOR_FLAG_BASE + (op_flag << OP_FLAG_SHIFT))
 }
