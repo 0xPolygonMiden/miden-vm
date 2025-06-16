@@ -311,9 +311,19 @@ impl Linker {
         Ok(module_index)
     }
 
+    /// Registers a set of AST modules with the linker.
+    ///
+    /// See [`Self::link_module`] for more details.
+    pub fn link_modules(
+        &mut self,
+        modules: impl IntoIterator<Item = Box<Module>>,
+    ) -> Result<Vec<ModuleIndex>, LinkerError> {
+        modules.into_iter().map(|m| self.link_module(m)).collect()
+    }
+
     /// Registers an AST module with the linker.
     ///
-    /// Modules provided to this method are presumed to be dynamically linked, unless specifically
+    /// A module provided to this method is presumed to be dynamically linked, unless specifically
     /// handled otherwise by the assembler. In particular, the assembler will only statically link
     /// the set of AST modules provided to [`Self::link`], as they are expected to comprise the
     /// public interface of the assembled artifact.
@@ -329,14 +339,7 @@ impl Linker {
     ///
     /// This function will panic if the number of modules exceeds the maximum representable
     /// [ModuleIndex] value, `u16::MAX`.
-    pub fn link_modules(
-        &mut self,
-        modules: impl IntoIterator<Item = Box<Module>>,
-    ) -> Result<Vec<ModuleIndex>, LinkerError> {
-        modules.into_iter().map(|m| self.link_module(m)).collect()
-    }
-
-    fn link_module(&mut self, module: Box<Module>) -> Result<ModuleIndex, LinkerError> {
+    pub fn link_module(&mut self, module: Box<Module>) -> Result<ModuleIndex, LinkerError> {
         log::debug!(target: "linker", "adding unprocessed module {}", module.path());
         let module_path = module.path();
 
