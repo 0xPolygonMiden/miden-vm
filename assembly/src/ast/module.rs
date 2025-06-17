@@ -163,7 +163,7 @@ impl Module {
         Self::new(ModuleKind::Kernel, LibraryNamespace::Kernel.into())
     }
 
-    /// An alias for creating the default, but empty, `#exec` [Module].
+    /// An alias for creating the default, but empty, `$exec` [Module].
     pub fn new_executable() -> Self {
         Self::new(ModuleKind::Executable, LibraryNamespace::Exec.into())
     }

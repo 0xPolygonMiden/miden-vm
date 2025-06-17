@@ -589,10 +589,10 @@ mod tests {
         let path = LibraryPath::new("miden:base/account@0.1.0").unwrap();
         assert_eq!(path.num_components(), 1);
 
-        let path = LibraryPath::new("#exec::bar::baz").unwrap();
+        let path = LibraryPath::new("$exec::bar::baz").unwrap();
         assert_eq!(path.num_components(), 3);
 
-        let path = LibraryPath::new("#sys::bar::baz").unwrap();
+        let path = LibraryPath::new("$kernel::bar::baz").unwrap();
         assert_eq!(path.num_components(), 3);
     }
 
