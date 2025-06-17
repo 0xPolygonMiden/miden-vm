@@ -65,32 +65,37 @@ pub struct MastForestBuilder {
     /// used as a candidate set of nodes that may be eliminated if the are not referenced by any
     /// other node in the forest and are not a root of any procedure.
     merged_basic_block_ids: BTreeSet<MastNodeId>,
-    /// A MastForest that contains vendored libraries, it's used to find precompiled procedures and
-    /// copy their subtrees instead of inserting external nodes.
-    vendored_mast: Arc<MastForest>,
-    /// Keeps track of the new ids assigned to nodes that are copied from the vendored_mast.
-    vendored_remapping: Remapping,
+    /// A MastForest that contains the MAST of all statically-linked libraries, it's used to find
+    /// precompiled procedures and copy their subtrees instead of inserting external nodes.
+    statically_linked_mast: Arc<MastForest>,
+    /// Keeps track of the new ids assigned to nodes that are copied from the MAST of
+    /// statically-linked libraries.
+    statically_linked_mast_remapping: Remapping,
 }
 
 impl MastForestBuilder {
-    /// Creates a new builder that can access vendored libraries.
+    /// Creates a new builder which will transitively include the MAST of any procedures referenced
+    /// in the provided set of statically-linked libraries.
     ///
-    /// When [`Self::vendor_or_ensure_external`] is called, if the root is present in the vendored
-    /// libraries, the body of the function is copied in the MAST Forest being built. Otherwise an
-    /// external node is inserted and the funtion body is expected to be found in a library added at
-    /// runtime.
+    /// In all other cases, references to procedures not present in the main MastForest are assumed
+    /// to be dynamically-linked, and are inserted as an external node. Dynamically-linked libraries
+    /// must be provided separately to the processor at runtime.
     pub fn new<'a>(
-        vendored_libraries: impl IntoIterator<Item = &'a Library>,
+        static_libraries: impl IntoIterator<Item = &'a Library>,
     ) -> Result<Self, Report> {
-        // All vendored library are merged into a single MastForest.
-        let forests = vendored_libraries.into_iter().map(|lib| lib.mast_forest().as_ref());
-        let (vendored_mast, _remapping) = MastForest::merge(forests).into_diagnostic()?;
-        // The adviceMap of the vendored forest is copied to the forest being built.
+        // All statically-linked libraries are merged into a single MastForest.
+        let forests = static_libraries.into_iter().map(|lib| lib.mast_forest().as_ref());
+        let (statically_linked_mast, _remapping) = MastForest::merge(forests).into_diagnostic()?;
+        // The AdviceMap of the statically-linkeed forest is copied to the forest being built.
+        //
+        // This might include excess advice map data in the built MastForest, but we currently do
+        // not do any analysis to determine what advice map data is actually required by parts of
+        // the library(s) that are actually linked into the output.
         let mut mast_forest = MastForest::default();
-        *mast_forest.advice_map_mut() = vendored_mast.advice_map().clone();
+        *mast_forest.advice_map_mut() = statically_linked_mast.advice_map().clone();
         Ok(MastForestBuilder {
             mast_forest,
-            vendored_mast: Arc::new(vendored_mast),
+            statically_linked_mast: Arc::new(statically_linked_mast),
             ..Self::default()
         })
     }
@@ -487,19 +492,20 @@ impl MastForestBuilder {
         self.ensure_node(MastNode::new_dyncall())
     }
 
-    /// If the root is present in the vendored MAST, its subtree is copied. Otherwise an
-    /// external node is added to the forest.
-    pub fn vendor_or_ensure_external(
-        &mut self,
-        mast_root: RpoDigest,
-    ) -> Result<MastNodeId, Report> {
-        if let Some(root_id) = self.vendored_mast.find_procedure_root(mast_root) {
-            for old_id in SubtreeIterator::new(&root_id, &self.vendored_mast.clone()) {
-                let node = self.vendored_mast[old_id].remap_children(&self.vendored_remapping);
+    /// Adds a node corresponding to the given MAST root, according to how it is linked.
+    ///
+    /// * If statically-linked, then the entire subtree is copied, and the MastNodeId of the root of
+    ///   the inserted subtree is returned.
+    /// * If dynamically-linked, then an external node is inserted, and its MastNodeId is returned
+    pub fn ensure_external_link(&mut self, mast_root: RpoDigest) -> Result<MastNodeId, Report> {
+        if let Some(root_id) = self.statically_linked_mast.find_procedure_root(mast_root) {
+            for old_id in SubtreeIterator::new(&root_id, &self.statically_linked_mast.clone()) {
+                let node = self.statically_linked_mast[old_id]
+                    .remap_children(&self.statically_linked_mast_remapping);
                 let new_id = self.ensure_node(node)?;
-                self.vendored_remapping.insert(old_id, new_id);
+                self.statically_linked_mast_remapping.insert(old_id, new_id);
             }
-            Ok(root_id.remap(&self.vendored_remapping))
+            Ok(root_id.remap(&self.statically_linked_mast_remapping))
         } else {
             self.ensure_node(MastNode::new_external(mast_root))
         }

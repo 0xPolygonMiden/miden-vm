@@ -34,7 +34,7 @@ struct ThinModule {
 pub struct CallerInfo {
     /// The source span of the caller
     pub span: SourceSpan,
-    /// The "where", i.e. index of the caller's module in the [ModuleGraph].
+    /// The "where", i.e. index of the caller's module node in the [Linker] module graph.
     pub module: ModuleIndex,
     /// The "how", i.e. how the callee is being invoked.
     ///
@@ -46,18 +46,18 @@ pub struct CallerInfo {
 /// Represents the output of the [NameResolver] when it resolves a procedure name.
 #[derive(Debug)]
 pub enum ResolvedTarget {
-    /// The callee was resolved to a known procedure in the [ModuleGraph]
+    /// The callee was resolved to a known procedure in the module graph
     Exact { gid: GlobalProcedureIndex },
     /// The callee was resolved to a concrete procedure definition, and can be referenced as
     /// `target` by the caller.
     Resolved {
-        /// The id of the callee procedure in the [ModuleGraph]
+        /// The id of the callee procedure in the module graph
         gid: GlobalProcedureIndex,
         /// The [InvocationTarget] to use in the caller
         target: InvocationTarget,
     },
     /// We know the MAST root of the callee, but the procedure is not available, either in the
-    /// procedure cache or in the [ModuleGraph].
+    /// procedure cache or in the module graph.
     Phantom(RpoDigest),
 }
 
@@ -80,7 +80,7 @@ impl ResolvedTarget {
 /// procedure.
 ///
 /// The [NameResolver] encapsulates the tricky details of doing this, so that users of the resolver
-/// need only provide a reference to a [ModuleGraph], a name they wish to resolve, and some
+/// need only provide a reference to the [Linker], a name they wish to resolve, and some
 /// information about the caller necessary to determine the context in which the name should be
 /// resolved.
 pub struct NameResolver<'a> {
@@ -92,7 +92,7 @@ pub struct NameResolver<'a> {
 }
 
 impl<'a> NameResolver<'a> {
-    /// Create a new [NameResolver] for the provided [ModuleGraph].
+    /// Create a new [NameResolver] for the provided [Linker].
     pub fn new(graph: &'a Linker) -> Self {
         Self { graph, pending: vec![] }
     }
@@ -100,7 +100,7 @@ impl<'a> NameResolver<'a> {
     /// Add a module to the set of "pending" modules this resolver will consult when doing
     /// resolution.
     ///
-    /// Pending modules are those which are being added to the underlying [ModuleGraph], but which
+    /// Pending modules are those which are being added to the underlying module graph, but which
     /// have not been processed yet. When resolving names we may need to visit those modules to
     /// determine the location of the actual definition, but they do not need to be fully
     /// validated/processed to do so.

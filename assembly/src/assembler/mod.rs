@@ -93,7 +93,7 @@ pub use self::{
 pub struct Assembler {
     /// The source manager to use for compilation and source location information
     source_manager: Arc<dyn SourceManager + Send + Sync>,
-    /// The global [ModuleGraph] for this assembler.
+    /// The linker instance used internally to link assembler inputs
     linker: Linker,
     /// Whether to treat warning diagnostics as errors
     warnings_as_errors: bool,
@@ -405,7 +405,7 @@ impl Assembler {
     ) -> Result<Library, Report> {
         let module_indices = self.linker.link(modules)?;
 
-        let staticlibs = self.linker.link_libraries().filter_map(|lib| {
+        let staticlibs = self.linker.libraries().filter_map(|lib| {
             if matches!(lib.kind, LinkLibraryKind::Static) {
                 Some(lib.library.as_ref())
             } else {
@@ -475,7 +475,7 @@ impl Assembler {
             .ok_or(SemanticAnalysisError::MissingEntrypoint)?;
 
         // Compile the linked module graph rooted at the entrypoint
-        let staticlibs = self.linker.link_libraries().filter_map(|lib| {
+        let staticlibs = self.linker.libraries().filter_map(|lib| {
             if matches!(lib.kind, LinkLibraryKind::Static) {
                 Some(lib.library.as_ref())
             } else {
@@ -958,7 +958,7 @@ impl Assembler {
             Some(_) | None => (),
         }
 
-        mast_forest_builder.vendor_or_ensure_external(mast_root)
+        mast_forest_builder.ensure_external_link(mast_root)
     }
 }
 

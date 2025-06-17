@@ -659,7 +659,7 @@ impl Linker {
 /// Accessors/Queries
 impl Linker {
     /// Get an iterator over the external libraries the linker has linked against
-    pub fn link_libraries(&self) -> impl Iterator<Item = &LinkLibrary> {
+    pub fn libraries(&self) -> impl Iterator<Item = &LinkLibrary> {
         self.libraries.values()
     }
 
