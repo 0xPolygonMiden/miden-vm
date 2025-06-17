@@ -13,6 +13,7 @@ use vm_core::{
         DecoratorFingerprint, DecoratorId, MastForest, MastNode, MastNodeFingerprint, MastNodeId,
         Remapping, SubtreeIterator,
     },
+    utils::collections::KvMap,
 };
 
 use super::{GlobalProcedureIndex, Procedure};
@@ -557,20 +558,28 @@ impl IndexMut<DecoratorId> for MastForestBuilder {
 // ------------------------------------------------------------------------------------------------
 
 impl MastForestBuilder {
-    /// Merge an AdviceMap into the one being built within the MAST Forest.
-    pub fn merge_advice_map(&mut self, adv_map: &AdviceMap) -> Result<(), AssemblyError> {
-        for (digest, values) in adv_map.clone().into_iter() {
-            if let Some(stored_values) = self.mast_forest.advice_map().get(&digest) {
+    /// Merges an AdviceMap into the one being built within the MAST Forest.
+    ///
+    /// # Errors
+    ///
+    /// Returns `AdviceMapKeyCollisionOnMerge` if any of the keys of the AdviceMap being merged
+    /// are already present with a different value in the AdviceMap of the Mast Forest. In
+    /// case of error the AdviceMap of the Mast Forest remains unchanged.
+    pub fn merge_advice_map(&mut self, other: &AdviceMap) -> Result<(), AssemblyError> {
+        let mut advice_map = self.mast_forest.advice_map().clone();
+        for (digest, values) in other.iter() {
+            if let Some(stored_values) = advice_map.get(digest) {
                 if stored_values != values {
                     return Err(AssemblyError::Forest(
                         "AdviceMapKeyCollisionOnMerge",
-                        MastForestError::AdviceMapKeyCollisionOnMerge(digest),
+                        MastForestError::AdviceMapKeyCollisionOnMerge(*digest),
                     ));
                 }
             } else {
-                self.mast_forest.advice_map_mut().insert(digest, values.clone());
+                advice_map.insert(*digest, values.clone());
             }
         }
+        *self.mast_forest.advice_map_mut() = advice_map;
         Ok(())
     }
 }
