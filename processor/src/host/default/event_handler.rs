@@ -1,9 +1,6 @@
-use std::{
-    collections::BTreeMap,
-    prelude::rust_2024::{Box, Vec},
-};
+use alloc::collections::BTreeMap;
 
-use crate::{ExecutionError, host::default::EventHandler};
+use crate::{Box, ExecutionError, Vec, host::default::EventHandler};
 
 /// Registry for maintaining event handlers
 #[derive(Default)]

@@ -1,5 +1,3 @@
-use alloc::sync::Arc;
-
 use vm_core::{
     DebugOptions,
     crypto::hash::RpoDigest,
@@ -7,7 +5,7 @@ use vm_core::{
 };
 
 use super::{ExecutionError, ProcessState};
-use crate::{Felt, errors::ErrorContext};
+use crate::{Arc, Felt, errors::ErrorContext};
 
 pub(super) mod advice;
 use advice::AdviceProvider;
@@ -73,6 +71,7 @@ pub trait Host {
 
 /// Handler for debug and trace operations
 pub trait DebugHandler<A: AdviceProvider> {
+    /// TODO: What kind of error should we return
     fn on_debug(
         &mut self,
         advice: &A,
@@ -85,6 +84,7 @@ pub trait DebugHandler<A: AdviceProvider> {
 // ================================================================================================
 
 pub trait TraceHandler<A: AdviceProvider> {
+    /// TODO: What kind of error should we return
     fn on_trace(
         &mut self,
         advice: &A,

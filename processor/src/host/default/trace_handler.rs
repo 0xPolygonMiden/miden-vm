@@ -1,5 +1,3 @@
-use std::println;
-
 use crate::{AdviceProvider, ExecutionError, ProcessState, host::TraceHandler};
 
 /// Default implementation that does nothing
@@ -14,7 +12,7 @@ impl<A: AdviceProvider> TraceHandler<A> for DefaultTraceHandler {
         _trace_id: u32,
     ) -> Result<(), ExecutionError> {
         #[cfg(feature = "std")]
-        println!(
+        std::println!(
             "Trace with id {} emitted at step {} in context {}",
             _trace_id,
             _process.clk(),

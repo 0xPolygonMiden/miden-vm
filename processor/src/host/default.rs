@@ -1,4 +1,4 @@
-use std::{boxed::Box, prelude::rust_2024::Vec, sync::Arc};
+use core::error::Error;
 
 use vm_core::{
     DebugOptions,
@@ -6,8 +6,8 @@ use vm_core::{
 };
 
 use crate::{
-    AdviceProvider, ErrorContext, ExecutionError, Host, KvMap, MastForestStore, MemAdviceProvider,
-    MemMastForestStore, ProcessState,
+    AdviceProvider, Arc, Box, ErrorContext, ExecutionError, Host, KvMap, MastForestStore,
+    MemAdviceProvider, MemMastForestStore, ProcessState, Vec,
     crypto::RpoDigest,
     host::{DebugHandler, TraceHandler},
 };
@@ -22,8 +22,8 @@ mod trace_handler;
 pub use crate::host::default::trace_handler::DefaultTraceHandler;
 
 /// Trait for handling VM events
-/// # NOTE
-/// It's not clear whether the implementor would need to mutate itself.
+/// # TODO
+/// - Does the handler need to be stateful?
 pub trait EventHandler<A> {
     /// Returns the event ID this handler responds to
     fn id(&self) -> u32;
@@ -33,7 +33,7 @@ pub trait EventHandler<A> {
         &mut self,
         advice_provider: &mut A,
         process: ProcessState,
-    ) -> Result<(), ExecutionError>;
+    ) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
 }
 
 /// Trait for libraries that want to provide event handlers to hosts
@@ -181,10 +181,11 @@ impl<A: AdviceProvider, D: DebugHandler<A>, T: TraceHandler<A>> Host for Default
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<(), ExecutionError> {
         if let Some(handler) = self.event_handlers.get(event_id) {
-            handler.on_event(&mut self.adv_provider, process)
+            handler
+                .on_event(&mut self.adv_provider, process)
+                .map_err(|err| ExecutionError::event_error(event_id, err, err_ctx))
         } else {
-            let error = ExecutionError::DuplicateEventHandler { id: event_id }.into();
-            Err(ExecutionError::event_error(error, err_ctx))
+            Err(ExecutionError::invalid_event_id_error(event_id, err_ctx))
         }
     }
 
@@ -212,15 +213,3 @@ impl Default for DefaultHost<MemAdviceProvider> {
         }
     }
 }
-
-// impl<A: Clone> Clone for DefaultHost<MemAdviceProvider> {
-//     fn clone(&self) -> Self {
-//         Self {
-//             adv_provider: self.adv_provider.clone(),
-//             store: self.store.clone(),
-//             event_handlers: self.event_handlers.clone(),
-//             debug_handler: self.,
-//             trace_handler: DefaultTraceHandler,
-//         }
-//     }
-// }

@@ -1,6 +1,6 @@
 use vm_core::DebugOptions;
 
-use crate::{AdviceProvider, ExecutionError, ProcessState, host::DebugHandler};
+use crate::{host::DebugHandler, AdviceProvider, ExecutionError, ProcessState};
 
 /// Default implementation that does nothing
 #[derive(Clone, Default)]
@@ -10,38 +10,12 @@ impl<A: AdviceProvider> DebugHandler<A> for DefaultDebugHandler {
     /// Prints the info about the VM state specified by the provided options to stdout.
     fn on_debug(
         &mut self,
-        advice: &A,
-        process: ProcessState,
-        options: &DebugOptions,
+        _advice: &A,
+        _process: ProcessState,
+        _options: &DebugOptions,
     ) -> Result<(), ExecutionError> {
         #[cfg(feature = "std")]
-        {
-            let printer = printer::Printer::new(process.clk(), process.ctx(), process.fmp());
-            match options {
-                DebugOptions::StackAll => {
-                    printer.print_vm_stack(process, None);
-                },
-                DebugOptions::StackTop(n) => {
-                    printer.print_vm_stack(process, Some(*n as usize));
-                },
-                DebugOptions::MemAll => {
-                    printer.print_mem_all(process);
-                },
-                DebugOptions::MemInterval(n, m) => {
-                    printer.print_mem_interval(process, *n, *m);
-                },
-                DebugOptions::LocalInterval(n, m, num_locals) => {
-                    printer.print_local_interval(
-                        process,
-                        (*n as u32, *m as u32),
-                        *num_locals as u32,
-                    );
-                },
-                DebugOptions::AdvStackTop(length) => {
-                    printer.print_vm_adv_stack(advice, *length as usize);
-                },
-            }
-        }
+        printer::debug(_advice, _process, _options);
         Ok(())
     }
 }
@@ -51,26 +25,55 @@ impl<A: AdviceProvider> DebugHandler<A> for DefaultDebugHandler {
 
 #[cfg(feature = "std")]
 mod printer {
-    use std::{prelude::rust_2015::Vec, print, println};
+    use std::{print, println, vec::Vec};
 
     use miden_air::RowIndex;
+    use vm_core::DebugOptions;
 
     use crate::{AdviceProvider, ContextId, Felt, MemoryAddress, ProcessState};
 
-    pub(super) struct Printer {
+    pub(super) fn debug<A: AdviceProvider>(
+        advice: &A,
+        process: ProcessState,
+        options: &DebugOptions,
+    ) {
+        let printer = Printer::new(process.clk(), process.ctx(), process.fmp());
+        match options {
+            DebugOptions::StackAll => {
+                printer.print_vm_stack(process, None);
+            },
+            DebugOptions::StackTop(n) => {
+                printer.print_vm_stack(process, Some(*n as usize));
+            },
+            DebugOptions::MemAll => {
+                printer.print_mem_all(process);
+            },
+            DebugOptions::MemInterval(n, m) => {
+                printer.print_mem_interval(process, *n, *m);
+            },
+            DebugOptions::LocalInterval(n, m, num_locals) => {
+                printer.print_local_interval(process, (*n as u32, *m as u32), *num_locals as u32);
+            },
+            DebugOptions::AdvStackTop(length) => {
+                printer.print_vm_adv_stack(advice, *length as usize);
+            },
+        }
+    }
+
+    struct Printer {
         clk: RowIndex,
         ctx: ContextId,
         fmp: u32,
     }
 
     impl Printer {
-        pub(super) fn new(clk: RowIndex, ctx: ContextId, fmp: u64) -> Self {
+        fn new(clk: RowIndex, ctx: ContextId, fmp: u64) -> Self {
             Self { clk, ctx, fmp: fmp as u32 }
         }
 
         /// Prints the number of stack items specified by `n` if it is provided, otherwise prints
         /// the whole stack.
-        pub(super) fn print_vm_stack(&self, process: ProcessState, n: Option<usize>) {
+        fn print_vm_stack(&self, process: ProcessState, n: Option<usize>) {
             let stack = process.get_stack_state();
 
             // determine how many items to print out
@@ -95,11 +98,7 @@ mod printer {
 
         /// Prints length items from the top of the  advice stack. If length is 0 it returns the
         /// whole stack.
-        pub(super) fn print_vm_adv_stack(
-            &self,
-            advice_provider: &impl AdviceProvider,
-            length: usize,
-        ) {
+        fn print_vm_adv_stack(&self, advice_provider: &impl AdviceProvider, length: usize) {
             let stack = advice_provider.peek_stack(length);
 
             // we may have less elements than requested
@@ -120,7 +119,7 @@ mod printer {
         }
 
         /// Prints the whole memory state at the cycle `clk` in context `ctx`.
-        pub(super) fn print_mem_all(&self, process: ProcessState) {
+        fn print_mem_all(&self, process: ProcessState) {
             let mem = process.get_mem_state(self.ctx);
             let element_width = mem
                 .iter()
@@ -142,7 +141,7 @@ mod printer {
         }
 
         /// Prints memory values in the provided addresses interval.
-        pub(super) fn print_mem_interval(&self, process: ProcessState, n: u32, m: u32) {
+        fn print_mem_interval(&self, process: ProcessState, n: u32, m: u32) {
             let mut mem_interval = Vec::new();
             for addr in n..m + 1 {
                 mem_interval.push((addr, process.get_mem_value(self.ctx, addr)));
@@ -166,7 +165,7 @@ mod printer {
         /// Prints locals in provided indexes interval.
         ///
         /// The interval given is inclusive on *both* ends.
-        pub(super) fn print_local_interval(
+        fn print_local_interval(
             &self,
             process: ProcessState,
             interval: (u32, u32),
@@ -207,7 +206,7 @@ mod printer {
     ///
     /// If `is_local` is true, the output addresses are formatted as decimal values, otherwise as
     /// hex strings.
-    pub(super) fn print_interval(mem_interval: Vec<(u32, Option<Felt>)>, is_local: bool) {
+    fn print_interval(mem_interval: Vec<(u32, Option<Felt>)>, is_local: bool) {
         let element_width = mem_interval
             .iter()
             .map(|(_addr, value)| element_printed_width(*value))
@@ -229,7 +228,7 @@ mod printer {
     ///
     /// If `is_local` is true, the output address is formatted as decimal value, otherwise as hex
     /// string.
-    pub(super) fn print_mem_address(
+    fn print_mem_address(
         addr: MemoryAddress,
         mem_value: Option<Felt>,
         is_last: bool,
@@ -266,7 +265,7 @@ mod printer {
     }
 
     /// Returns the number of digits required to print the provided element.
-    pub(super) fn element_printed_width(element: Option<Felt>) -> u32 {
+    fn element_printed_width(element: Option<Felt>) -> u32 {
         if let Some(element) = element {
             element.as_int().checked_ilog10().unwrap_or(1) + 1
         } else {

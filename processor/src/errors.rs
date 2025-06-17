@@ -89,6 +89,7 @@ pub enum ExecutionError {
         label: SourceSpan,
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
+        event_id: u32,
         #[source]
         error: Box<dyn Error + Send + Sync + 'static>,
     },
@@ -336,6 +337,15 @@ pub enum ExecutionError {
     #[error("failed to execute arithmetic circuit evaluation operation: {id}")]
     #[diagnostic()]
     DuplicateEventHandler { id: u32 },
+    #[error("got unexpected event_id: {id}")]
+    #[diagnostic()]
+    InvalidEventId {
+        id: u32,
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+    },
 }
 
 impl From<Ext2InttError> for ExecutionError {
@@ -385,12 +395,19 @@ impl ExecutionError {
     }
 
     pub fn event_error(
+        event_id: u32,
         error: Box<dyn Error + Send + Sync + 'static>,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
 
-        Self::EventError { label, source_file, error }
+        Self::EventError { label, source_file, event_id, error }
+    }
+
+    pub fn invalid_event_id_error(id: u32, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+
+        Self::InvalidEventId { id, label, source_file }
     }
 
     pub fn failed_assertion(
