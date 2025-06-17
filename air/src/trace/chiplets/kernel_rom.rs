@@ -28,5 +28,5 @@ pub const KERNEL_PROC_CALL_LABEL: Felt = Felt::new(0b001111 + 1);
 /// - Chiplet selector: [1, 1, 1, 1, 0]
 /// - s_first value: 1
 /// - Combined selector: [1, 1, 1, 1, 0 | 1]
-/// - Reverse bits and add 1 to get final label value: [1 | 0, 1, 1, 1, 1] + 1 = 16
+/// - Reverse bits and add 1 to get final label value: [1 | 0, 1, 1, 1, 1] + 1 = 48
 pub const KERNEL_PROC_INIT_LABEL: Felt = Felt::new(0b101111 + 1);
