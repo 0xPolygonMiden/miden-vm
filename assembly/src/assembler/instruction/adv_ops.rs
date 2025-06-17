@@ -1,7 +1,11 @@
-use vm_core::{Operation, debuginfo::Spanned};
+use vm_core::Operation;
 
 use super::BasicBlockBuilder;
-use crate::{ADVICE_READ_LIMIT, AssemblyError, assembler::ProcedureContext};
+use crate::{
+    ADVICE_READ_LIMIT,
+    assembler::ProcedureContext,
+    diagnostics::{RelatedLabel, Report, SourceSpan},
+};
 
 // NON-DETERMINISTIC (ADVICE) INPUTS
 // ================================================================================================
@@ -17,19 +21,17 @@ pub fn adv_push(
     block_builder: &mut BasicBlockBuilder,
     proc_ctx: &ProcedureContext,
     n: u8,
-) -> Result<(), AssemblyError> {
+    span: SourceSpan,
+) -> Result<(), Report> {
     let min = 1;
     let max = ADVICE_READ_LIMIT;
 
     if n < min || n > max {
-        let span = proc_ctx.span();
-        return Err(AssemblyError::InvalidU8Param {
-            span,
-            source_file: proc_ctx.source_manager().get(span.source_id()).ok(),
-            param: n,
-            min,
-            max,
-        });
+        return Err(RelatedLabel::error("invalid argument")
+            .with_labeled_span(span, "this instruction argument is out of range")
+            .with_help(format!("value must be in the range {min}..={max}"))
+            .with_source_file(proc_ctx.source_manager().get(span.source_id()).ok())
+            .into());
     }
 
     block_builder.push_op_many(Operation::AdvPop, n as usize);

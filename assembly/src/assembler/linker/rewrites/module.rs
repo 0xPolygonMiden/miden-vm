@@ -2,10 +2,10 @@ use alloc::collections::BTreeSet;
 use core::ops::ControlFlow;
 
 use crate::{
-    AssemblyError, SourceSpan, Spanned,
+    SourceSpan, Spanned,
     assembler::{
         ModuleIndex, ResolvedTarget,
-        module_graph::{CallerInfo, NameResolver},
+        linker::{CallerInfo, LinkerError, NameResolver},
     },
     ast::{
         AliasTarget, InvocationTarget, Invoke, InvokeKind, Module, Procedure,
@@ -17,7 +17,7 @@ use crate::{
 // ================================================================================================
 
 /// A [ModuleRewriter] handles applying all of the module-wide rewrites to a [Module] that is being
-/// added to a [ModuleGraph]. These rewrites include:
+/// added to the module graph of the linker. These rewrites include:
 ///
 /// * Resolving, at least partially, all of the invocation targets in procedures of the module, and
 ///   rewriting those targets as concretely as possible OR as phantom calls representing procedures
@@ -45,7 +45,7 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
         &mut self,
         module_id: ModuleIndex,
         module: &mut Module,
-    ) -> Result<(), AssemblyError> {
+    ) -> Result<(), LinkerError> {
         self.module_id = module_id;
         self.span = module.span();
 
@@ -60,7 +60,8 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
         &mut self,
         kind: InvokeKind,
         target: &mut InvocationTarget,
-    ) -> ControlFlow<AssemblyError> {
+    ) -> ControlFlow<LinkerError> {
+        log::debug!(target: "linker", "    * rewriting {kind} target {target}");
         let caller = CallerInfo {
             span: target.span(),
             module: self.module_id,
@@ -70,9 +71,11 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
             Err(err) => return ControlFlow::Break(err),
             Ok(ResolvedTarget::Phantom(_)) => (),
             Ok(ResolvedTarget::Exact { .. }) => {
+                log::debug!(target: "linker", "    | target is already resolved exactly");
                 self.invoked.insert(Invoke { kind, target: target.clone() });
             },
             Ok(ResolvedTarget::Resolved { target: new_target, .. }) => {
+                log::debug!(target: "linker", "    | target resolved to {new_target}");
                 *target = new_target;
                 self.invoked.insert(Invoke { kind, target: target.clone() });
             },
@@ -82,27 +85,28 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
     }
 }
 
-impl<'a, 'b: 'a> VisitMut<AssemblyError> for ModuleRewriter<'a, 'b> {
-    fn visit_mut_procedure(&mut self, procedure: &mut Procedure) -> ControlFlow<AssemblyError> {
+impl<'a, 'b: 'a> VisitMut<LinkerError> for ModuleRewriter<'a, 'b> {
+    fn visit_mut_procedure(&mut self, procedure: &mut Procedure) -> ControlFlow<LinkerError> {
+        log::debug!(target: "linker", "  | visiting {}", procedure.name());
         self.invoked.clear();
         self.invoked.extend(procedure.invoked().cloned());
         visit::visit_mut_procedure(self, procedure)?;
         procedure.extend_invoked(core::mem::take(&mut self.invoked));
         ControlFlow::Continue(())
     }
-    fn visit_mut_syscall(&mut self, target: &mut InvocationTarget) -> ControlFlow<AssemblyError> {
+    fn visit_mut_syscall(&mut self, target: &mut InvocationTarget) -> ControlFlow<LinkerError> {
         self.rewrite_target(InvokeKind::SysCall, target)
     }
-    fn visit_mut_call(&mut self, target: &mut InvocationTarget) -> ControlFlow<AssemblyError> {
+    fn visit_mut_call(&mut self, target: &mut InvocationTarget) -> ControlFlow<LinkerError> {
         self.rewrite_target(InvokeKind::Call, target)
     }
     fn visit_mut_invoke_target(
         &mut self,
         target: &mut InvocationTarget,
-    ) -> ControlFlow<AssemblyError> {
+    ) -> ControlFlow<LinkerError> {
         self.rewrite_target(InvokeKind::Exec, target)
     }
-    fn visit_mut_alias_target(&mut self, target: &mut AliasTarget) -> ControlFlow<AssemblyError> {
+    fn visit_mut_alias_target(&mut self, target: &mut AliasTarget) -> ControlFlow<LinkerError> {
         if matches!(target, AliasTarget::MastRoot(_)) {
             return ControlFlow::Continue(());
         }
