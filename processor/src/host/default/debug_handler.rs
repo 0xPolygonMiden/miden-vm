@@ -1,6 +1,6 @@
 use vm_core::DebugOptions;
 
-use crate::{host::DebugHandler, AdviceProvider, ExecutionError, ProcessState};
+use crate::{AdviceProvider, ExecutionError, ProcessState, host::DebugHandler};
 
 /// Default implementation that does nothing
 #[derive(Clone, Default)]

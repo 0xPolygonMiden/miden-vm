@@ -4,8 +4,8 @@ use processor::{
     AdviceProvider, AdviceSource, DefaultHost, ErrorContext, MastForest, ProcessState,
 };
 use prover::{ExecutionError, Host, MemAdviceProvider};
-use stdlib::{falcon_sign, EVENT_FALCON_SIG_TO_STACK};
-use vm_core::{mast::MastNodeExt, DebugOptions};
+use stdlib::{EVENT_FALCON_SIG_TO_STACK, falcon_sign};
+use vm_core::{DebugOptions, mast::MastNodeExt};
 
 pub struct TestHost(DefaultHost<MemAdviceProvider>);
 
