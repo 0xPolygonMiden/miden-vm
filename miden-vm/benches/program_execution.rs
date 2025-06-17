@@ -1,5 +1,5 @@
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
-use miden_vm::{Assembler, DefaultHost, StackInputs, internal::InputFile};
+use miden_vm::{Assembler, DefaultHost, internal::InputFile};
 use processor::{ExecutionOptions, execute};
 use stdlib::StdLibrary;
 use walkdir::WalkDir;
@@ -25,16 +25,20 @@ fn program_execution(c: &mut Criterion) {
 
                 // if there's a `.inputs` file associated with this `.masm` file, use it as the
                 // inputs.
-                let (mut host, stack_inputs) = match InputFile::read(&None, entry.path()) {
-                    Ok(input_data) => {
+                let (advice, stack_inputs) = InputFile::read(&None, entry.path())
+                    .map(|input_data| {
+                        let advice = input_data.parse_advice_provider().unwrap();
                         let stack_inputs = input_data.parse_stack_inputs().unwrap();
-                        let host = DefaultHost::new(input_data.parse_advice_provider().unwrap());
-                        (host, stack_inputs)
-                    },
-                    Err(_) => (DefaultHost::default(), StackInputs::default()),
+                        (advice, stack_inputs)
+                    })
+                    .unwrap_or_default();
+                let std_lib = StdLibrary::default();
+
+                let new_host_fn = move || {
+                    let mut host = DefaultHost::new(advice.clone());
+                    host.load_mast_forest(std_lib.as_ref().mast_forest().clone()).unwrap();
+                    host
                 };
-                host.load_mast_forest(StdLibrary::default().as_ref().mast_forest().clone())
-                    .unwrap();
 
                 // the name of the file without the extension
                 let source = std::fs::read_to_string(entry.path()).unwrap();
@@ -50,7 +54,7 @@ fn program_execution(c: &mut Criterion) {
                         .assemble_program(&source)
                         .expect("Failed to compile test source.");
                     bench.iter_batched(
-                        || host.clone(),
+                        new_host_fn.clone(),
                         |mut host| {
                             execute(
                                 &program,

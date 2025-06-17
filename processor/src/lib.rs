@@ -2,7 +2,6 @@
 
 #[macro_use]
 extern crate alloc;
-
 #[cfg(feature = "std")]
 extern crate std;
 
@@ -55,8 +54,9 @@ use range::RangeChecker;
 
 mod host;
 pub use host::{
-    DefaultHost, Host, MastForestStore, MemMastForestStore,
+    Host, MastForestStore, MemMastForestStore,
     advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, RecAdviceProvider},
+    default::{DefaultDebugHandler, DefaultHost, DefaultTraceHandler, EventHandler, HostLibrary},
 };
 
 mod chiplets;

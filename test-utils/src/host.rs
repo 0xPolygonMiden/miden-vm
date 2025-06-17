@@ -4,8 +4,8 @@ use processor::{
     AdviceProvider, AdviceSource, DefaultHost, ErrorContext, MastForest, ProcessState,
 };
 use prover::{ExecutionError, Host, MemAdviceProvider};
-use stdlib::{EVENT_FALCON_SIG_TO_STACK, falcon_sign};
-use vm_core::mast::MastNodeExt;
+use stdlib::{falcon_sign, EVENT_FALCON_SIG_TO_STACK};
+use vm_core::{mast::MastNodeExt, DebugOptions};
 
 pub struct TestHost(DefaultHost<MemAdviceProvider>);
 
@@ -58,6 +58,18 @@ impl Host for TestHost {
         } else {
             Ok(())
         }
+    }
+
+    fn on_debug(
+        &mut self,
+        process: ProcessState,
+        options: &DebugOptions,
+    ) -> Result<(), ExecutionError> {
+        self.0.on_debug(process, options)
+    }
+
+    fn on_trace(&mut self, process: ProcessState, trace_id: u32) -> Result<(), ExecutionError> {
+        self.0.on_trace(process, trace_id)
     }
 }
 

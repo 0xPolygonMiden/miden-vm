@@ -333,6 +333,9 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         error: AceError,
     },
+    #[error("failed to execute arithmetic circuit evaluation operation: {id}")]
+    #[diagnostic()]
+    DuplicateEventHandler { id: u32 },
 }
 
 impl From<Ext2InttError> for ExecutionError {
