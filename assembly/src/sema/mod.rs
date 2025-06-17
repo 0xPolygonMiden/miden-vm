@@ -269,11 +269,10 @@ fn add_advice_map_entry(
     match module.advice_map.get(&key) {
         Some(_) => {
             context.error(SemanticAnalysisError::AdvMapKeyAlreadyDefined { span: entry.span });
-            Ok(())
         },
         None => {
             module.advice_map.insert(key, entry.value);
-            Ok(())
         },
     }
+    Ok(())
 }
