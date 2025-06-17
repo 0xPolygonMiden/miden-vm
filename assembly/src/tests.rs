@@ -4022,3 +4022,47 @@ fn can_assemble_a_multi_module_kernel() -> Result<(), Report> {
 
     Ok(())
 }
+
+#[test]
+fn test_clear_debug_info() {
+    let source = "
+    const.ERR1=\"oh no\"
+
+    const.DEFAULT_CONST=100
+
+    proc.foo
+        push.1.2 add
+        debug.stack.8
+    end
+
+    begin
+        emit.DEFAULT_CONST
+
+        exec.foo
+
+        debug.stack.4
+
+        drop
+
+        trace.DEFAULT_CONST
+
+        assert.err=ERR1
+    end
+    ";
+
+    let assembler = Assembler::default().with_debug_mode(true);
+    let program = assembler.assemble_program(source).unwrap();
+
+    let mut target_with_debug_info = Vec::new();
+    program.write_into(&mut target_with_debug_info);
+
+    let mut target_without_debug_info = Vec::new();
+    program.clear_debug_info().write_into(&mut target_without_debug_info);
+
+    // uncomment when the values need to be updated
+    // std::dbg!(target_with_debug_info.len());
+    // std::dbg!(target_without_debug_info.len());
+
+    assert!(target_with_debug_info.len() == 591);
+    assert!(target_without_debug_info.len() == 158);
+}

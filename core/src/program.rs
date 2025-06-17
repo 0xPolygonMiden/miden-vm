@@ -66,6 +66,16 @@ impl Program {
             ..self
         }
     }
+
+    /// Clears all debug information in order to reduce the program size.
+    pub fn clear_debug_info(self) -> Self {
+        let mut mast_forest = (*self.mast_forest).clone();
+        mast_forest.clear_debug_info();
+        Self {
+            mast_forest: Arc::new(mast_forest),
+            ..self
+        }
+    }
 }
 
 // ------------------------------------------------------------------------------------------------
