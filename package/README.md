@@ -24,5 +24,4 @@ The package data contains:
 - Account component metadata bytes (optional)
 
 ## License
-
-This project is [MIT licensed](../LICENSE).
+This project is dual-licensed under the [MIT](http://opensource.org/licenses/MIT) and [Apache 2.0](https://opensource.org/license/apache-2-0) licenses.

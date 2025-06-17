@@ -19,19 +19,20 @@ impl CycleError {
 // CALL GRAPH
 // ================================================================================================
 
-/// A [CallGraph] is a directed, acyclic graph which represents all of the edges between
-/// procedures formed by a caller/callee relationship.
+/// A [CallGraph] is a directed, acyclic graph which represents all of the edges between procedures
+/// formed by a caller/callee relationship.
 ///
 /// More precisely, this graph can be used to perform the following analyses:
+///
 /// - What is the maximum call stack depth for a program?
 /// - Are there any recursive procedure calls?
 /// - Are there procedures which are unreachable from the program entrypoint?, i.e. dead code
 /// - What is the set of procedures which are reachable from a given procedure, and which of those
 ///   are (un)conditionally called?
 ///
-/// A [CallGraph] is the actual graph underpinning the [ModuleGraph] data structure, and the
-/// two are intrinsically linked to one another (i.e. a [CallGraph] is meaningless without
-/// the corresponding [ModuleGraph]).
+/// A [CallGraph] is the actual graph underpinning the conceptual "module graph" of the linker, and
+/// the two are intrinsically linked to one another (i.e. a [CallGraph] is meaningless without
+/// the corresponding [super::Linker] state).
 #[derive(Default, Clone)]
 pub struct CallGraph {
     /// The adjacency matrix for procedures in the call graph

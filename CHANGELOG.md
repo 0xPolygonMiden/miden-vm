@@ -5,6 +5,26 @@
 #### Changes
 
 - Removed the obsolete `RpoFalcon512` decorator and associated structs (#1872).
+- Licensed the project under the Apache 2.0 license (in addition to the MIT) (#1882).
+- [BREAKING] Renamed `Assembler::add_module` to `Assembler::compile_and_statically_link` (#1881)
+- [BREAKING] Renamed `Assembler::add_modules` to `Assembler::compile_and_statically_link_all` (#1881)
+- [BREAKING] Renamed `Assembler::add_modules_from_dir` to `Assembler::compile_and_statically_link_from_dir` (#1881)
+- [BREAKING] Removed `Assembler::add_module_with_options` (#1881)
+- [BREAKING] Removed `Assembler::add_modules_with_options` (#1881)
+- [BREAKING] Renamed `Assembler::add_library` to `Assembler::link_dynamic_library` (#1881)
+- [BREAKING] Renamed `Assembler::add_vendored_library` to `Assembler::link_static_library` (#1881)
+- `AssemblyError` was removed, and all uses replaced with `Report` (#1881).
+- Licensed the project under the Apache 2.0 license (in addition to the MIT) (#1840).
+- Uniform chiplet bus message flag encoding (#1887).
+
+#### Enhancements
+
+- The documentation for the `Assembler` and its APIs was improved, to better explain how each affects the final assembled artifact (#1881).
+
+#### Fixes
+
+- Modules can now be provided in any order to the `Assembler`, see #1669 (#1881)
+
 
 ## 0.15.0 (2025-06-06)
 

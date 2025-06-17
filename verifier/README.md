@@ -33,4 +33,4 @@ Miden verifier can be compiled with the following features:
 To compile with `no_std`, disable default features via `--no-default-features` flag.
 
 ## License
-This project is [MIT licensed](../LICENSE).
+This project is dual-licensed under the [MIT](http://opensource.org/licenses/MIT) and [Apache 2.0](https://opensource.org/license/apache-2-0) licenses.

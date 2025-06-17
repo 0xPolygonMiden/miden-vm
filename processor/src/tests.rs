@@ -448,7 +448,7 @@ fn test_diagnostic_invalid_stack_depth_on_return_dyncall() {
         end
 
         begin
-            procref.foo mem_storew.100 dropw push.100 
+            procref.foo mem_storew.100 dropw push.100
             dyncall
         end";
 
@@ -475,7 +475,7 @@ fn test_diagnostic_log_argument_zero() {
     // taking the log of 0 should result in an error
     let source = "
         begin
-            trace.2 ilog2    
+            trace.2 ilog2
         end";
 
     let build_test = build_test_by_mode!(true, source, &[]);
@@ -684,7 +684,7 @@ fn test_diagnostic_no_mast_forest_with_procedure() {
         let src = "
         export.dummy_proc
             push.1
-        end 
+        end
     ";
         source_manager.load(module_name, src.to_string())
     };
@@ -707,7 +707,7 @@ fn test_diagnostic_no_mast_forest_with_procedure() {
 
     let program = Assembler::new(source_manager.clone())
         .with_debug_mode(true)
-        .with_library(&library)
+        .with_dynamic_library(&library)
         .unwrap()
         .assemble_program(program_source)
         .unwrap();

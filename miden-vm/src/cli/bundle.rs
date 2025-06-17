@@ -63,7 +63,7 @@ impl BundleCmd {
                 if !kernel.is_file() {
                     return Err(Report::msg("`kernel` must be a file"));
                 };
-                assembler.add_library(StdLibrary::default())?;
+                assembler.link_dynamic_library(StdLibrary::default())?;
                 let library = KernelLibrary::from_dir(kernel, Some(&self.dir), assembler)?;
                 library.write_to_file(output_file).into_diagnostic()?;
                 println!(
@@ -78,7 +78,7 @@ impl BundleCmd {
                     None => dir.to_string_lossy().into_owned(),
                 };
                 let library_namespace = namespace.parse::<LibraryNamespace>()?;
-                assembler.add_library(StdLibrary::default())?;
+                assembler.link_dynamic_library(StdLibrary::default())?;
                 let library = Library::from_dir(&self.dir, library_namespace, assembler)?;
                 library.write_to_file(output_file).into_diagnostic()?;
                 println!("Built library {namespace}");

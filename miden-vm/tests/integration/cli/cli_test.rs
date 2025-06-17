@@ -91,7 +91,7 @@ fn cli_bundle_kernel() {
 /// A kernel can bundle with a library w/o exports.
 #[test]
 fn cli_bundle_kernel_noexports() {
-    let output_file = std::env::temp_dir().join("cli_bundle_kernel.masl");
+    let output_file = std::env::temp_dir().join("cli_bundle_kernel_noexports.masl");
 
     let mut cmd = bin_under_test().command();
     cmd.arg("bundle")
