@@ -166,6 +166,12 @@ impl CallNode {
     pub fn after_exit(&self) -> &[DecoratorId] {
         &self.after_exit
     }
+
+    /// Clears the decorators.
+    pub fn clear_decorators(&mut self) {
+        self.before_enter.clear();
+        self.after_exit.clear();
+    }
 }
 
 /// Mutators

@@ -231,6 +231,11 @@ impl BasicBlockNode {
     pub fn set_decorators(&mut self, decorator_list: DecoratorList) {
         self.decorators = decorator_list;
     }
+
+    /// Clears the decorators.
+    pub fn clear_decorators(&mut self) {
+        self.decorators.clear();
+    }
 }
 
 impl MastNodeExt for BasicBlockNode {
