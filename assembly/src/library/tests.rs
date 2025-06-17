@@ -71,7 +71,7 @@ fn library_exports() -> Result<(), Report> {
     let lib2_modules = [foo, bar];
 
     let lib2 = Assembler::new(context.source_manager())
-        .with_library(lib1)?
+        .with_dynamic_library(lib1)?
         .assemble_library(lib2_modules.iter().cloned())?;
 
     let foo2 = QualifiedProcedureName::from_str("lib2::foo::foo2").unwrap();
@@ -139,7 +139,7 @@ fn library_procedure_collision() -> Result<(), Report> {
     "#;
     let bar = parse_module!(&context, "lib2::bar", bar);
     let lib2 = Assembler::new(context.source_manager())
-        .with_library(lib1)?
+        .with_dynamic_library(lib1)?
         .assemble_library([bar])?;
 
     // make sure lib2 has the expected exports (i.e., bar1 and bar2)

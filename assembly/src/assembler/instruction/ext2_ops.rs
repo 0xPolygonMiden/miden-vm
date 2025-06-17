@@ -1,7 +1,8 @@
 use vm_core::{Operation::*, sys_events::SystemEvent::Ext2Inv};
 
 use super::BasicBlockBuilder;
-use crate::{AssemblyError, ZERO};
+use crate::{Report, ZERO};
+
 /// Given a stack in the following initial configuration [b1, b0, a1, a0, ...] where a = (a0, a1)
 /// and b = (b0, b1) represent elements in the extension field of degree 2, this series of
 /// operations outputs the result c = (c1, c0) where c1 = a1 + b1 and c0 = a0 + b0.
@@ -112,7 +113,7 @@ pub fn ext2_neg(block_builder: &mut BasicBlockBuilder) {
 /// assert b  = (1, 0) | (1, 0) is the multiplicative identity of extension field.
 ///
 /// This operation takes 8 VM cycles.
-pub fn ext2_inv(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
+pub fn ext2_inv(block_builder: &mut BasicBlockBuilder) -> Result<(), Report> {
     block_builder.push_system_event(Ext2Inv);
     #[rustfmt::skip]
     let ops = [

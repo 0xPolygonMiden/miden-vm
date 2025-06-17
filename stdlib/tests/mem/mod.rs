@@ -24,7 +24,7 @@ fn test_memcopy_words() {
 
     let stdlib = StdLibrary::default();
     let assembler = assembly::Assembler::default()
-        .with_library(&stdlib)
+        .with_dynamic_library(&stdlib)
         .expect("failed to load stdlib");
 
     let program: Program =

@@ -7,7 +7,7 @@ use vm_core::{
 };
 
 use super::{BodyWrapper, DecoratorList, ProcedureContext, mast_forest_builder::MastForestBuilder};
-use crate::{AssemblyError, Span, ast::Instruction};
+use crate::{Span, ast::Instruction, diagnostics::Report};
 
 // BASIC BLOCK BUILDER
 // ================================================================================================
@@ -105,7 +105,7 @@ impl BasicBlockBuilder<'_> {
 /// Decorators
 impl BasicBlockBuilder<'_> {
     /// Add the specified decorator to the list of basic block decorators.
-    pub fn push_decorator(&mut self, decorator: Decorator) -> Result<(), AssemblyError> {
+    pub fn push_decorator(&mut self, decorator: Decorator) -> Result<(), Report> {
         let decorator_id = self.mast_forest_builder.ensure_decorator(decorator)?;
         self.decorators.push((self.ops.len(), decorator_id));
 
@@ -120,7 +120,7 @@ impl BasicBlockBuilder<'_> {
         &mut self,
         instruction: &Span<Instruction>,
         proc_ctx: &ProcedureContext,
-    ) -> Result<(), AssemblyError> {
+    ) -> Result<(), Report> {
         let span = instruction.span();
         let location = proc_ctx.source_manager().location(span).ok();
         let context_name = proc_ctx.name().to_string();
@@ -176,7 +176,7 @@ impl BasicBlockBuilder<'_> {
     ///
     /// This consumes all operations in the builder, but does not touch the operations in the
     /// epilogue of the builder.
-    pub fn make_basic_block(&mut self) -> Result<Option<MastNodeId>, AssemblyError> {
+    pub fn make_basic_block(&mut self) -> Result<Option<MastNodeId>, Report> {
         if !self.ops.is_empty() {
             let ops = self.ops.drain(..).collect();
             let decorators = if !self.decorators.is_empty() {
@@ -203,7 +203,7 @@ impl BasicBlockBuilder<'_> {
     ///   go into the new BASIC BLOCK node.
     /// - The builder is consumed in the process.
     /// - Hence, any remaining decorators if no basic block was created are drained and returned.
-    pub fn try_into_basic_block(mut self) -> Result<BasicBlockOrDecorators, AssemblyError> {
+    pub fn try_into_basic_block(mut self) -> Result<BasicBlockOrDecorators, Report> {
         self.ops.append(&mut self.epilogue);
 
         if let Some(basic_block_node_id) = self.make_basic_block()? {

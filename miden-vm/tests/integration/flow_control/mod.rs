@@ -209,7 +209,7 @@ fn local_fn_call_with_mem_access() {
             call.foo
             mem_load.0
             eq.7
-            
+
             swap drop
         end";
 
@@ -421,7 +421,7 @@ fn simple_dyncall() {
             # write to memory so we can test that `call` and `dyncall` change the execution context
             push.5 mem_store.0
 
-            # call foo directly 
+            # call foo directly
             call.foo
 
             # move the first result of foo out of the way
@@ -548,7 +548,7 @@ fn procref() -> Result<(), Report> {
         let mut parser = Module::parser(ModuleKind::Library);
         let module = parser.parse_str(module_path, module_source, &source_manager)?;
         let library = Assembler::new(source_manager)
-            .with_library(StdLibrary::default())
+            .with_dynamic_library(StdLibrary::default())
             .unwrap()
             .assemble_library([module])
             .unwrap();

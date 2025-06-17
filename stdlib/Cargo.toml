@@ -55,3 +55,4 @@ winter-fri = { package = "winter-fri", version = "0.12" }
 
 [build-dependencies]
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.15" }
+env_logger = "0.11"
