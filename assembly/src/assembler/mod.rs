@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, collections::BTreeMap, string::ToString, sync::Arc, vec::Vec};
+use alloc::{collections::BTreeMap, string::ToString, sync::Arc, vec::Vec};
 
 use basic_block_builder::BasicBlockOrDecorators;
 use linker::{ModuleLink, ProcedureLink};
@@ -360,7 +360,7 @@ impl Assembler {
     ///
     /// Returns an error if parsing or compilation of the specified modules fails.
     pub fn assemble_library(
-        self,
+        mut self,
         modules: impl IntoIterator<Item = impl Compile>,
     ) -> Result<Library, Report> {
         let modules = modules
@@ -376,7 +376,9 @@ impl Assembler {
             })
             .collect::<Result<Vec<_>, Report>>()?;
 
-        self.assemble_common(modules)
+        let module_indices = self.linker.link(modules)?;
+
+        self.assemble_common(module_indices)
     }
 
     /// Assembles the provided module into a [KernelLibrary] intended to be used as a Kernel.
@@ -384,7 +386,7 @@ impl Assembler {
     /// # Errors
     ///
     /// Returns an error if parsing or compilation of the specified modules fails.
-    pub fn assemble_kernel(self, module: impl Compile) -> Result<KernelLibrary, Report> {
+    pub fn assemble_kernel(mut self, module: impl Compile) -> Result<KernelLibrary, Report> {
         let module = module.compile_with_options(
             &self.source_manager,
             CompileOptions {
@@ -394,17 +396,14 @@ impl Assembler {
             },
         )?;
 
-        self.assemble_common([module])
+        let module_indices = self.linker.link_kernel(module)?;
+
+        self.assemble_common(module_indices)
             .and_then(|lib| KernelLibrary::try_from(lib).map_err(Report::new))
     }
 
     /// Shared code used by both [`Self::assemble_library`] and [`Self::assemble_kernel`].
-    fn assemble_common(
-        mut self,
-        modules: impl IntoIterator<Item = Box<ast::Module>>,
-    ) -> Result<Library, Report> {
-        let module_indices = self.linker.link(modules)?;
-
+    fn assemble_common(mut self, module_indices: Vec<ModuleIndex>) -> Result<Library, Report> {
         let staticlibs = self.linker.libraries().filter_map(|lib| {
             if matches!(lib.kind, LinkLibraryKind::Static) {
                 Some(lib.library.as_ref())
@@ -567,7 +566,7 @@ impl Assembler {
                         procedure_gid,
                         name,
                         proc.visibility(),
-                        module.is_kernel(),
+                        module.is_in_kernel(),
                         self.source_manager.clone(),
                     )
                     .with_num_locals(num_locals)
@@ -595,7 +594,7 @@ impl Assembler {
                         procedure_gid,
                         name,
                         ast::Visibility::Public,
-                        module.is_kernel(),
+                        module.is_in_kernel(),
                         self.source_manager.clone(),
                     )
                     .with_span(proc_alias.span());
