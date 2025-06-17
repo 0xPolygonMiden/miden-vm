@@ -2640,7 +2640,7 @@ fn test_advmap_push() -> TestResult {
     let source = source_file!(
         &context,
         "\
-adv_map.A(0x0200000000000000020000000000000002000000000000000200000000000000)=0x01
+adv_map.A(0x0200000000000000020000000000000002000000000000000200000000000000)=[0x01]
 begin push.A adv.push_mapval assert end"
     );
 
@@ -2659,7 +2659,7 @@ fn test_advmap_push_nokey() -> TestResult {
     let source = source_file!(
         &context,
         "\
-adv_map.A=0x01
+adv_map.A=[0x01]
 begin push.A adv.push_mapval assert end"
     );
 
