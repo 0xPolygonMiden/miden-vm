@@ -53,13 +53,13 @@ impl LibraryNamespace {
     pub const MAX_LENGTH: usize = u8::MAX as usize;
 
     /// Base kernel path.
-    pub const KERNEL_PATH: &'static str = "#sys";
+    pub const KERNEL_PATH: &'static str = "$kernel";
 
     /// Path for an executable module.
-    pub const EXEC_PATH: &'static str = "#exec";
+    pub const EXEC_PATH: &'static str = "$exec";
 
     /// Path for a module without library path.
-    pub const ANON_PATH: &'static str = "#anon";
+    pub const ANON_PATH: &'static str = "$anon";
 }
 
 // ------------------------------------------------------------------------------------------------
