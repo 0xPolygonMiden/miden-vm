@@ -486,8 +486,7 @@ impl Assembler {
         });
         let mut mast_forest_builder = MastForestBuilder::new(staticlibs)?;
 
-        mast_forest_builder
-            .merge_advice_map(&self.module_graph[ast_module_index].unwrap_ast().advice_map)?;
+        mast_forest_builder.merge_advice_map(&self.linker[module_index].unwrap_ast().advice_map)?;
 
         self.compile_subgraph(entrypoint, &mut mast_forest_builder)?;
         let entry_node_id = mast_forest_builder

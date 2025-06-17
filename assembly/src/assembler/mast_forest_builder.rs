@@ -15,7 +15,7 @@ use vm_core::{
     utils::collections::KvMap,
 };
 
-use super::{GlobalProcedureIndex, Procedure};
+use super::{GlobalProcedureIndex, LinkerError, Procedure};
 use crate::{
     Library,
     diagnostics::{IntoDiagnostic, Report, WrapErr},
@@ -579,15 +579,17 @@ impl MastForestBuilder {
     /// Returns `AdviceMapKeyCollisionOnMerge` if any of the keys of the AdviceMap being merged
     /// are already present with a different value in the AdviceMap of the Mast Forest. In
     /// case of error the AdviceMap of the Mast Forest remains unchanged.
-    pub fn merge_advice_map(&mut self, other: &AdviceMap) -> Result<(), AssemblyError> {
+    pub fn merge_advice_map(&mut self, other: &AdviceMap) -> Result<(), Report> {
         let mut advice_map = self.mast_forest.advice_map().clone();
         for (digest, values) in other.iter() {
             if let Some(stored_values) = advice_map.get(digest) {
                 if stored_values != values {
-                    return Err(AssemblyError::Forest(
-                        "AdviceMapKeyCollisionOnMerge",
-                        MastForestError::AdviceMapKeyCollisionOnMerge(*digest),
-                    ));
+                    return Err(LinkerError::AdviceMapKeyAlreadyPresent {
+                        key: **digest,
+                        prev_values: stored_values.to_vec(),
+                        new_values: values.to_vec(),
+                    })
+                    .into_diagnostic();
                 }
             } else {
                 advice_map.insert(*digest, values.clone());

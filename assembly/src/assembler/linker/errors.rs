@@ -1,11 +1,12 @@
-use alloc::{boxed::Box, string::String, sync::Arc};
+use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
+
+use vm_core::{FieldElement, utils::to_hex};
 
 use crate::{
-    LibraryPath, SourceSpan,
+    Felt, LibraryPath, SourceSpan,
     ast::QualifiedProcedureName,
     diagnostics::{Diagnostic, RelatedLabel, SourceFile},
 };
-
 // LINKER ERROR
 // ================================================================================================
 
@@ -45,5 +46,14 @@ pub enum LinkerError {
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
         callee: Box<QualifiedProcedureName>,
+    },
+    #[error("value for key {} already present in the advice map", to_hex(Felt::elements_as_bytes(.key)))]
+    #[diagnostic(help(
+        "previous values at key were '{prev_values:?}'. Operation would have replaced them with '{new_values:?}'",
+    ))]
+    AdviceMapKeyAlreadyPresent {
+        key: [Felt; 4],
+        prev_values: Vec<Felt>,
+        new_values: Vec<Felt>,
     },
 }
