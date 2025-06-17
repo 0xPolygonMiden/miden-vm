@@ -2258,6 +2258,81 @@ end";
 }
 
 #[test]
+fn program_with_reexported_custom_alias_in_same_library() -> TestResult {
+    // exprted proc is in same library
+    const REF_MODULE: &str = "dummy1::math::u64";
+    const REF_MODULE_BODY: &str = r#"
+        export.checked_eqz
+            u32assert2
+            eq.0
+            swap
+            eq.0
+            and
+        end
+        export.unchecked_eqz
+            eq.0
+            swap
+            eq.0
+            and
+        end
+    "#;
+
+    const MODULE: &str = "dummy1::math::u256";
+    const MODULE_BODY: &str = r#"
+        use.dummy1::math::u64->myu64
+
+        #! checked_eqz checks if the value is u32 and zero and returns 1 if it is, 0 otherwise
+        export.myu64::checked_eqz # re-export
+
+        #! unchecked_eqz checks if the value is zero and returns 1 if it is, 0 otherwise
+        export.myu64::unchecked_eqz->notchecked_eqz # re-export with alias
+    "#;
+
+    let mut context = TestContext::new();
+    let mut parser = Module::parser(ModuleKind::Library);
+    let ast = parser
+        .parse_str(MODULE.parse().unwrap(), MODULE_BODY, &context.source_manager())
+        .unwrap();
+
+    let mut parser = Module::parser(ModuleKind::Library);
+    let ref_ast = parser
+        .parse_str(REF_MODULE.parse().unwrap(), REF_MODULE_BODY, &context.source_manager())
+        .unwrap();
+
+    let library = Assembler::new(context.source_manager())
+        .assemble_library([ast, ref_ast])
+        .unwrap();
+
+    context.add_library(&library)?;
+
+    let source = source_file!(
+        &context,
+        format!(
+            r#"
+        use.{MODULE}->myu256
+        begin
+            push.4 push.3
+            exec.myu256::checked_eqz
+            exec.myu256::notchecked_eqz
+        end"#
+        )
+    );
+    let program = context.assemble(source)?;
+    let expected = "\
+begin
+    join
+        join
+            basic_block push(4) push(3) end
+            external.0xb9691da1d9b4b364aca0a0990e9f04c446a2faa622c8dd0d8831527dbec61393
+        end
+        external.0xcb08c107c81c582788cbf63c99f6b455e11b33bb98ca05fe1cfa17c087dfa8f1
+    end
+end";
+    assert_str_eq!(format!("{program}"), expected);
+    Ok(())
+}
+
+#[test]
 fn program_with_reexported_proc_in_another_library() -> TestResult {
     // when re-exported proc is part of a different library
     const REF_MODULE: &str = "dummy2::math::u64";

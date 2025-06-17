@@ -307,8 +307,10 @@ impl<'a> NameResolver<'a> {
         let mut current_callee = Cow::Borrowed(callee);
         let mut visited = BTreeSet::default();
         loop {
-            let module_index = self.find_module_index(&current_callee.module).ok_or_else(|| {
-                LinkerError::UndefinedModule {
+            log::debug!(target: "name-resolver", "finding {current_callee} for {} from {}", &current_caller.kind, &current_caller.module);
+            let module_index = self
+                .find_module_index(current_caller.module, &current_callee.module)
+                .ok_or_else(|| LinkerError::UndefinedModule {
                     span: current_caller.span,
                     source_file: self
                         .graph
@@ -316,11 +318,12 @@ impl<'a> NameResolver<'a> {
                         .get(current_caller.span.source_id())
                         .ok(),
                     path: current_callee.module.clone(),
-                }
-            })?;
+                })?;
+            log::debug!(target: "name-resolver", "resolved {} to module {module_index}", &current_callee.module);
             let resolved = self.resolve_local_with_index(module_index, &current_callee.name);
             match resolved {
                 Some(ResolvedProcedure::Local(index)) => {
+                    log::debug!(target: "name-resolver", "resolved {} to local procedure definition {index}", &current_callee.name);
                     let id = GlobalProcedureIndex {
                         module: module_index,
                         index: index.into_inner(),
@@ -340,6 +343,7 @@ impl<'a> NameResolver<'a> {
                     break Ok(id);
                 },
                 Some(ResolvedProcedure::External(fqn)) => {
+                    log::debug!(target: "name-resolver", "resolved {} to external procedure name {fqn}", &current_callee.name);
                     // If we see that we're about to enter an infinite
                     // resolver loop because of a recursive alias, return
                     // an error
@@ -363,6 +367,7 @@ impl<'a> NameResolver<'a> {
                     current_callee = Cow::Owned(fqn);
                 },
                 Some(ResolvedProcedure::MastRoot(ref digest)) => {
+                    log::debug!(target: "name-resolver", "resolved {} to MAST root {digest}", &current_callee.name);
                     if let Some(id) = self.graph.get_procedure_index_by_digest(digest) {
                         break Ok(id);
                     }
@@ -394,6 +399,7 @@ impl<'a> NameResolver<'a> {
                     });
                 },
                 None if matches!(current_caller.kind, InvokeKind::SysCall) => {
+                    log::debug!(target: "name-resolver", "unable to resolve {}", &current_callee.name);
                     if self.graph.has_nonempty_kernel() {
                         // No kernel, so this invoke is invalid anyway
                         break Err(LinkerError::Failed {
@@ -427,6 +433,7 @@ impl<'a> NameResolver<'a> {
                     }
                 },
                 None => {
+                    log::debug!(target: "name-resolver", "unable to resolve {}", &current_callee.name);
                     // No such procedure known to `module`
                     break Err(LinkerError::Failed {
                         labels: vec![
@@ -457,8 +464,37 @@ impl<'a> NameResolver<'a> {
         }
     }
 
-    /// Resolve a [LibraryPath] to a [ModuleIndex] in this graph
-    fn find_module_index(&self, name: &LibraryPath) -> Option<ModuleIndex> {
+    /// Resolve a [LibraryPath] from `src` to a [ModuleIndex] in this graph
+    fn find_module_index(&self, src: ModuleIndex, name: &LibraryPath) -> Option<ModuleIndex> {
+        log::debug!(target: "name-resolver", "finding module index for {name:?} from {src}");
+        self.get_module_index_by_path(name).or_else(|| {
+            // The `name` might be a local import/alias, so attempt to resolve it as such
+            // relative to `src`, but only if `name` is a path with a single component
+            if name.num_components() != 1 {
+                return None;
+            }
+            let name = {
+                let mut components = name.components();
+                components.next().unwrap().to_ident()
+            };
+            match self.graph.modules[src.as_usize()].as_ref() {
+                Some(ModuleLink::Ast(src)) => {
+                    let resolver = src.resolver();
+                    let imported = resolver.resolve_import(&name)?.into_inner();
+                    self.get_module_index_by_path(imported)
+                },
+                Some(_) => None,
+                None => {
+                    let pending_index = self.pending_index(src);
+                    let imported =
+                        self.pending[pending_index].resolver.resolve_import(&name)?.into_inner();
+                    self.get_module_index_by_path(imported)
+                },
+            }
+        })
+    }
+
+    fn get_module_index_by_path(&self, name: &LibraryPath) -> Option<ModuleIndex> {
         self.graph
             .modules
             .iter()

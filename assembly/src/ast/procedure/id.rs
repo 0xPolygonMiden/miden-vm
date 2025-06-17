@@ -17,3 +17,9 @@ impl ProcedureIndex {
         self.0 as usize
     }
 }
+
+impl core::fmt::Display for ProcedureIndex {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", &self.as_usize())
+    }
+}

@@ -22,6 +22,7 @@
 #### Fixes
 
 - Modules can now be provided in any order to the `Assembler`, see #1669 (#1881)
+- Addressed bug which caused references to re-exported procedures whose definition internally referred to an aliased module import, to produce an "undefined module" error, see #1451 (#1892)
 
 ## 0.15.0 (2025-06-06)
 
