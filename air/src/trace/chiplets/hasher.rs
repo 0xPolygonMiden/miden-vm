@@ -115,7 +115,7 @@ pub const RETURN_HASH_LABEL: u8 = 0b0000 + 1;
 pub const RETURN_STATE: Selectors = [ZERO, ZERO, ONE];
 /// Unique label computed as 1 plus the full chiplet selector with the bits reversed.
 /// `selector = [0 | 0, 0, 1]`, `flag = rev(selector) + 1 = [1, 0, 0 | 0] + 1 = 9`
-pub const RETURN_STATE_LABEL: u8 = 0b1001;
+pub const RETURN_STATE_LABEL: u8 = 0b1000 + 1;
 
 // --- Column accessors in the auxiliary trace ----------------------------------------------------
 
