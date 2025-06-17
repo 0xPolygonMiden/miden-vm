@@ -283,15 +283,28 @@ impl Module {
         self.kind
     }
 
+    /// Override the type of module this represents.
+    ///
+    /// See [ModuleKind] for details on what the different types are.
+    pub fn set_kind(&mut self, kind: ModuleKind) {
+        self.kind = kind;
+    }
+
     /// Returns true if this module is an executable module.
     #[inline(always)]
     pub fn is_executable(&self) -> bool {
         self.kind.is_executable()
     }
 
-    /// Returns true if this module is a kernel module.
+    /// Returns true if this module is the top-level kernel module.
     #[inline(always)]
     pub fn is_kernel(&self) -> bool {
+        self.kind.is_kernel() && self.path.is_kernel_path()
+    }
+
+    /// Returns true if this module is a kernel module.
+    #[inline(always)]
+    pub fn is_in_kernel(&self) -> bool {
         self.kind.is_kernel()
     }
 

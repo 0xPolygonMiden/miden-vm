@@ -2,7 +2,7 @@ use alloc::collections::BTreeSet;
 use core::ops::ControlFlow;
 
 use crate::{
-    Span, Spanned,
+    LibraryNamespace, LibraryPath, Spanned,
     ast::*,
     sema::{AnalysisContext, SemanticAnalysisError},
 };
@@ -73,17 +73,6 @@ impl VerifyInvokeTargets<'_> {
 }
 
 impl VisitMut for VerifyInvokeTargets<'_> {
-    fn visit_mut_inst(&mut self, inst: &mut Span<Instruction>) -> ControlFlow<()> {
-        let span = inst.span();
-        match &**inst {
-            Instruction::Caller if self.module.is_kernel() => ControlFlow::Continue(()),
-            Instruction::Caller => {
-                self.analyzer.error(SemanticAnalysisError::CallerInKernel { span });
-                ControlFlow::Continue(())
-            },
-            _ => visit::visit_mut_inst(self, inst),
-        }
-    }
     fn visit_mut_procedure_alias(&mut self, alias: &mut ProcedureAlias) -> ControlFlow<()> {
         if let Some(import) = self.module.resolve_import_mut(alias.name().as_ref()) {
             import.uses += 1;
@@ -96,24 +85,46 @@ impl VisitMut for VerifyInvokeTargets<'_> {
         result
     }
     fn visit_mut_syscall(&mut self, target: &mut InvocationTarget) -> ControlFlow<()> {
-        if self.module.is_kernel() {
+        if self.module.is_in_kernel() {
             self.analyzer
                 .error(SemanticAnalysisError::SyscallInKernel { span: target.span() });
         }
         match target {
-            // Do not analyze syscalls referencing a local name, these
-            // will be resolved later in the context of a specific kernel,
-            // which may or may not be named `#kernel`, so we can't rewrite
-            // this as an absolute path yet, or say for sure if the call is
-            // valid
-            InvocationTarget::ProcedureName(_) => (),
-            _ => self.visit_mut_invoke_target(target)?,
+            // Syscalls to a local name will be rewritten to refer to implicit exports of the
+            // kernel module.
+            InvocationTarget::ProcedureName(name) => {
+                *target = InvocationTarget::AbsoluteProcedurePath {
+                    name: name.clone(),
+                    path: LibraryPath::new_from_components(LibraryNamespace::Kernel, []),
+                };
+            },
+            // Syscalls which reference a path, are only valid if the module id is $kernel
+            InvocationTarget::ProcedurePath { name, module } => {
+                if module.as_str() == "$kernel" {
+                    *target = InvocationTarget::AbsoluteProcedurePath {
+                        name: name.clone(),
+                        path: LibraryPath::new_from_components(LibraryNamespace::Kernel, []),
+                    };
+                } else {
+                    self.analyzer
+                        .error(SemanticAnalysisError::SymbolUndefined { span: target.span() });
+                }
+            },
+            InvocationTarget::AbsoluteProcedurePath { path, .. } => {
+                if !path.is_kernel_path() {
+                    self.analyzer
+                        .error(SemanticAnalysisError::SymbolUndefined { span: target.span() });
+                }
+            },
+            // We assume that a syscall specifying a MAST root knows what it is doing, but this
+            // will be validated by the assembler
+            InvocationTarget::MastRoot(_) => (),
         }
         self.invoked.insert(Invoke::new(InvokeKind::SysCall, target.clone()));
         ControlFlow::Continue(())
     }
     fn visit_mut_call(&mut self, target: &mut InvocationTarget) -> ControlFlow<()> {
-        if self.module.is_kernel() {
+        if self.module.is_in_kernel() {
             self.analyzer.error(SemanticAnalysisError::CallInKernel { span: target.span() });
         }
         self.visit_mut_invoke_target(target)?;
