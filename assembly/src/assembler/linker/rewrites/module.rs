@@ -68,8 +68,13 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
             kind,
         };
         match self.resolver.resolve_target(&caller, target) {
-            Err(err) => return ControlFlow::Break(err),
-            Ok(ResolvedTarget::Phantom(_)) => (),
+            Err(err) => {
+                log::error!(target: "linker", "    | failed to resolve target {target}");
+                return ControlFlow::Break(err);
+            },
+            Ok(ResolvedTarget::Phantom(_)) => {
+                log::warn!(target: "linker", "    | resolved phantom target {target}");
+            },
             Ok(ResolvedTarget::Exact { .. }) => {
                 log::debug!(target: "linker", "    | target is already resolved exactly");
                 self.invoked.insert(Invoke { kind, target: target.clone() });

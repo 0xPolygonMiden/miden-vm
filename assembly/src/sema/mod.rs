@@ -166,25 +166,17 @@ fn visit_procedures(
                 }
                 module.procedures.push(Export::Procedure(procedure));
             },
-            Export::Alias(mut alias) => {
-                // Resolve the underlying import, and expand the `target`
-                // to its fully-qualified path. This is needed because after
-                // parsing, the path only contains the last component,
-                // e.g. `u64` of `std::math::u64`.
-                let is_absolute = alias.is_absolute();
-                if !is_absolute {
-                    if let AliasTarget::ProcedurePath(target) = alias.target_mut() {
-                        let imported_module =
-                            target.module.namespace().to_ident().with_span(target.span);
-                        if let Some(import) = module.resolve_import_mut(&imported_module) {
-                            target.module = import.path.clone();
-                            // Mark the backing import as used
-                            import.uses += 1;
-                        } else {
-                            // Missing import
-                            analyzer
-                                .error(SemanticAnalysisError::MissingImport { span: alias.span() });
-                        }
+            Export::Alias(alias) => {
+                // Resolve the underlying import, and mark it used if successful
+                if let AliasTarget::ProcedurePath(target) = alias.target() {
+                    let imported_module =
+                        target.module.namespace().to_ident().with_span(target.span);
+                    if let Some(import) = module.resolve_import_mut(&imported_module) {
+                        // Mark the backing import as used
+                        import.uses += 1;
+                    } else {
+                        // Missing import
+                        analyzer.error(SemanticAnalysisError::MissingImport { span: alias.span() });
                     }
                 }
                 module.procedures.push(Export::Alias(alias));
