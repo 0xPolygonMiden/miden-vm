@@ -1,12 +1,13 @@
 use alloc::collections::BTreeMap;
 
 use miden_air::trace::chiplets::hasher::{
-    DIGEST_LEN, DIGEST_RANGE, Digest, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD,
-    RATE_LEN, RETURN_HASH, RETURN_STATE, STATE_WIDTH, Selectors, TRACE_WIDTH,
+    DIGEST_LEN, DIGEST_RANGE, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RATE_LEN,
+    RETURN_HASH, RETURN_STATE, STATE_WIDTH, Selectors, TRACE_WIDTH,
 };
 
 use super::{
-    Felt, HasherState, MerklePath, MerkleRootUpdate, ONE, OpBatch, TraceFragment, Word, ZERO,
+    Felt, HasherState, MerklePath, MerkleRootUpdate, ONE, OpBatch, TraceFragment, Word as Digest,
+    ZERO,
 };
 
 mod trace;
@@ -93,11 +94,11 @@ impl Hasher {
     /// computation started.
     pub fn hash_control_block(
         &mut self,
-        h1: Word,
-        h2: Word,
+        h1: Digest,
+        h2: Digest,
         domain: Felt,
         expected_hash: Digest,
-    ) -> (Felt, Word) {
+    ) -> (Felt, Digest) {
         let addr = self.trace.next_row_addr();
         let mut state = init_state_from_words_with_domain(&h1, &h2, domain);
 
@@ -111,7 +112,7 @@ impl Hasher {
             self.insert_to_memoized_trace_map(addr, expected_hash);
         };
 
-        let result = get_digest(&state);
+        let result = get_digest(&state).into();
 
         (addr, result)
     }
@@ -125,7 +126,7 @@ impl Hasher {
         &mut self,
         op_batches: &[OpBatch],
         expected_hash: Digest,
-    ) -> (Felt, Word) {
+    ) -> (Felt, Digest) {
         const START: Selectors = LINEAR_HASH;
         const RETURN: Selectors = RETURN_HASH;
         // absorb selectors are the same as linear hash selectors, but absorb selectors are
@@ -185,7 +186,7 @@ impl Hasher {
             self.trace.copy_trace(&mut state, start_row..end_row);
         }
 
-        let result = get_digest(&state);
+        let result = get_digest(&state).into();
 
         (addr, result)
     }
@@ -204,10 +205,10 @@ impl Hasher {
     /// - The provided index is out of range for the specified path.
     pub fn build_merkle_root(
         &mut self,
-        value: Word,
+        value: Digest,
         path: &MerklePath,
         index: Felt,
-    ) -> (Felt, Word) {
+    ) -> (Felt, Digest) {
         let addr = self.trace.next_row_addr();
 
         let root =
@@ -227,8 +228,8 @@ impl Hasher {
     /// - The provided index is out of range for the specified path.
     pub fn update_merkle_root(
         &mut self,
-        old_value: Word,
-        new_value: Word,
+        old_value: Digest,
+        new_value: Digest,
         path: &MerklePath,
         index: Felt,
     ) -> MerkleRootUpdate {
@@ -266,11 +267,11 @@ impl Hasher {
     /// - The provided index is out of range for the specified path.
     fn verify_merkle_path(
         &mut self,
-        value: Word,
+        value: Digest,
         path: &MerklePath,
         mut index: u64,
         context: MerklePathContext,
-    ) -> Word {
+    ) -> Digest {
         assert!(!path.is_empty(), "path is empty");
         assert!(
             index.checked_shr(path.len() as u32).unwrap_or(0) == 0,
@@ -313,12 +314,12 @@ impl Hasher {
     ///   significant bit.
     fn verify_mp_leg(
         &mut self,
-        root: Word,
+        root: Digest,
         sibling: Digest,
         index: &mut u64,
         init_selectors: Selectors,
         final_selectors: Selectors,
-    ) -> Word {
+    ) -> Digest {
         // build the hasher state based on the value of the least significant bit of the index
         let index_bit = *index & 1;
         let mut state = build_merge_state(&root, &sibling, index_bit);
@@ -345,7 +346,7 @@ impl Hasher {
         // remove the least significant bit from the index and return hash result
         *index >>= 1;
 
-        get_digest(&state)
+        get_digest(&state).into()
     }
 
     /// Checks if a trace for a program block already exists and returns the start and end rows
@@ -406,7 +407,7 @@ impl MerklePathContext {
 /// If index_bit = 0, the words are combined in the order (a, b), if index_bit = 1, the words are
 /// combined in the order (b, a), otherwise, the function panics.
 #[inline(always)]
-fn build_merge_state(a: &Word, b: &Word, index_bit: u64) -> HasherState {
+fn build_merge_state(a: &Digest, b: &Digest, index_bit: u64) -> HasherState {
     match index_bit {
         0 => init_state_from_words(a, b),
         1 => init_state_from_words(b, a),
@@ -449,7 +450,7 @@ pub fn init_state(init_values: &[Felt; RATE_LEN], padding_flag: Felt) -> [Felt; 
 /// input is a multiple of the rate, all capacity elements are initialized to zero, as specified by
 /// the Rescue Prime Optimized padding rule.
 #[inline(always)]
-pub fn init_state_from_words(w1: &Word, w2: &Word) -> [Felt; STATE_WIDTH] {
+pub fn init_state_from_words(w1: &Digest, w2: &Digest) -> [Felt; STATE_WIDTH] {
     init_state_from_words_with_domain(w1, w2, ZERO)
 }
 
@@ -458,8 +459,8 @@ pub fn init_state_from_words(w1: &Word, w2: &Word) -> [Felt; STATE_WIDTH] {
 /// to 0.
 #[inline(always)]
 pub fn init_state_from_words_with_domain(
-    w1: &Word,
-    w2: &Word,
+    w1: &Digest,
+    w2: &Digest,
     domain: Felt,
 ) -> [Felt; STATE_WIDTH] {
     [ZERO, domain, ZERO, ZERO, w1[0], w1[1], w1[2], w1[3], w2[0], w2[1], w2[2], w2[3]]

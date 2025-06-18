@@ -100,6 +100,6 @@ num-bigint = "0.4"
 predicates = "3.1"
 test-utils = { package = "miden-test-utils", path = "../test-utils" }
 vm-core = { package = "miden-core", path = "../core", version = "0.15" }
-winter-fri = { package = "winter-fri", version = "0.12" }
+winter-fri = { package = "winter-fri", version = "0.13" }
 rand_chacha = "0.9"
 walkdir = "2.5"

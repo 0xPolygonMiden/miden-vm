@@ -3,6 +3,7 @@ use test_utils::{
     ExecutionOptions, ONE, Process, StackInputs, ZERO, build_expected_hash, build_expected_perm,
     felt_slice_to_ints,
 };
+use vm_core::Word;
 
 #[test]
 fn test_memcopy_words() {
@@ -39,53 +40,53 @@ fn test_memcopy_words() {
 
     assert_eq!(
         process.chiplets.memory.get_word(ContextId::root(), 1000).unwrap(),
-        Some([ZERO, ZERO, ZERO, ONE]),
+        Some(Into::<Word>::into([ZERO, ZERO, ZERO, ONE])),
         "Address 1000"
     );
     assert_eq!(
         process.chiplets.memory.get_word(ContextId::root(), 1004).unwrap(),
-        Some([ZERO, ZERO, ONE, ZERO]),
+        Some(Into::<Word>::into([ZERO, ZERO, ONE, ZERO])),
         "Address 1004"
     );
     assert_eq!(
         process.chiplets.memory.get_word(ContextId::root(), 1008).unwrap(),
-        Some([ZERO, ZERO, ONE, ONE]),
+        Some(Into::<Word>::into([ZERO, ZERO, ONE, ONE])),
         "Address 1008"
     );
     assert_eq!(
         process.chiplets.memory.get_word(ContextId::root(), 1012).unwrap(),
-        Some([ZERO, ONE, ZERO, ZERO]),
+        Some(Into::<Word>::into([ZERO, ONE, ZERO, ZERO])),
         "Address 1012"
     );
     assert_eq!(
         process.chiplets.memory.get_word(ContextId::root(), 1016).unwrap(),
-        Some([ZERO, ONE, ZERO, ONE]),
+        Some(Into::<Word>::into([ZERO, ONE, ZERO, ONE])),
         "Address 1016"
     );
 
     assert_eq!(
         process.chiplets.memory.get_word(ContextId::root(), 2000).unwrap(),
-        Some([ZERO, ZERO, ZERO, ONE]),
+        Some(Into::<Word>::into([ZERO, ZERO, ZERO, ONE])),
         "Address 2000"
     );
     assert_eq!(
         process.chiplets.memory.get_word(ContextId::root(), 2004).unwrap(),
-        Some([ZERO, ZERO, ONE, ZERO]),
+        Some(Into::<Word>::into([ZERO, ZERO, ONE, ZERO])),
         "Address 2004"
     );
     assert_eq!(
         process.chiplets.memory.get_word(ContextId::root(), 2008).unwrap(),
-        Some([ZERO, ZERO, ONE, ONE]),
+        Some(Into::<Word>::into([ZERO, ZERO, ONE, ONE])),
         "Address 2008"
     );
     assert_eq!(
         process.chiplets.memory.get_word(ContextId::root(), 2012).unwrap(),
-        Some([ZERO, ONE, ZERO, ZERO]),
+        Some(Into::<Word>::into([ZERO, ONE, ZERO, ZERO])),
         "Address 2012"
     );
     assert_eq!(
         process.chiplets.memory.get_word(ContextId::root(), 2016).unwrap(),
-        Some([ZERO, ONE, ZERO, ONE]),
+        Some(Into::<Word>::into([ZERO, ONE, ZERO, ONE])),
         "Address 2016"
     );
 }

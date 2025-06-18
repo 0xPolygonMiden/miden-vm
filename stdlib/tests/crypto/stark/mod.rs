@@ -19,6 +19,7 @@ mod verifier_recursive;
 // Note: Changes to Miden VM may cause this test to fail when some of the assumptions documented
 // in `stdlib/asm/crypto/stark/verifier.masm` are violated.
 #[rstest]
+#[ignore = "see-https://github.com/0xMiden/air-script/issues/399"]
 #[case(None)]
 #[ignore = "see-https://github.com/0xMiden/air-script/issues/399"]
 #[case(Some(KERNEL_EVEN_NUM_PROC))]

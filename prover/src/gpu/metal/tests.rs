@@ -4,7 +4,7 @@ use air::{PartitionOptions, ProvingOptions, StarkField};
 use gpu::metal::{DIGEST_SIZE, MetalExecutionProver};
 use processor::{
     StackInputs, StackOutputs,
-    crypto::{Hasher, Rpo256, RpoDigest, RpoRandomCoin, Rpx256, RpxDigest},
+    crypto::{Hasher, Rpo256, RpoRandomCoin, Rpx256, RpxDigest, Word},
     math::fft,
 };
 use winter_prover::{
@@ -23,7 +23,7 @@ type CubeFelt = CubeExtension<Felt>;
 
 #[test]
 fn rpo_build_trace_commitment_on_gpu_with_padding_matches_cpu() {
-    build_trace_commitment_on_gpu_with_padding_matches_cpu::<RpoRandomCoin, Rpo256, RpoDigest>(
+    build_trace_commitment_on_gpu_with_padding_matches_cpu::<RpoRandomCoin, Rpo256, Word>(
         HashFn::Rpo256,
     );
 }
@@ -37,7 +37,7 @@ fn rpx_build_trace_commitment_on_gpu_with_padding_matches_cpu() {
 
 #[test]
 fn rpo_build_trace_commitment_on_gpu_without_padding_matches_cpu() {
-    build_trace_commitment_on_gpu_without_padding_matches_cpu::<RpoRandomCoin, Rpo256, RpoDigest>(
+    build_trace_commitment_on_gpu_without_padding_matches_cpu::<RpoRandomCoin, Rpo256, Word>(
         HashFn::Rpo256,
     );
 }
@@ -51,7 +51,7 @@ fn rpx_build_trace_commitment_on_gpu_without_padding_matches_cpu() {
 
 #[test]
 fn rpo_build_constraint_commitment_on_gpu_with_padding_matches_cpu() {
-    build_constraint_commitment_on_gpu_with_padding_matches_cpu::<RpoRandomCoin, Rpo256, RpoDigest>(
+    build_constraint_commitment_on_gpu_with_padding_matches_cpu::<RpoRandomCoin, Rpo256, Word>(
         HashFn::Rpo256,
     );
 }
@@ -65,11 +65,9 @@ fn rpx_build_constraint_commitment_on_gpu_with_padding_matches_cpu() {
 
 #[test]
 fn rpo_build_constraint_commitment_on_gpu_without_padding_matches_cpu() {
-    build_constraint_commitment_on_gpu_without_padding_matches_cpu::<
-        RpoRandomCoin,
-        Rpo256,
-        RpoDigest,
-    >(HashFn::Rpo256);
+    build_constraint_commitment_on_gpu_without_padding_matches_cpu::<RpoRandomCoin, Rpo256, Word>(
+        HashFn::Rpo256,
+    );
 }
 
 #[test]

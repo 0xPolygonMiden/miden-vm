@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 use core::fmt;
 
-use miden_crypto::{Felt, hash::rpo::RpoDigest};
+use miden_crypto::{Felt, Word};
 use miden_formatting::{
     hex::ToHex,
     prettier::{Document, PrettyPrint, const_text, nl, text},
@@ -27,7 +27,7 @@ use crate::{
 pub struct CallNode {
     callee: MastNodeId,
     is_syscall: bool,
-    digest: RpoDigest,
+    digest: Word,
     before_enter: Vec<DecoratorId>,
     after_exit: Vec<DecoratorId>,
 }
@@ -52,7 +52,7 @@ impl CallNode {
         let digest = {
             let callee_digest = mast_forest[callee].digest();
 
-            hasher::merge_in_domain(&[callee_digest, RpoDigest::default()], Self::CALL_DOMAIN)
+            hasher::merge_in_domain(&[callee_digest, Word::default()], Self::CALL_DOMAIN)
         };
 
         Ok(Self {
@@ -66,7 +66,7 @@ impl CallNode {
 
     /// Returns a new [`CallNode`] from values that are assumed to be correct.
     /// Should only be used when the source of the inputs is trusted (e.g. deserialization).
-    pub fn new_unsafe(callee: MastNodeId, digest: RpoDigest) -> Self {
+    pub fn new_unsafe(callee: MastNodeId, digest: Word) -> Self {
         Self {
             callee,
             is_syscall: false,
@@ -88,7 +88,7 @@ impl CallNode {
         let digest = {
             let callee_digest = mast_forest[callee].digest();
 
-            hasher::merge_in_domain(&[callee_digest, RpoDigest::default()], Self::SYSCALL_DOMAIN)
+            hasher::merge_in_domain(&[callee_digest, Word::default()], Self::SYSCALL_DOMAIN)
         };
 
         Ok(Self {
@@ -102,7 +102,7 @@ impl CallNode {
 
     /// Returns a new syscall [`CallNode`] from values that are assumed to be correct.
     /// Should only be used when the source of the inputs is trusted (e.g. deserialization).
-    pub fn new_syscall_unsafe(callee: MastNodeId, digest: RpoDigest) -> Self {
+    pub fn new_syscall_unsafe(callee: MastNodeId, digest: Word) -> Self {
         Self {
             callee,
             is_syscall: true,
@@ -123,18 +123,18 @@ impl CallNode {
     /// whether the node represents a simple call or a syscall - i.e.,:
     /// ```
     /// # use miden_core::mast::CallNode;
-    /// # use miden_crypto::{hash::rpo::{RpoDigest as Digest, Rpo256 as Hasher}};
-    /// # let callee_digest = Digest::default();
-    /// Hasher::merge_in_domain(&[callee_digest, Digest::default()], CallNode::CALL_DOMAIN);
+    /// # use miden_crypto::{Word, Rpo256 as Hasher};
+    /// # let callee_digest = Word::default();
+    /// Hasher::merge_in_domain(&[callee_digest, Word::default()], CallNode::CALL_DOMAIN);
     /// ```
     /// or
     /// ```
     /// # use miden_core::mast::CallNode;
-    /// # use miden_crypto::{hash::rpo::{RpoDigest as Digest, Rpo256 as Hasher}};
-    /// # let callee_digest = Digest::default();
-    /// Hasher::merge_in_domain(&[callee_digest, Digest::default()], CallNode::SYSCALL_DOMAIN);
+    /// # use miden_crypto::{Word, Rpo256 as Hasher};
+    /// # let callee_digest = Word::default();
+    /// Hasher::merge_in_domain(&[callee_digest, Word::default()], CallNode::SYSCALL_DOMAIN);
     /// ```
-    pub fn digest(&self) -> RpoDigest {
+    pub fn digest(&self) -> Word {
         self.digest
     }
 

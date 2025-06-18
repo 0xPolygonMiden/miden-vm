@@ -3,7 +3,7 @@ use core::fmt;
 
 use super::{ProcedureName, QualifiedProcedureName};
 use crate::{
-    RpoDigest,
+    Word,
     ast::{DocString, InvocationTarget},
     diagnostics::{SourceSpan, Span, Spanned},
 };
@@ -125,7 +125,7 @@ pub enum AliasTarget {
     /// An alias of the procedure whose root is the given digest
     ///
     /// Corresponds to [`InvocationTarget::MastRoot`]
-    MastRoot(Span<RpoDigest>),
+    MastRoot(Span<Word>),
     /// An alias of `name`, imported from `module`
     ///
     /// Corresponds to [`InvocationTarget::ProcedurePath`]
@@ -145,8 +145,8 @@ impl Spanned for AliasTarget {
     }
 }
 
-impl From<Span<RpoDigest>> for AliasTarget {
-    fn from(digest: Span<RpoDigest>) -> Self {
+impl From<Span<Word>> for AliasTarget {
+    fn from(digest: Span<Word>) -> Self {
         Self::MastRoot(digest)
     }
 }

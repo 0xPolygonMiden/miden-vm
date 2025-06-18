@@ -2,7 +2,7 @@ use alloc::{borrow::Cow, collections::BTreeSet, vec::Vec};
 
 use super::{Linker, ModuleLink, PreLinkModule};
 use crate::{
-    RpoDigest, SourceSpan, Span, Spanned,
+    Word, SourceSpan, Span, Spanned,
     assembler::{GlobalProcedureIndex, LinkerError, ModuleIndex},
     ast::{
         Ident, InvocationTarget, InvokeKind, ProcedureName, QualifiedProcedureName,
@@ -57,8 +57,8 @@ pub enum ResolvedTarget {
         target: InvocationTarget,
     },
     /// We know the MAST root of the callee, but the procedure is not available, either in the
-    /// procedure cache or in the module graph.
-    Phantom(RpoDigest),
+    /// procedure cache or in the [ModuleGraph].
+    Phantom(Word),
 }
 
 impl ResolvedTarget {

@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 use core::fmt;
 
-use miden_crypto::{Felt, hash::rpo::RpoDigest};
+use miden_crypto::{Felt, Word};
 
 use super::MastNodeExt;
 use crate::{
@@ -19,7 +19,7 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JoinNode {
     children: [MastNodeId; 2],
-    digest: RpoDigest,
+    digest: Word,
     before_enter: Vec<DecoratorId>,
     after_exit: Vec<DecoratorId>,
 }
@@ -60,7 +60,7 @@ impl JoinNode {
 
     /// Returns a new [`JoinNode`] from values that are assumed to be correct.
     /// Should only be used when the source of the inputs is trusted (e.g. deserialization).
-    pub fn new_unsafe(children: [MastNodeId; 2], digest: RpoDigest) -> Self {
+    pub fn new_unsafe(children: [MastNodeId; 2], digest: Word) -> Self {
         Self {
             children,
             digest,
@@ -78,12 +78,12 @@ impl JoinNode {
     /// defined by [Self::DOMAIN] - i.e.,:
     /// ```
     /// # use miden_core::mast::JoinNode;
-    /// # use miden_crypto::{hash::rpo::{RpoDigest as Digest, Rpo256 as Hasher}};
-    /// # let first_child_digest = Digest::default();
-    /// # let second_child_digest = Digest::default();
+    /// # use miden_crypto::{Word, Rpo256 as Hasher};
+    /// # let first_child_digest = Word::default();
+    /// # let second_child_digest = Word::default();
     /// Hasher::merge_in_domain(&[first_child_digest, second_child_digest], JoinNode::DOMAIN);
     /// ```
-    pub fn digest(&self) -> RpoDigest {
+    pub fn digest(&self) -> Word {
         self.digest
     }
 

@@ -52,8 +52,8 @@ fn test_diagnostic_advice_map_key_already_present() {
         let lib = test_context.assemble_library(std::iter::once(module)).unwrap();
         let lib_1 = lib
             .clone()
-            .with_advice_map(AdviceMap::from_iter([(Digest::default(), vec![ZERO])]));
-        let lib_2 = lib.with_advice_map(AdviceMap::from_iter([(Digest::default(), vec![ONE])]));
+            .with_advice_map(AdviceMap::from_iter([(Word::default(), vec![ZERO])]));
+        let lib_2 = lib.with_advice_map(AdviceMap::from_iter([(Word::default(), vec![ONE])]));
 
         (lib_1, lib_2)
     };
@@ -662,7 +662,7 @@ fn test_diagnostic_merkle_store_lookup_failed() {
     assert_diagnostic_lines!(
         err,
         "failed to lookup value in Merkle store",
-        "  `-> node RpoDigest([1, 0, 0, 0]) with index `depth=10, value=0` not found in the store",
+        "  `-> node Word([1, 0, 0, 0]) with index `depth=10, value=0` not found in the store",
         regex!(r#",-\[test[\d]+:3:13\]"#),
         " 2 |         begin",
         " 3 |             mtree_set",

@@ -9,7 +9,7 @@ use alloc::{
     vec::Vec,
 };
 
-use vm_core::crypto::hash::{Rpo256, RpoDigest};
+use vm_core::{crypto::hash::Rpo256, Word};
 
 use self::passes::{ConstEvalVisitor, VerifyInvokeTargets};
 pub use self::{
@@ -249,7 +249,7 @@ fn add_advice_map_entry(
     context: &mut AnalysisContext,
 ) -> Result<(), SyntaxError> {
     let key = match entry.key {
-        Some(key) => RpoDigest::from(key.inner().0),
+        Some(key) => Word::from(key.inner().0),
         None => Rpo256::hash_elements(&entry.value),
     };
     let cst = Constant::new(

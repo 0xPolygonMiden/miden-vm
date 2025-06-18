@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 
 use super::LibraryPath;
 use crate::{
-    RpoDigest,
+    Word,
     ast::{ProcedureIndex, ProcedureName},
 };
 
@@ -22,7 +22,7 @@ impl ModuleInfo {
     }
 
     /// Adds a procedure to the module.
-    pub fn add_procedure(&mut self, name: ProcedureName, digest: RpoDigest) {
+    pub fn add_procedure(&mut self, name: ProcedureName, digest: Word) {
         self.procedures.push(ProcedureInfo { name, digest });
     }
 
@@ -42,7 +42,7 @@ impl ModuleInfo {
     }
 
     /// Returns the digest of the procedure with the provided name, if any.
-    pub fn get_procedure_digest_by_name(&self, name: &ProcedureName) -> Option<RpoDigest> {
+    pub fn get_procedure_digest_by_name(&self, name: &ProcedureName) -> Option<Word> {
         self.procedures.iter().find_map(|proc_info| {
             if &proc_info.name == name {
                 Some(proc_info.digest)
@@ -62,7 +62,7 @@ impl ModuleInfo {
     }
 
     /// Returns an iterator over the MAST roots of procedures defined in this module.
-    pub fn procedure_digests(&self) -> impl Iterator<Item = RpoDigest> + '_ {
+    pub fn procedure_digests(&self) -> impl Iterator<Item = Word> + '_ {
         self.procedures.iter().map(|p| p.digest)
     }
 }
@@ -71,5 +71,5 @@ impl ModuleInfo {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProcedureInfo {
     pub name: ProcedureName,
-    pub digest: RpoDigest,
+    pub digest: Word,
 }

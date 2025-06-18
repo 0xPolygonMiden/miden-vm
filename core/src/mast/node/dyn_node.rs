@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 use core::fmt;
 
-use miden_crypto::{Felt, hash::rpo::RpoDigest};
+use miden_crypto::{Felt, Word};
 use miden_formatting::prettier::{Document, PrettyPrint, const_text, nl};
 
 use super::MastNodeExt;
@@ -71,20 +71,20 @@ impl DynNode {
     ///
     /// ```
     /// # use miden_core::mast::DynNode;
-    /// # use miden_crypto::{hash::rpo::{RpoDigest as Digest, Rpo256 as Hasher}};
-    /// Hasher::merge_in_domain(&[Digest::default(), Digest::default()], DynNode::DYN_DOMAIN);
-    /// Hasher::merge_in_domain(&[Digest::default(), Digest::default()], DynNode::DYNCALL_DOMAIN);
+    /// # use miden_crypto::{Word, Rpo256 as Hasher};
+    /// Hasher::merge_in_domain(&[Word::default(), Word::default()], DynNode::DYN_DOMAIN);
+    /// Hasher::merge_in_domain(&[Word::default(), Word::default()], DynNode::DYNCALL_DOMAIN);
     /// ```
-    pub fn digest(&self) -> RpoDigest {
+    pub fn digest(&self) -> Word {
         if self.is_dyncall {
-            RpoDigest::new([
+            Word::new([
                 Felt::new(8751004906421739448),
                 Felt::new(13469709002495534233),
                 Felt::new(12584249374630430826),
                 Felt::new(7624899870831503004),
             ])
         } else {
-            RpoDigest::new([
+            Word::new([
                 Felt::new(8115106948140260551),
                 Felt::new(13491227816952616836),
                 Felt::new(15015806788322198710),
@@ -222,18 +222,12 @@ mod tests {
     pub fn test_dyn_node_digest() {
         assert_eq!(
             DynNode::new_dyn().digest(),
-            Rpo256::merge_in_domain(
-                &[RpoDigest::default(), RpoDigest::default()],
-                DynNode::DYN_DOMAIN
-            )
+            Rpo256::merge_in_domain(&[Word::default(), Word::default()], DynNode::DYN_DOMAIN)
         );
 
         assert_eq!(
             DynNode::new_dyncall().digest(),
-            Rpo256::merge_in_domain(
-                &[RpoDigest::default(), RpoDigest::default()],
-                DynNode::DYNCALL_DOMAIN
-            )
+            Rpo256::merge_in_domain(&[Word::default(), Word::default()], DynNode::DYNCALL_DOMAIN)
         );
     }
 }

@@ -1,8 +1,7 @@
 use alloc::sync::Arc;
 
 use vm_core::{
-    DebugOptions,
-    crypto::hash::RpoDigest,
+    DebugOptions, Word,
     mast::{MastForest, MastNodeExt},
 };
 
@@ -42,7 +41,7 @@ pub trait Host {
 
     /// Returns MAST forest corresponding to the specified digest, or None if the MAST forest for
     /// this digest could not be found in this [Host].
-    fn get_mast_forest(&self, node_digest: &RpoDigest) -> Option<Arc<MastForest>>;
+    fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>>;
 
     // PROVIDED METHODS
     // --------------------------------------------------------------------------------------------
@@ -108,7 +107,7 @@ where
         H::advice_provider_mut(self)
     }
 
-    fn get_mast_forest(&self, node_digest: &RpoDigest) -> Option<Arc<MastForest>> {
+    fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>> {
         H::get_mast_forest(self, node_digest)
     }
 
@@ -180,13 +179,13 @@ impl<A: AdviceProvider> DefaultHost<A> {
             if let Some(stored_values) = self.advice_provider().get_mapped_values(digest) {
                 if stored_values != values {
                     return Err(ExecutionError::AdviceMapKeyAlreadyPresent {
-                        key: digest.into(),
+                        key: (*digest).into(),
                         prev_values: stored_values.to_vec(),
                         new_values: values.clone(),
                     });
                 }
             } else {
-                self.advice_provider_mut().insert_into_map(digest.into(), values.clone());
+                self.advice_provider_mut().insert_into_map(*digest, values.clone());
             }
         }
 
@@ -220,7 +219,7 @@ impl<A: AdviceProvider> Host for DefaultHost<A> {
         &mut self.adv_provider
     }
 
-    fn get_mast_forest(&self, node_digest: &RpoDigest) -> Option<Arc<MastForest>> {
+    fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>> {
         self.store.get(node_digest)
     }
 

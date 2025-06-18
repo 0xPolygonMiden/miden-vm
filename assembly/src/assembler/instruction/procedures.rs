@@ -3,7 +3,7 @@ use vm_core::mast::MastNodeId;
 
 use super::{Assembler, BasicBlockBuilder, Operation};
 use crate::{
-    RpoDigest,
+    Word,
     assembler::{ProcedureContext, mast_forest_builder::MastForestBuilder},
     ast::{InvocationTarget, InvokeKind},
     diagnostics::Report,
@@ -80,7 +80,7 @@ impl Assembler {
 
     fn procref_mast_root(
         &self,
-        mast_root: RpoDigest,
+        mast_root: Word,
         block_builder: &mut BasicBlockBuilder,
     ) -> Result<(), Report> {
         // Create an array with `Push` operations containing root elements

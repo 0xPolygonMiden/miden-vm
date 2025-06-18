@@ -19,7 +19,6 @@ use utils::resolve_external_node;
 pub use vm_core::{
     AssemblyOp, EMPTY_WORD, Felt, Kernel, ONE, Operation, Program, ProgramInfo, QuadExtension,
     StackInputs, StackOutputs, Word, ZERO,
-    chiplets::hasher::Digest,
     crypto::merkle::SMT_DEPTH,
     debuginfo::{DefaultSourceManager, SourceManager, SourceSpan},
     errors::InputError,
@@ -88,9 +87,7 @@ pub mod math {
 
 pub mod crypto {
     pub use vm_core::crypto::{
-        hash::{
-            Blake3_192, Blake3_256, ElementHasher, Hasher, Rpo256, RpoDigest, Rpx256, RpxDigest,
-        },
+        hash::{Blake3_192, Blake3_256, ElementHasher, Hasher, Rpo256, Rpx256},
         merkle::{
             MerkleError, MerklePath, MerkleStore, MerkleTree, NodeIndex, PartialMerkleTree,
             SimpleSmt,
@@ -315,7 +312,7 @@ impl Process {
                     });
                 }
             } else {
-                host.advice_provider_mut().insert_into_map(digest.into(), values.clone());
+                host.advice_provider_mut().insert_into_map(*digest, values.clone());
             }
         }
 
@@ -513,18 +510,18 @@ impl Process {
         // if the callee is not in the program's MAST forest, try to find a MAST forest for it in
         // the host (corresponding to an external library loaded in the host); if none are
         // found, return an error.
-        match program.find_procedure_root(callee_hash.into()) {
+        match program.find_procedure_root(callee_hash) {
             Some(callee_id) => self.execute_mast_node(callee_id, program, host)?,
             None => {
-                let mast_forest = host.get_mast_forest(&callee_hash.into()).ok_or_else(|| {
-                    ExecutionError::dynamic_node_not_found(callee_hash.into(), &error_ctx)
+                let mast_forest = host.get_mast_forest(&callee_hash).ok_or_else(|| {
+                    ExecutionError::dynamic_node_not_found(callee_hash, &error_ctx)
                 })?;
 
                 // We limit the parts of the program that can be called externally to procedure
                 // roots, even though MAST doesn't have that restriction.
-                let root_id = mast_forest.find_procedure_root(callee_hash.into()).ok_or(
+                let root_id = mast_forest.find_procedure_root(callee_hash).ok_or(
                     ExecutionError::malfored_mast_forest_in_host(
-                        callee_hash.into(),
+                        callee_hash,
                         &ErrorContext::default(),
                     ),
                 )?;

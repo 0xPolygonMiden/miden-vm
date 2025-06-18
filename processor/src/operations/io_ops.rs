@@ -43,11 +43,12 @@ impl Process {
         error_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<(), ExecutionError> {
         // get the address from the stack and read the word from current memory context
-        let mut word = self
+        let mut word: [Felt; WORD_SIZE] = self
             .chiplets
             .memory
             .read_word(self.system.ctx(), self.stack.get(0), self.system.clk(), error_ctx)
-            .map_err(ExecutionError::MemoryError)?;
+            .map_err(ExecutionError::MemoryError)?
+            .into();
         word.reverse();
 
         // update the stack state
@@ -107,7 +108,7 @@ impl Process {
         // write the word to memory and get the previous word
         self.chiplets
             .memory
-            .write_word(self.system.ctx(), addr, self.system.clk(), word, error_ctx)
+            .write_word(self.system.ctx(), addr, self.system.clk(), word.into(), error_ctx)
             .map_err(ExecutionError::MemoryError)?;
 
         // reverse the order of the memory word & update the stack state
@@ -310,7 +311,9 @@ impl Process {
 
 #[cfg(test)]
 mod tests {
-    use vm_core::{ONE, Word, ZERO, assert_matches, mast::MastForest, utils::ToElements};
+    use vm_core::{
+        ONE, WORD_SIZE, Word, ZERO, assert_matches, mast::MastForest, utils::ToElements,
+    };
 
     use super::{
         super::{super::AdviceProvider, MIN_STACK_DEPTH, Operation},
@@ -380,7 +383,10 @@ mod tests {
 
         // check memory state
         assert_eq!(1, process.chiplets.memory.num_accessed_words());
-        assert_eq!(word, process.chiplets.memory.get_word(ContextId::root(), 4).unwrap().unwrap());
+        assert_eq!(
+            Into::<Word>::into(word),
+            process.chiplets.memory.get_word(ContextId::root(), 4).unwrap().unwrap()
+        );
 
         // --- calling MLOADW with address greater than u32::MAX leads to an error ----------------
         process
@@ -414,7 +420,10 @@ mod tests {
 
         // check memory state
         assert_eq!(1, process.chiplets.memory.num_accessed_words());
-        assert_eq!(word, process.chiplets.memory.get_word(ContextId::root(), 4).unwrap().unwrap());
+        assert_eq!(
+            Into::<Word>::into(word),
+            process.chiplets.memory.get_word(ContextId::root(), 4).unwrap().unwrap()
+        );
 
         // --- calling MLOAD with address greater than u32::MAX leads to an error -----------------
         process
@@ -436,19 +445,19 @@ mod tests {
         // save two words into memory addresses 4 and 8
         let word1 = [30, 29, 28, 27];
         let word2 = [26, 25, 24, 23];
-        let word1_felts: Word = word1.to_elements().try_into().unwrap();
-        let word2_felts: Word = word2.to_elements().try_into().unwrap();
+        let word1_felts: [Felt; WORD_SIZE] = word1.to_elements().try_into().unwrap();
+        let word2_felts: [Felt; WORD_SIZE] = word2.to_elements().try_into().unwrap();
         store_value(&mut process, 4, word1_felts, &mut host);
         store_value(&mut process, 8, word2_felts, &mut host);
 
         // check memory state
         assert_eq!(2, process.chiplets.memory.num_accessed_words());
         assert_eq!(
-            word1_felts,
+            Into::<Word>::into(word1_felts),
             process.chiplets.memory.get_word(ContextId::root(), 4).unwrap().unwrap()
         );
         assert_eq!(
-            word2_felts,
+            Into::<Word>::into(word2_felts),
             process.chiplets.memory.get_word(ContextId::root(), 8).unwrap().unwrap()
         );
 
@@ -511,7 +520,10 @@ mod tests {
 
         // check memory state
         assert_eq!(1, process.chiplets.memory.num_accessed_words());
-        assert_eq!(word1, process.chiplets.memory.get_word(ContextId::root(), 0).unwrap().unwrap());
+        assert_eq!(
+            Into::<Word>::into(word1),
+            process.chiplets.memory.get_word(ContextId::root(), 0).unwrap().unwrap()
+        );
 
         // push the second word onto the stack and save it at address 4
         let word2 = [2, 4, 6, 8].to_elements().try_into().unwrap();
@@ -523,8 +535,14 @@ mod tests {
 
         // check memory state
         assert_eq!(2, process.chiplets.memory.num_accessed_words());
-        assert_eq!(word1, process.chiplets.memory.get_word(ContextId::root(), 0).unwrap().unwrap());
-        assert_eq!(word2, process.chiplets.memory.get_word(ContextId::root(), 4).unwrap().unwrap());
+        assert_eq!(
+            Into::<Word>::into(word1),
+            process.chiplets.memory.get_word(ContextId::root(), 0).unwrap().unwrap()
+        );
+        assert_eq!(
+            Into::<Word>::into(word2),
+            process.chiplets.memory.get_word(ContextId::root(), 4).unwrap().unwrap()
+        );
 
         // --- calling MSTOREW with address greater than u32::MAX leads to an error ----------------
         process
@@ -555,7 +573,7 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // check memory state
-        let mem_0 = [element, ZERO, ZERO, ZERO];
+        let mem_0: Word = [element, ZERO, ZERO, ZERO].into();
         assert_eq!(1, process.chiplets.memory.num_accessed_words());
         assert_eq!(mem_0, process.chiplets.memory.get_word(ContextId::root(), 0).unwrap().unwrap());
 
@@ -572,7 +590,7 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // check memory state to make sure the other 3 elements were not affected
-        let mem_2 = [element, Felt::new(3), Felt::new(5), Felt::new(7)];
+        let mem_2: Word = [element, Felt::new(3), Felt::new(5), Felt::new(7)].into();
         assert_eq!(2, process.chiplets.memory.num_accessed_words());
         assert_eq!(mem_2, process.chiplets.memory.get_word(ContextId::root(), 4).unwrap().unwrap());
 
@@ -597,8 +615,8 @@ mod tests {
         // push words onto the advice stack
         let word1 = [30, 29, 28, 27];
         let word2 = [26, 25, 24, 23];
-        let word1_felts: Word = word1.to_elements().try_into().unwrap();
-        let word2_felts: Word = word2.to_elements().try_into().unwrap();
+        let word1_felts: [Felt; WORD_SIZE] = word1.to_elements().try_into().unwrap();
+        let word2_felts: [Felt; WORD_SIZE] = word2.to_elements().try_into().unwrap();
         for element in word2_felts.iter().rev().chain(word1_felts.iter().rev()).copied() {
             // reverse the word order, since elements are pushed onto the advice stack.
             host.advice_provider_mut()
@@ -624,11 +642,11 @@ mod tests {
         // check memory state contains the words from the advice stack
         assert_eq!(2, process.chiplets.memory.num_accessed_words());
         assert_eq!(
-            word1_felts,
+            Into::<Word>::into(word1_felts),
             process.chiplets.memory.get_word(ContextId::root(), 4).unwrap().unwrap()
         );
         assert_eq!(
-            word2_felts,
+            Into::<Word>::into(word2_felts),
             process.chiplets.memory.get_word(ContextId::root(), 8).unwrap().unwrap()
         );
 

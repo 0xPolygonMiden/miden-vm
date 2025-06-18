@@ -1,6 +1,6 @@
 pub use rand_utils::*;
 
-use super::{Felt, Word};
+use super::{Felt, WORD_SIZE, Word};
 
 // SEEDED GENERATORS
 // ================================================================================================
@@ -8,7 +8,8 @@ use super::{Felt, Word};
 /// Mutates a seed and generates a word deterministically
 pub fn seeded_word(seed: &mut u64) -> Word {
     let seed = generate_bytes_seed(seed);
-    prng_array(seed)
+    let result: [Felt; WORD_SIZE] = prng_array(seed);
+    result.into()
 }
 
 /// Mutates a seed and generates an element deterministically

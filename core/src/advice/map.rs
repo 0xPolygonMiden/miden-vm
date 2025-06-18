@@ -4,12 +4,9 @@ use alloc::{
     vec::Vec,
 };
 
-use miden_crypto::{Felt, utils::collections::KvMap};
+use miden_crypto::{Felt, Word, utils::collections::KvMap};
 
-use crate::{
-    crypto::hash::RpoDigest,
-    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-};
+use crate::utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 // ADVICE MAP
 // ================================================================================================
@@ -20,26 +17,26 @@ use crate::{
 /// associated with a given key onto the advice stack using `adv.push_mapval` instruction. The VM
 /// can also insert new values into the advice map during execution.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct AdviceMap(BTreeMap<RpoDigest, Vec<Felt>>);
+pub struct AdviceMap(BTreeMap<Word, Vec<Felt>>);
 
 impl AdviceMap {
     /// Creates a new advice map.
     pub fn new() -> Self {
-        Self(BTreeMap::<RpoDigest, Vec<Felt>>::new())
+        Self(BTreeMap::<Word, Vec<Felt>>::new())
     }
 
     /// Returns the values associated with given key.
-    pub fn get(&self, key: &RpoDigest) -> Option<&[Felt]> {
+    pub fn get(&self, key: &Word) -> Option<&[Felt]> {
         self.0.get(key).map(|v| v.as_slice())
     }
 
     /// Inserts a key value pair in the advice map and returns the inserted value.
-    pub fn insert(&mut self, key: RpoDigest, value: Vec<Felt>) -> Option<Vec<Felt>> {
+    pub fn insert(&mut self, key: Word, value: Vec<Felt>) -> Option<Vec<Felt>> {
         self.0.insert(key, value)
     }
 
     /// Removes the value associated with the key and returns the removed element.
-    pub fn remove(&mut self, key: &RpoDigest) -> Option<Vec<Felt>> {
+    pub fn remove(&mut self, key: &Word) -> Option<Vec<Felt>> {
         self.0.remove(key)
     }
 
@@ -54,33 +51,33 @@ impl AdviceMap {
     }
 }
 
-impl From<BTreeMap<RpoDigest, Vec<Felt>>> for AdviceMap {
-    fn from(value: BTreeMap<RpoDigest, Vec<Felt>>) -> Self {
+impl From<BTreeMap<Word, Vec<Felt>>> for AdviceMap {
+    fn from(value: BTreeMap<Word, Vec<Felt>>) -> Self {
         Self(value)
     }
 }
 
 impl IntoIterator for AdviceMap {
-    type Item = (RpoDigest, Vec<Felt>);
-    type IntoIter = IntoIter<RpoDigest, Vec<Felt>>;
+    type Item = (Word, Vec<Felt>);
+    type IntoIter = IntoIter<Word, Vec<Felt>>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
     }
 }
 
-impl FromIterator<(RpoDigest, Vec<Felt>)> for AdviceMap {
-    fn from_iter<T: IntoIterator<Item = (RpoDigest, Vec<Felt>)>>(iter: T) -> Self {
-        iter.into_iter().collect::<BTreeMap<RpoDigest, Vec<Felt>>>().into()
+impl FromIterator<(Word, Vec<Felt>)> for AdviceMap {
+    fn from_iter<T: IntoIterator<Item = (Word, Vec<Felt>)>>(iter: T) -> Self {
+        iter.into_iter().collect::<BTreeMap<Word, Vec<Felt>>>().into()
     }
 }
 
-impl KvMap<RpoDigest, Vec<Felt>> for AdviceMap {
-    fn get(&self, key: &RpoDigest) -> Option<&Vec<Felt>> {
+impl KvMap<Word, Vec<Felt>> for AdviceMap {
+    fn get(&self, key: &Word) -> Option<&Vec<Felt>> {
         self.0.get(key)
     }
 
-    fn contains_key(&self, key: &RpoDigest) -> bool {
+    fn contains_key(&self, key: &Word) -> bool {
         self.0.contains_key(key)
     }
 
@@ -88,21 +85,21 @@ impl KvMap<RpoDigest, Vec<Felt>> for AdviceMap {
         self.len()
     }
 
-    fn insert(&mut self, key: RpoDigest, value: Vec<Felt>) -> Option<Vec<Felt>> {
+    fn insert(&mut self, key: Word, value: Vec<Felt>) -> Option<Vec<Felt>> {
         self.insert(key, value)
     }
 
-    fn remove(&mut self, key: &RpoDigest) -> Option<Vec<Felt>> {
+    fn remove(&mut self, key: &Word) -> Option<Vec<Felt>> {
         self.remove(key)
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item = (&RpoDigest, &Vec<Felt>)> + '_> {
+    fn iter(&self) -> Box<dyn Iterator<Item = (&Word, &Vec<Felt>)> + '_> {
         Box::new(self.0.iter())
     }
 }
 
-impl Extend<(RpoDigest, Vec<Felt>)> for AdviceMap {
-    fn extend<T: IntoIterator<Item = (RpoDigest, Vec<Felt>)>>(&mut self, iter: T) {
+impl Extend<(Word, Vec<Felt>)> for AdviceMap {
+    fn extend<T: IntoIterator<Item = (Word, Vec<Felt>)>>(&mut self, iter: T) {
         self.0.extend(iter)
     }
 }
@@ -135,7 +132,7 @@ mod tests {
     #[test]
     fn test_advice_map_serialization() {
         let mut map1 = AdviceMap::new();
-        map1.insert(RpoDigest::default(), vec![Felt::from(1u32), Felt::from(2u32)]);
+        map1.insert(Word::default(), vec![Felt::from(1u32), Felt::from(2u32)]);
 
         let bytes = map1.to_bytes();
 

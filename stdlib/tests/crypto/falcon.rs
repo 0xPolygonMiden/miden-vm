@@ -4,7 +4,7 @@ use assembly::{Assembler, DefaultSourceManager, utils::Serializable};
 use miden_air::{Felt, ProvingOptions, RowIndex};
 use miden_stdlib::{EVENT_FALCON_SIG_TO_STACK, StdLibrary, falcon_sign};
 use processor::{
-    AdviceInputs, Digest, ExecutionError, MemAdviceProvider, Program, ProgramInfo, StackInputs,
+    AdviceInputs, ExecutionError, MemAdviceProvider, Program, ProgramInfo, StackInputs,
     crypto::RpoRandomCoin,
 };
 use rand::{Rng, rng};
@@ -19,7 +19,7 @@ use test_utils::{
     proptest::proptest,
     rand::rand_vector,
 };
-use vm_core::{StarkField, ZERO};
+use vm_core::{StarkField, WORD_SIZE, ZERO};
 
 /// Modulus used for rpo falcon 512.
 const M: u64 = 12289;
@@ -171,7 +171,7 @@ fn test_move_sig_to_adv_stack() {
     let seed = Word::default();
     let mut rng = RpoRandomCoin::new(seed);
     let secret_key = SecretKey::with_rng(&mut rng);
-    let message: Word = rand_vector::<Felt>(4).try_into().unwrap();
+    let message: [Felt; WORD_SIZE] = rand_vector::<Felt>(4).try_into().unwrap();
 
     let source = "
     use.std::crypto::dsa::rpo_falcon512
@@ -188,10 +188,10 @@ fn test_move_sig_to_adv_stack() {
     };
     let secret_key_bytes = secret_key.to_bytes();
 
-    let advice_map: Vec<(Digest, Vec<Felt>)> = {
+    let advice_map: Vec<(Word, Vec<Felt>)> = {
         let sig_key = Rpo256::merge(&[message.into(), public_key]);
         let sk_felts = secret_key_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
-        let signature = falcon_sign(&sk_felts, message).expect("failed to sign message");
+        let signature = falcon_sign(&sk_felts, message.into()).expect("failed to sign message");
 
         vec![(sig_key, signature.iter().rev().cloned().collect())]
     };
@@ -218,8 +218,8 @@ fn falcon_execution() {
     let seed = Word::default();
     let mut rng = RpoRandomCoin::new(seed);
     let sk = SecretKey::with_rng(&mut rng);
-    let message = rand_vector::<Felt>(4).try_into().unwrap();
-    let (source, op_stack, adv_stack, store, advice_map) = generate_test(sk, message);
+    let message: [Felt; WORD_SIZE] = rand_vector::<Felt>(4).try_into().unwrap();
+    let (source, op_stack, adv_stack, store, advice_map) = generate_test(sk, message.into());
 
     let test = build_test!(&source, &op_stack, &adv_stack, store, advice_map.into_iter());
     test.expect_stack(&[])
@@ -228,8 +228,8 @@ fn falcon_execution() {
 #[test]
 fn falcon_prove_verify() {
     let sk = SecretKey::new();
-    let message = rand_vector::<Felt>(4).try_into().unwrap();
-    let (source, op_stack, _, _, advice_map) = generate_test(sk, message);
+    let message: [Felt; WORD_SIZE] = rand_vector::<Felt>(4).try_into().unwrap();
+    let (source, op_stack, _, _, advice_map) = generate_test(sk, message.into());
 
     let program: Program = Assembler::default()
         .with_dynamic_library(StdLibrary::default())
@@ -264,7 +264,7 @@ fn falcon_prove_verify() {
 fn generate_test(
     sk: SecretKey,
     message: Word,
-) -> (String, Vec<u64>, Vec<u64>, MerkleStore, Vec<(Digest, Vec<Felt>)>) {
+) -> (String, Vec<u64>, Vec<u64>, MerkleStore, Vec<(Word, Vec<Felt>)>) {
     let source = format!(
         "
     use.std::crypto::dsa::rpo_falcon512
@@ -277,12 +277,12 @@ fn generate_test(
     );
 
     let pk: Word = sk.public_key().into();
-    let pk: Digest = pk.into();
+    let pk: Word = pk.into();
     let sk_bytes = sk.to_bytes();
 
     let to_adv_map = sk_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
 
-    let advice_map: Vec<(Digest, Vec<Felt>)> = vec![(pk, to_adv_map)];
+    let advice_map: Vec<(Word, Vec<Felt>)> = vec![(pk, to_adv_map)];
 
     let mut op_stack = vec![];
     let message = message.into_iter().map(|a| a.as_int()).collect::<Vec<u64>>();

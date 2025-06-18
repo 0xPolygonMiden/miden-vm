@@ -8,9 +8,7 @@ extern crate alloc;
 extern crate std;
 
 use vm_core::{
-    Felt, ONE, ZERO,
-    crypto::hash::RpoDigest,
-    prettier,
+    Felt, ONE, Word, ZERO, prettier,
     utils::{
         ByteReader, ByteWriter, Deserializable, DeserializationError, DisplayHex, Serializable,
     },
