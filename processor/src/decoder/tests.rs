@@ -154,6 +154,7 @@ fn basic_block_small() {
     }
 }
 
+// CHECK
 #[test]
 fn basic_block_small_with_emit() {
     // TODO: how to handle Emit now?
