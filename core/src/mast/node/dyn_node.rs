@@ -71,7 +71,7 @@ impl DynNode {
     ///
     /// ```
     /// # use miden_core::mast::DynNode;
-    /// # use miden_crypto::{Word, Rpo256 as Hasher};
+    /// # use miden_crypto::{Word, hash::rpo::Rpo256 as Hasher};
     /// Hasher::merge_in_domain(&[Word::default(), Word::default()], DynNode::DYN_DOMAIN);
     /// Hasher::merge_in_domain(&[Word::default(), Word::default()], DynNode::DYNCALL_DOMAIN);
     /// ```

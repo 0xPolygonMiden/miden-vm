@@ -74,7 +74,7 @@ impl LoopNode {
     /// the domain defined by [Self::DOMAIN] - i..e,:
     /// ```
     /// # use miden_core::mast::LoopNode;
-    /// # use miden_crypto::{Word, Rpo256 as Hasher};
+    /// # use miden_crypto::{Word, hash::rpo::Rpo256 as Hasher};
     /// # let body_digest = Word::default();
     /// Hasher::merge_in_domain(&[body_digest, Word::default()], LoopNode::DOMAIN);
     /// ```

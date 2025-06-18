@@ -123,14 +123,14 @@ impl CallNode {
     /// whether the node represents a simple call or a syscall - i.e.,:
     /// ```
     /// # use miden_core::mast::CallNode;
-    /// # use miden_crypto::{Word, Rpo256 as Hasher};
+    /// # use miden_crypto::{Word, hash::rpo::Rpo256 as Hasher};
     /// # let callee_digest = Word::default();
     /// Hasher::merge_in_domain(&[callee_digest, Word::default()], CallNode::CALL_DOMAIN);
     /// ```
     /// or
     /// ```
     /// # use miden_core::mast::CallNode;
-    /// # use miden_crypto::{Word, Rpo256 as Hasher};
+    /// # use miden_crypto::{Word, hash::rpo::Rpo256 as Hasher};
     /// # let callee_digest = Word::default();
     /// Hasher::merge_in_domain(&[callee_digest, Word::default()], CallNode::SYSCALL_DOMAIN);
     /// ```

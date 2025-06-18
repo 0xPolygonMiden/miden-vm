@@ -2,7 +2,7 @@ use alloc::{borrow::Cow, collections::BTreeSet, vec::Vec};
 
 use super::{Linker, ModuleLink, PreLinkModule};
 use crate::{
-    Word, SourceSpan, Span, Spanned,
+    SourceSpan, Span, Spanned, Word,
     assembler::{GlobalProcedureIndex, LinkerError, ModuleIndex},
     ast::{
         Ident, InvocationTarget, InvokeKind, ProcedureName, QualifiedProcedureName,

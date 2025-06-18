@@ -78,7 +78,7 @@ impl JoinNode {
     /// defined by [Self::DOMAIN] - i.e.,:
     /// ```
     /// # use miden_core::mast::JoinNode;
-    /// # use miden_crypto::{Word, Rpo256 as Hasher};
+    /// # use miden_crypto::{Word, hash::rpo::Rpo256 as Hasher};
     /// # let first_child_digest = Word::default();
     /// # let second_child_digest = Word::default();
     /// Hasher::merge_in_domain(&[first_child_digest, second_child_digest], JoinNode::DOMAIN);
