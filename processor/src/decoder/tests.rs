@@ -156,6 +156,7 @@ fn basic_block_small() {
 
 #[test]
 fn basic_block_small_with_emit() {
+    // TODO: how to handle Emit now?
     let ops = vec![Operation::Push(ONE), Operation::Emit(1), Operation::Add];
     let basic_block = BasicBlockNode::new(ops.clone(), None).unwrap();
     let program = {

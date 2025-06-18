@@ -20,7 +20,7 @@ pub use processor::{
     AdviceInputs, AdviceProvider, ContextId, ExecutionError, ExecutionOptions, ExecutionTrace,
     Process, ProcessState, VmStateIterator,
 };
-use processor::{Program, fast::FastProcessor};
+use processor::{DefaultHost, Program, fast::FastProcessor};
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
 use prover::utils::range;
@@ -50,8 +50,7 @@ pub mod serde {
 
 pub mod crypto;
 
-pub mod host;
-use host::TestHost;
+pub type TestHost = DefaultHost<MemAdviceProvider>;
 
 #[cfg(not(target_family = "wasm"))]
 pub mod rand;
@@ -177,6 +176,7 @@ pub struct Test {
     pub stack_inputs: StackInputs,
     pub advice_inputs: AdviceInputs,
     pub in_debug_mode: bool,
+    // TODO: Box<dyn HostLibrary> ?d
     pub libraries: Vec<Library>,
     pub add_modules: Vec<(LibraryPath, String)>,
 }
@@ -232,10 +232,10 @@ impl Test {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = TestHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
+            host.load_library(kernel.mast_forest()).unwrap();
         }
         for library in &self.libraries {
-            host.load_mast_forest(library.mast_forest().clone()).unwrap();
+            host.load_library(library.mast_forest()).unwrap();
         }
 
         // execute the test
@@ -442,10 +442,10 @@ impl Test {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = TestHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
+            host.load_library(kernel.mast_forest()).unwrap();
         }
         for library in &self.libraries {
-            host.load_mast_forest(library.mast_forest().clone()).unwrap();
+            host.load_library(library.mast_forest()).unwrap();
         }
 
         (program, host)

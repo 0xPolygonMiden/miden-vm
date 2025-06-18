@@ -2,20 +2,22 @@ use std::{sync::Arc, vec};
 
 use assembly::{Assembler, DefaultSourceManager, utils::Serializable};
 use miden_air::{Felt, ProvingOptions, RowIndex};
-use miden_stdlib::{EVENT_FALCON_SIG_TO_STACK, StdLibrary, falcon_sign};
+use miden_stdlib::{
+    EVENT_FALCON_SIG_TO_STACK, StdLibrary, crypto::dsa::rpo_falcon512::secret_key_from_felts,
+    falcon_sign,
+};
 use processor::{
     AdviceInputs, Digest, ExecutionError, MemAdviceProvider, Program, ProgramInfo, StackInputs,
     crypto::RpoRandomCoin,
 };
 use rand::{Rng, rng};
 use test_utils::{
-    Word,
+    TestHost, Word,
     crypto::{
         MerkleStore, Rpo256,
         rpo_falcon512::{Polynomial, SecretKey},
     },
     expect_exec_error_matches,
-    host::TestHost,
     proptest::proptest,
     rand::rand_vector,
 };
@@ -191,7 +193,8 @@ fn test_move_sig_to_adv_stack() {
     let advice_map: Vec<(Digest, Vec<Felt>)> = {
         let sig_key = Rpo256::merge(&[message.into(), public_key]);
         let sk_felts = secret_key_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
-        let signature = falcon_sign(&sk_felts, message).expect("failed to sign message");
+        let sk = secret_key_from_felts(&sk_felts).expect("TODO");
+        let signature = falcon_sign(&sk, message).expect("failed to sign message");
 
         vec![(sig_key, signature.iter().rev().cloned().collect())]
     };
@@ -231,18 +234,19 @@ fn falcon_prove_verify() {
     let message = rand_vector::<Felt>(4).try_into().unwrap();
     let (source, op_stack, _, _, advice_map) = generate_test(sk, message);
 
-    let program: Program = Assembler::default()
-        .with_library(StdLibrary::default())
-        .expect("failed to load stdlib")
-        .assemble_program(source)
-        .expect("failed to compile test source");
+    let stdlib = StdLibrary::default();
 
     let stack_inputs = StackInputs::try_from_ints(op_stack).expect("failed to create stack inputs");
     let advice_inputs = AdviceInputs::default().with_map(advice_map);
     let advice_provider = MemAdviceProvider::from(advice_inputs);
     let mut host = TestHost::new(advice_provider);
-    host.load_mast_forest(StdLibrary::default().mast_forest().clone())
-        .expect("failed to load mast forest");
+    host.load_library(&stdlib).expect("failed to load mast forest");
+
+    let program: Program = Assembler::default()
+        .with_library(stdlib)
+        .expect("failed to load stdlib")
+        .assemble_program(source)
+        .expect("failed to compile test source");
 
     let options = ProvingOptions::with_96_bit_security(false);
     let (stack_outputs, proof) = test_utils::prove(

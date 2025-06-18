@@ -14,6 +14,7 @@ mod mast_forest_store;
 pub use mast_forest_store::{MastForestStore, MemMastForestStore};
 
 pub(super) mod default;
+pub(super) mod events;
 
 // HOST TRAIT
 // ================================================================================================

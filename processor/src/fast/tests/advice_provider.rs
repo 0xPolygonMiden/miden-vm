@@ -243,7 +243,7 @@ type ConsistencyHost = DefaultHost<MemAdviceProvider, DefaultDebugHandler, Trace
 impl ConsistencyHost {
     fn new(kernel_forest: Arc<MastForest>) -> Self {
         let mut host = DefaultHost::default().with_trace_handler(TraceSnapshotHandler::default());
-        host.load_mast_forest(kernel_forest).unwrap();
+        host.load_library(&kernel_forest).unwrap();
         host
     }
 

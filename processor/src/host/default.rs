@@ -1,5 +1,3 @@
-use core::error::Error;
-
 use vm_core::{
     DebugOptions,
     mast::{MastForest, MastNodeExt},
@@ -9,40 +7,50 @@ use crate::{
     AdviceProvider, Arc, Box, ErrorContext, ExecutionError, Host, KvMap, MastForestStore,
     MemAdviceProvider, MemMastForestStore, ProcessState, Vec,
     crypto::RpoDigest,
-    host::{DebugHandler, TraceHandler},
+    host::{
+        DebugHandler, TraceHandler,
+        events::{EventHandler, EventHandlerRegistry},
+    },
 };
 
-mod event_handler;
-use crate::host::default::event_handler::EventHandlerRegistry;
-
 mod debug_handler;
-
 pub use crate::host::default::debug_handler::DefaultDebugHandler;
+
 mod trace_handler;
 pub use crate::host::default::trace_handler::DefaultTraceHandler;
 
-/// Trait for handling VM events
-/// # TODO
-/// - Does the handler need to be stateful?
-pub trait EventHandler<A> {
-    /// Returns the event ID this handler responds to
-    fn id(&self) -> u32;
+// DEFAULT HOST IMPLEMENTATION
+// ================================================================================================
 
-    /// Handles the event when triggered
-    fn on_event(
-        &mut self,
-        advice_provider: &mut A,
-        process: ProcessState,
-    ) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
-}
-
-/// Trait for libraries that want to provide event handlers to hosts
+/// Trait for libraries that want to provide event handlers to a (Default) Host
 pub trait HostLibrary<A> {
     /// Returns all event handlers defined by this library
-    fn get_event_handlers(&self) -> Vec<Box<dyn EventHandler<A>>>;
+    fn event_handlers(&self) -> Vec<Box<dyn EventHandler<A>>>;
 
     /// Returns the MAST forest for this library
-    fn get_mast_forest(&self) -> Arc<MastForest>;
+    fn mast_forest(&self) -> Arc<MastForest>;
+}
+
+/// Default implementation for loading a MastForest without handlers.
+impl<A, H: HostLibrary<A>> HostLibrary<A> for &H {
+    fn event_handlers(&self) -> Vec<Box<dyn EventHandler<A>>> {
+        H::event_handlers(self)
+    }
+
+    fn mast_forest(&self) -> Arc<MastForest> {
+        H::mast_forest(self)
+    }
+}
+
+/// Default implementation for loading a MastForest without handlers.
+impl<A> HostLibrary<A> for Arc<MastForest> {
+    fn event_handlers(&self) -> Vec<Box<dyn EventHandler<A>>> {
+        Vec::new()
+    }
+
+    fn mast_forest(&self) -> Arc<MastForest> {
+        (*self).clone()
+    }
 }
 
 // DEFAULT HOST IMPLEMENTATION
@@ -58,6 +66,7 @@ pub struct DefaultHost<A, D = DefaultDebugHandler, T = DefaultTraceHandler> {
 }
 
 impl<A: AdviceProvider, T: TraceHandler<A>> DefaultHost<A, DefaultDebugHandler, T> {
+    /// Replace the [`DefaultDebugHandler`] with a custom one, ensuring it cannot be overridden.
     pub fn with_debug_handler<D: DebugHandler<A>>(self, handler: D) -> DefaultHost<A, D, T> {
         DefaultHost {
             adv_provider: self.adv_provider,
@@ -70,6 +79,7 @@ impl<A: AdviceProvider, T: TraceHandler<A>> DefaultHost<A, DefaultDebugHandler, 
 }
 
 impl<A: AdviceProvider, D: DebugHandler<A>> DefaultHost<A, D, DefaultTraceHandler> {
+    /// Replace the [`DefaultTraceHandler`] with a custom one, ensuring it cannot be overridden.
     pub fn with_trace_handler<T: TraceHandler<A>>(self, handler: T) -> DefaultHost<A, D, T> {
         DefaultHost {
             adv_provider: self.adv_provider,
@@ -94,7 +104,17 @@ impl<A: AdviceProvider> DefaultHost<A> {
 }
 
 impl<A: AdviceProvider, D: DebugHandler<A>, T: TraceHandler<A>> DefaultHost<A, D, T> {
-    pub fn load_mast_forest(&mut self, mast_forest: Arc<MastForest>) -> Result<(), ExecutionError> {
+    pub fn load_library(&mut self, library: impl HostLibrary<A>) -> Result<(), ExecutionError> {
+        // Load the MAST forest
+        self.load_mast_forest(library.mast_forest())?;
+
+        // Register event handlers
+        self.event_handlers.register_many(library.event_handlers())?;
+
+        Ok(())
+    }
+
+    fn load_mast_forest(&mut self, mast_forest: Arc<MastForest>) -> Result<(), ExecutionError> {
         // Load the MAST's advice data into the advice provider.
         for (digest, values) in mast_forest.advice_map().iter() {
             if let Some(stored_values) = self.advice_provider().get_mapped_values(digest) {
@@ -111,16 +131,6 @@ impl<A: AdviceProvider, D: DebugHandler<A>, T: TraceHandler<A>> DefaultHost<A, D
         }
 
         self.store.insert(mast_forest);
-        Ok(())
-    }
-
-    pub fn load_library(&mut self, library: &impl HostLibrary<A>) -> Result<(), ExecutionError> {
-        // Load the MAST forest
-        self.load_mast_forest(library.get_mast_forest().clone())?;
-
-        // Register event handlers
-        self.event_handlers.register_many(library.get_event_handlers())?;
-
         Ok(())
     }
 

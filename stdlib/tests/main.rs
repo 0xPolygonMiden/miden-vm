@@ -5,6 +5,7 @@ extern crate alloc;
 macro_rules! build_test {
     ($($params:tt)+) => {{
         let mut test = test_utils::build_test_by_mode!(false, $($params)+);
+        // TODO:
         test.libraries = vec![miden_stdlib::StdLibrary::default().into()];
         test
     }}

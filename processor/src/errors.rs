@@ -1,5 +1,4 @@
-use alloc::{boxed::Box, sync::Arc, vec::Vec};
-use core::error::Error;
+use alloc::{sync::Arc, vec::Vec};
 
 use miden_air::RowIndex;
 use miette::Diagnostic;
@@ -12,7 +11,7 @@ use vm_core::{
 use winter_prover::{ProverError, math::FieldElement};
 
 use super::{
-    Digest, Felt, QuadFelt, Word,
+    Digest, EventError, Felt, QuadFelt, Word,
     crypto::MerkleError,
     system::{FMP_MAX, FMP_MIN},
 };
@@ -91,7 +90,7 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         event_id: u32,
         #[source]
-        error: Box<dyn Error + Send + Sync + 'static>,
+        error: EventError,
     },
     #[error("failed to execute Ext2Intt operation: {0}")]
     Ext2InttError(Ext2InttError),
@@ -396,7 +395,7 @@ impl ExecutionError {
 
     pub fn event_error(
         event_id: u32,
-        error: Box<dyn Error + Send + Sync + 'static>,
+        error: EventError,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();

@@ -56,7 +56,10 @@ mod host;
 pub use host::{
     Host, MastForestStore, MemMastForestStore,
     advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, RecAdviceProvider},
-    default::{DefaultDebugHandler, DefaultHost, DefaultTraceHandler, EventHandler, HostLibrary},
+    default::{DefaultDebugHandler, DefaultHost, DefaultTraceHandler, HostLibrary},
+    events::{
+        EventError, EventHandler, EventHandlerRegistry, StatelessEventHandler, StatelessHandlerFunc,
+    },
 };
 
 mod chiplets;

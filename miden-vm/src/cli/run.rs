@@ -135,7 +135,7 @@ fn run_masp_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Repor
 
     let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
     let mut host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
-    host.load_mast_forest(StdLibrary::default().mast_forest().clone()).unwrap();
+    host.load_library(StdLibrary::default().mast_forest()).unwrap();
 
     let execution_options = ExecutionOptions::new(
         Some(params.max_cycles),
@@ -186,9 +186,9 @@ fn run_masm_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Repor
     // fetch the stack and program inputs from the arguments
     let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
     let mut host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
-    host.load_mast_forest(StdLibrary::default().mast_forest().clone()).unwrap();
+    host.load_library(StdLibrary::default().mast_forest())?;
     for lib in libraries.libraries {
-        host.load_mast_forest(lib.mast_forest().clone()).unwrap();
+        host.load_library(lib.mast_forest())?;
     }
 
     let program_hash: [u8; 32] = program.hash().into();
