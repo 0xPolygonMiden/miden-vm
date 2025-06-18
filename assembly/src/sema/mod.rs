@@ -9,7 +9,7 @@ use alloc::{
     vec::Vec,
 };
 
-use vm_core::{crypto::hash::Rpo256, Word};
+use vm_core::{Word, crypto::hash::Rpo256};
 
 use self::passes::{ConstEvalVisitor, VerifyInvokeTargets};
 pub use self::{
