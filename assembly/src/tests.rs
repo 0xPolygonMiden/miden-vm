@@ -732,7 +732,7 @@ fn constant_must_be_valid_felt() -> TestResult {
         "  :                    ^^^|^^^",
         "  :                       `-- found a constant identifier here",
         "  `----",
-        " help: expected \"*\", or \"+\", or \"-\", or \"/\", or \"//\", or \"@\", or \"begin\", or \"const\", \
+        " help: expected \"*\", or \"+\", or \"-\", or \"/\", or \"//\", or \"@\", or \"adv_map\", or \"begin\", or \"const\", \
 or \"export\", or \"proc\", or \"use\", or end of file, or doc comment"
     );
     Ok(())
@@ -2503,7 +2503,7 @@ end";
         "  :                                      `-- found a -> here",
         "3 |",
         "  `----",
-        r#" help: expected "@", or "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
+        r#" help: expected "@", or "adv_map", or "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
     );
 
     // --- duplicate module import --------------------------------------------
@@ -2718,6 +2718,51 @@ end";
     Ok(())
 }
 
+#[test]
+fn test_advmap_push() -> TestResult {
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+adv_map.A(0x0200000000000000020000000000000002000000000000000200000000000000)=[0x01]
+begin push.A adv.push_mapval assert end"
+    );
+
+    let program = context.assemble(source)?;
+    let expected = "\
+begin
+    basic_block push(2) push(2) push(2) push(2) emit(574478993) assert(0) end
+end";
+    assert_str_eq!(format!("{program}"), expected);
+    Ok(())
+}
+
+#[test]
+fn test_advmap_push_nokey() -> TestResult {
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+adv_map.A=[0x01]
+begin push.A adv.push_mapval assert end"
+    );
+
+    let program = context.assemble(source)?;
+    let expected = "\
+begin
+    basic_block
+        push(3846236276142386450)
+        push(5034591595140902852)
+        push(4565868838168209231)
+        push(6740431856120851931)
+        emit(574478993)
+        assert(0)
+    end
+end";
+    assert_str_eq!(format!("{program}"), expected);
+    Ok(())
+}
+
 // ERRORS
 // ================================================================================================
 
@@ -2730,7 +2775,7 @@ fn invalid_empty_program() {
         "unexpected end of file",
         regex!(r#",-\[test[\d]+:1:1\]"#),
         "`----",
-        r#" help: expected "@", or "begin", or "const", or "export", or "proc", or "use", or doc comment"#
+        r#" help: expected "@", or "adv_map", or "begin", or "const", or "export", or "proc", or "use", or doc comment"#
     );
 
     assert_assembler_diagnostic!(
@@ -2739,7 +2784,7 @@ fn invalid_empty_program() {
         "unexpected end of file",
         regex!(r#",-\[test[\d]+:1:1\]"#),
         "  `----",
-        r#" help: expected "@", or "begin", or "const", or "export", or "proc", or "use", or doc comment"#
+        r#" help: expected "@", or "adv_map", or "begin", or "const", or "export", or "proc", or "use", or doc comment"#
     );
 }
 
@@ -2755,7 +2800,7 @@ fn invalid_program_unrecognized_token() {
         "  : ^^|^",
         "  :   `-- found a identifier here",
         "  `----",
-        r#" help: expected "@", or "begin", or "const", or "export", or "proc", or "use", or doc comment"#
+        r#" help: expected "@", or "adv_map", or "begin", or "const", or "export", or "proc", or "use", or doc comment"#
     );
 }
 
@@ -2785,7 +2830,7 @@ fn invalid_program_invalid_top_level_token() {
         "  :               ^|^",
         "  :                `-- found a mul here",
         "  `----",
-        r#" help: expected "@", or "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
+        r#" help: expected "@", or "adv_map", or "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
     );
 }
 

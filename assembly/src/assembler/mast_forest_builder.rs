@@ -6,15 +6,16 @@ use alloc::{
 use core::ops::{Index, IndexMut};
 
 use vm_core::{
-    Decorator, DecoratorList, Felt, Operation,
+    AdviceMap, Decorator, DecoratorList, Felt, Operation,
     crypto::hash::RpoDigest,
     mast::{
         DecoratorFingerprint, DecoratorId, MastForest, MastNode, MastNodeFingerprint, MastNodeId,
         Remapping, SubtreeIterator,
     },
+    utils::collections::KvMap,
 };
 
-use super::{GlobalProcedureIndex, Procedure};
+use super::{GlobalProcedureIndex, LinkerError, Procedure};
 use crate::{
     Library,
     diagnostics::{IntoDiagnostic, Report, WrapErr},
@@ -565,6 +566,37 @@ impl IndexMut<DecoratorId> for MastForestBuilder {
     #[inline(always)]
     fn index_mut(&mut self, decorator_id: DecoratorId) -> &mut Self::Output {
         &mut self.mast_forest[decorator_id]
+    }
+}
+
+// ------------------------------------------------------------------------------------------------
+
+impl MastForestBuilder {
+    /// Merges an AdviceMap into the one being built within the MAST Forest.
+    ///
+    /// # Errors
+    ///
+    /// Returns `AdviceMapKeyCollisionOnMerge` if any of the keys of the AdviceMap being merged
+    /// are already present with a different value in the AdviceMap of the Mast Forest. In
+    /// case of error the AdviceMap of the Mast Forest remains unchanged.
+    pub fn merge_advice_map(&mut self, other: &AdviceMap) -> Result<(), Report> {
+        let mut advice_map = self.mast_forest.advice_map().clone();
+        for (digest, values) in other.iter() {
+            if let Some(stored_values) = advice_map.get(digest) {
+                if stored_values != values {
+                    return Err(LinkerError::AdviceMapKeyAlreadyPresent {
+                        key: **digest,
+                        prev_values: stored_values.to_vec(),
+                        new_values: values.to_vec(),
+                    })
+                    .into_diagnostic();
+                }
+            } else {
+                advice_map.insert(*digest, values.clone());
+            }
+        }
+        *self.mast_forest.advice_map_mut() = advice_map;
+        Ok(())
     }
 }
 

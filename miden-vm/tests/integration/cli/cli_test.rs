@@ -174,3 +174,11 @@ fn test_debug_adv_stack_prefix() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+
+#[test]
+fn test_advmap_cli() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cmd = bin_under_test().command();
+    cmd.arg("run").arg("./tests/integration/cli/data/adv_map.masm");
+    cmd.assert().success();
+    Ok(())
+}

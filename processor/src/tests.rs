@@ -3,7 +3,7 @@ use alloc::string::ToString;
 
 use assembly::{Assembler, assert_diagnostic_lines, regex, source_file, testing::TestContext};
 use test_utils::{
-    build_test_by_mode,
+    build_test, build_test_by_mode,
     crypto::{init_merkle_leaves, init_merkle_store},
 };
 use vm_core::{
@@ -12,6 +12,28 @@ use vm_core::{
 };
 
 use super::*;
+
+// AdviceMap inlined in the script
+// ------------------------------------------------------------------------------------------------
+
+#[ignore] // tracked by https://github.com/0xMiden/miden-vm/issues/1886
+#[test]
+fn test_advice_map_inline() {
+    let source = "\
+adv_map.A=2
+
+begin
+  push.A
+  adv.push_mapval
+  adv_push.1
+  push.2
+  assert_eq
+  dropw
+end";
+
+    let build_test = build_test!(source);
+    build_test.execute().unwrap();
+}
 
 // AdviceMapKeyAlreadyPresent
 // ------------------------------------------------------------------------------------------------
