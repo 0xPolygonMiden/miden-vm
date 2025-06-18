@@ -243,7 +243,7 @@ fn falcon_prove_verify() {
     host.load_library(&stdlib).expect("failed to load mast forest");
 
     let program: Program = Assembler::default()
-        .with_library(stdlib)
+        .with_static_library(stdlib)
         .expect("failed to load stdlib")
         .assemble_program(source)
         .expect("failed to compile test source");
