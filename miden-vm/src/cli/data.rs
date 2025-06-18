@@ -10,6 +10,7 @@ use assembly::{
     ast::{Module, ModuleKind},
     diagnostics::{Report, WrapErr},
     report,
+    utils::Deserializable,
 };
 use miden_vm::{ExecutionProof, Program, StackOutputs, Word, utils::SliceReader};
 use serde_derive::{Deserialize, Serialize};

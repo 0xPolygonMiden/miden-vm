@@ -560,10 +560,10 @@ fn check_merkle_path(
         let index_bit = (node_index >> i) & 1;
         let old_root = root;
         let init_state = if index_bit == 0 {
-            root = hasher::merge(&[root.into(), node]).into();
+            root = hasher::merge(&[root, node]);
             init_state_from_words(&old_root, &node)
         } else {
-            root = hasher::merge(&[node, root.into()]).into();
+            root = hasher::merge(&[node, root]);
             init_state_from_words(&node, &old_root)
         };
         check_hasher_state_trace(trace, row_idx + i * 8, init_state);

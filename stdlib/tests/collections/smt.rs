@@ -30,9 +30,9 @@ fn test_smt_get() {
             end
         ";
         let mut initial_stack = Vec::new();
-        append_word_to_vec(&mut initial_stack, smt.root().into());
-        append_word_to_vec(&mut initial_stack, key.into());
-        let expected_output = build_expected_stack(value, smt.root().into());
+        append_word_to_vec(&mut initial_stack, smt.root());
+        append_word_to_vec(&mut initial_stack, key);
+        let expected_output = build_expected_stack(value, smt.root());
 
         let (store, advice_map) = build_advice_inputs(smt);
         build_test!(source, &initial_stack, &[], store, advice_map).expect_stack(&expected_output);
@@ -84,8 +84,7 @@ fn test_smt_set() {
             let (init_stack, final_stack, store, advice_map) =
                 prepare_insert_or_set(*key, value, smt);
 
-            let expected_final_stack =
-                build_expected_stack(*old_value, old_roots.pop().unwrap().into());
+            let expected_final_stack = build_expected_stack(*old_value, old_roots.pop().unwrap());
             assert_eq!(expected_final_stack, final_stack);
             build_test!(source, &init_stack, &[], store, advice_map).expect_stack(&final_stack);
         }
@@ -266,15 +265,15 @@ fn prepare_insert_or_set(
 ) -> (Vec<u64>, Vec<u64>, MerkleStore, Vec<(Word, Vec<Felt>)>) {
     // set initial state of the stack to be [VALUE, KEY, ROOT, ...]
     let mut initial_stack = Vec::new();
-    append_word_to_vec(&mut initial_stack, smt.root().into());
-    append_word_to_vec(&mut initial_stack, key.into());
+    append_word_to_vec(&mut initial_stack, smt.root());
+    append_word_to_vec(&mut initial_stack, key);
     append_word_to_vec(&mut initial_stack, value);
 
     // build a Merkle store for the test before the tree is updated, and then update the tree
     let (store, advice_map) = build_advice_inputs(smt);
     let old_value = smt.insert(key, value);
     // after insert or set, the stack should be [OLD_VALUE, ROOT, ...]
-    let expected_output = build_expected_stack(old_value, smt.root().into());
+    let expected_output = build_expected_stack(old_value, smt.root());
 
     (initial_stack, expected_output, store, advice_map)
 }

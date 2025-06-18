@@ -57,7 +57,7 @@ pub enum ResolvedTarget {
         target: InvocationTarget,
     },
     /// We know the MAST root of the callee, but the procedure is not available, either in the
-    /// procedure cache or in the [ModuleGraph].
+    /// procedure cache or in the module graph.
     Phantom(Word),
 }
 

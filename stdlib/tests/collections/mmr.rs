@@ -237,9 +237,9 @@ fn test_mmr_unpack() {
     let peaks: [[Felt; 4]; 16] = [
         // 3 peaks. These hashes are invalid, we can't produce data for any of these peaks (only
         // for testing)
-        [ZERO, ZERO, ZERO, ONE].into(),
-        [ZERO, ZERO, ZERO, Felt::new(2)].into(),
-        [ZERO, ZERO, ZERO, Felt::new(3)].into(),
+        [ZERO, ZERO, ZERO, ONE],
+        [ZERO, ZERO, ZERO, Felt::new(2)],
+        [ZERO, ZERO, ZERO, Felt::new(3)],
         // Padding, the MMR is padded to a minimum length of 16
         EMPTY_WORD.into(),
         EMPTY_WORD.into(),
@@ -433,9 +433,9 @@ fn test_mmr_unpack_large_mmr() {
 #[test]
 fn test_mmr_pack_roundtrip() {
     let mut mmr = Mmr::new();
-    mmr.add(init_merkle_leaf(1).into());
-    mmr.add(init_merkle_leaf(2).into());
-    mmr.add(init_merkle_leaf(3).into());
+    mmr.add(init_merkle_leaf(1));
+    mmr.add(init_merkle_leaf(2));
+    mmr.add(init_merkle_leaf(3));
 
     let accumulator = mmr.peaks();
     let hash = accumulator.hash_peaks();
@@ -701,16 +701,13 @@ fn test_mmr_large_add_roundtrip() {
 // ================================================================================================
 
 fn digests_to_elements(digests: &[Word]) -> Vec<Felt> {
-    digests
-        .iter()
-        .flat_map(|digest| Into::<[Felt; WORD_SIZE]>::into(digest))
-        .collect()
+    digests.iter().flat_map(Into::<[Felt; WORD_SIZE]>::into).collect()
 }
 
 fn digests_to_ints(digests: &[Word]) -> Vec<u64> {
     digests
         .iter()
-        .flat_map(|digest| Into::<[Felt; WORD_SIZE]>::into(digest))
+        .flat_map(Into::<[Felt; WORD_SIZE]>::into)
         .map(|v| v.as_int())
         .collect()
 }

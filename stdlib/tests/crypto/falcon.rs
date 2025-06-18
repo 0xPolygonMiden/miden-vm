@@ -184,7 +184,7 @@ fn test_move_sig_to_adv_stack() {
 
     let public_key = {
         let pk: Word = secret_key.public_key().into();
-        pk.into()
+        pk
     };
     let secret_key_bytes = secret_key.to_bytes();
 
@@ -277,7 +277,6 @@ fn generate_test(
     );
 
     let pk: Word = sk.public_key().into();
-    let pk: Word = pk.into();
     let sk_bytes = sk.to_bytes();
 
     let to_adv_map = sk_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
