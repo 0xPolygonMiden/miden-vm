@@ -92,7 +92,7 @@ impl Library {
         Ok(Self { digest, exports, mast_forest })
     }
 
-    /// Produces a new library with the existing [`MastForest`] and where all key/values in the  
+    /// Produces a new library with the existing [`MastForest`] and where all key/values in the
     /// provided advice map are added to the internal advice map.
     pub fn with_advice_map(self, advice_map: AdviceMap) -> Self {
         let mut mast_forest = (*self.mast_forest).clone();
@@ -450,7 +450,7 @@ mod use_std_kernel {
             if let Some(lib_dir) = lib_dir {
                 let lib_dir = lib_dir.as_ref();
                 let namespace = LibraryNamespace::new("kernel").expect("invalid namespace");
-                assembler.add_modules_from_dir(namespace, lib_dir)?;
+                assembler.compile_and_statically_link_from_dir(namespace, lib_dir)?;
             }
 
             assembler.assemble_kernel(sys_module_path.as_ref())

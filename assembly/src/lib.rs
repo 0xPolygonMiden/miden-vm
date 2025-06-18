@@ -20,7 +20,6 @@ mod assembler;
 pub mod ast;
 mod compile;
 pub mod diagnostics;
-mod errors;
 mod library;
 mod parser;
 mod sema;
@@ -36,13 +35,12 @@ pub use vm_core::mast;
 pub use vm_core::utils;
 
 pub use self::{
-    assembler::Assembler,
+    assembler::{Assembler, LinkLibraryKind, LinkerError},
     compile::{Compile, Options as CompileOptions},
     diagnostics::{
         DefaultSourceManager, Report, SourceFile, SourceId, SourceManager, SourceSpan, Span,
         Spanned,
     },
-    errors::AssemblyError,
     library::{
         KernelLibrary, Library, LibraryError, LibraryNamespace, LibraryPath, LibraryPathComponent,
         PathError, Version, VersionError,

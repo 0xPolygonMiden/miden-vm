@@ -38,7 +38,7 @@ fn nested_blocks() -> Result<(), Report> {
             .unwrap();
 
         let mut assembler = Assembler::with_kernel(context.source_manager(), kernel_lib);
-        assembler.add_library(dummy_library).unwrap();
+        assembler.link_dynamic_library(dummy_library).unwrap();
 
         assembler
     };
@@ -233,7 +233,7 @@ fn distinguish_grandchildren_correctly() {
                 push.1
             end
         end
-        
+
         if.true
             while.true
                 push.1
@@ -308,7 +308,8 @@ fn explicit_fully_qualified_procedure_references() -> Result<(), Report> {
     let baz = context.parse_module_with_path(BAZ_NAME.parse().unwrap(), BAZ)?;
     let library = context.assemble_library([bar, baz]).unwrap();
 
-    let assembler = Assembler::new(context.source_manager()).with_library(&library).unwrap();
+    let assembler =
+        Assembler::new(context.source_manager()).with_dynamic_library(&library).unwrap();
 
     let program = r#"
     begin
@@ -342,7 +343,8 @@ fn re_exports() -> Result<(), Report> {
     let baz = context.parse_module_with_path(BAZ_NAME.parse().unwrap(), BAZ)?;
     let library = context.assemble_library([bar, baz]).unwrap();
 
-    let assembler = Assembler::new(context.source_manager()).with_library(&library).unwrap();
+    let assembler =
+        Assembler::new(context.source_manager()).with_dynamic_library(&library).unwrap();
 
     let program = r#"
     use.foo::baz
@@ -355,5 +357,37 @@ fn re_exports() -> Result<(), Report> {
     end"#;
 
     assert_matches!(assembler.assemble_program(program), Ok(_));
+    Ok(())
+}
+
+#[test]
+fn module_ordering_can_be_arbitrary() -> Result<(), Report> {
+    const A_NAME: &str = "a";
+    const A: &str = r#"
+        export.foo
+            add
+        end"#;
+
+    const B_NAME: &str = "b";
+    const B: &str = r#"
+        export.bar
+            push.1 push.2 exec.::a::foo
+        end"#;
+
+    const C_NAME: &str = "c";
+    const C: &str = r#"
+        export.baz
+            exec.::b::bar
+        end"#;
+
+    let context = TestContext::new();
+    let a = context.parse_module_with_path(A_NAME.parse().unwrap(), A)?;
+    let b = context.parse_module_with_path(B_NAME.parse().unwrap(), B)?;
+    let c = context.parse_module_with_path(C_NAME.parse().unwrap(), C)?;
+
+    let mut assembler = Assembler::new(context.source_manager());
+    assembler.compile_and_statically_link(b)?.compile_and_statically_link(a)?;
+    assembler.assemble_library([c])?;
+
     Ok(())
 }

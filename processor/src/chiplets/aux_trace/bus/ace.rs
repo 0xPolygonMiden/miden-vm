@@ -1,15 +1,15 @@
 use core::fmt::{Display, Formatter, Result as FmtResult};
 
-use miden_air::{RowIndex, trace::main_trace::MainTrace};
+use miden_air::{
+    RowIndex,
+    trace::{chiplets::ace::ACE_INIT_LABEL, main_trace::MainTrace},
+};
 use vm_core::{Felt, FieldElement, ONE};
 
 use crate::{
     chiplets::aux_trace::build_value,
     debug::{BusDebugger, BusMessage},
 };
-
-/// Unique label ACE operation.
-pub const ACE_LABEL: Felt = Felt::new(0b11101_u64);
 
 // REQUESTS
 // ==============================================================================================
@@ -28,7 +28,7 @@ pub fn build_ace_chiplet_requests<E: FieldElement<BaseField = Felt>>(
     let num_eval_rows = main_trace.stack_element(2, row);
 
     let ace_request_message = AceMessage {
-        op_label: ACE_LABEL,
+        op_label: ACE_INIT_LABEL,
         clk,
         ctx,
         ptr,
@@ -68,7 +68,7 @@ where
         let num_read_rows = id_0 + ONE - num_eval_rows;
 
         let ace_message = AceMessage {
-            op_label: ACE_LABEL,
+            op_label: ACE_INIT_LABEL,
             clk,
             ctx,
             ptr,
