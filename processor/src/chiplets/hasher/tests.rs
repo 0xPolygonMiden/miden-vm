@@ -5,7 +5,7 @@ use miden_air::trace::chiplets::hasher::{
 };
 use test_utils::rand::rand_array;
 use vm_core::{
-    ONE, Operation, Word, ZERO,
+    ONE, Operation, ZERO,
     chiplets::hasher,
     crypto::merkle::{MerkleTree, NodeIndex},
     mast::{MastForest, MastNode},
@@ -283,7 +283,7 @@ fn hash_memoization_control_blocks() {
         hasher.hash_control_block(h1.into(), h2.into(), join_node.domain(), expected_hash);
 
     // make sure the hash of the final state is the same as the expected hash.
-    assert_eq!(Digest::new(final_state.into()), expected_hash);
+    assert_eq!(final_state, expected_hash);
 
     let h1: [Felt; DIGEST_LEN] = t_branch
         .digest()
@@ -306,7 +306,7 @@ fn hash_memoization_control_blocks() {
 
     // make sure the hash of the final state of the first split block is the same as the expected
     // hash.
-    assert_eq!(Digest::new(final_state.into()), expected_hash);
+    assert_eq!(final_state, expected_hash);
 
     let start_row = addr.as_int() as usize - 1;
     let end_row = hasher.trace_len() - 1;
@@ -330,7 +330,7 @@ fn hash_memoization_control_blocks() {
 
     // make sure the hash of the final state of the second split block is the same as the expected
     // hash.
-    assert_eq!(Digest::new(final_state.into()), expected_hash);
+    assert_eq!(final_state, expected_hash);
     // make sure the hash of the first and second split blocks is the same.
     assert_eq!(first_block_final_state, final_state);
 
@@ -455,7 +455,7 @@ fn hash_memoization_basic_blocks_check(basic_block: MastNode) {
         hasher.hash_control_block(h1.into(), h2.into(), join1_block.domain(), expected_hash);
 
     // make sure the hash of the final state of Join1 is the same as the expected hash.
-    assert_eq!(Digest::new(final_state.into()), expected_hash);
+    assert_eq!(final_state, expected_hash);
 
     let h1: [Felt; DIGEST_LEN] = basic_block_1
         .digest()
@@ -473,7 +473,7 @@ fn hash_memoization_basic_blocks_check(basic_block: MastNode) {
         hasher.hash_control_block(h1.into(), h2.into(), join2_block.domain(), expected_hash);
 
     // make sure the hash of the final state of Join2 is the same as the expected hash.
-    assert_eq!(Digest::new(final_state.into()), expected_hash);
+    assert_eq!(final_state, expected_hash);
 
     let basic_block_1_val = if let MastNode::Block(basic_block) = basic_block_1.clone() {
         basic_block
@@ -489,7 +489,7 @@ fn hash_memoization_basic_blocks_check(basic_block: MastNode) {
 
     // make sure the hash of the final state of basic block 1 is the same as the expected hash.
     let expected_hash = basic_block_1.digest();
-    assert_eq!(Digest::new(final_state.into()), expected_hash);
+    assert_eq!(final_state, expected_hash);
 
     let start_row = addr.as_int() as usize - 1;
     let end_row = hasher.trace_len() - 1;
@@ -509,7 +509,7 @@ fn hash_memoization_basic_blocks_check(basic_block: MastNode) {
 
     let expected_hash = basic_block_2.digest();
     // make sure the hash of the final state of basic block 2 is the same as the expected hash.
-    assert_eq!(Digest::new(final_state.into()), expected_hash);
+    assert_eq!(final_state, expected_hash);
 
     // make sure the hash of the first and second basic blocks is the same.
     assert_eq!(first_basic_block_final_state, final_state);
@@ -540,7 +540,7 @@ fn build_trace(hasher: Hasher, num_rows: usize) -> Vec<Vec<Felt>> {
 fn check_merkle_path(
     trace: &[Vec<Felt>],
     row_idx: usize,
-    leaf: Word,
+    leaf: Digest,
     path: &MerklePath,
     node_index: u64,
     init_selectors: Selectors,
@@ -652,10 +652,10 @@ fn apply_permutation(mut state: HasherState) -> HasherState {
     state
 }
 
-fn init_leaves(values: &[u64]) -> Vec<Word> {
+fn init_leaves(values: &[u64]) -> Vec<Digest> {
     values.iter().map(|&v| init_leaf(v)).collect()
 }
 
-fn init_leaf(value: u64) -> Word {
+fn init_leaf(value: u64) -> Digest {
     [Felt::new(value), ZERO, ZERO, ZERO].into()
 }

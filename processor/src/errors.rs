@@ -4,13 +4,12 @@ use core::error::Error;
 use miden_air::RowIndex;
 use miette::Diagnostic;
 use vm_core::{
-    WORD_SIZE,
     debuginfo::{SourceFile, SourceManager, SourceSpan},
     mast::{BasicBlockNode, DecoratorId, MastForest, MastNodeExt, MastNodeId},
     stack::MIN_STACK_DEPTH,
     utils::to_hex,
 };
-use winter_prover::{ProverError, math::FieldElement};
+use winter_prover::ProverError;
 
 use super::{
     Felt, QuadFelt, Word,
@@ -24,21 +23,21 @@ use crate::MemoryError;
 
 #[derive(Debug, thiserror::Error, Diagnostic)]
 pub enum ExecutionError {
-    #[error("value for key {} not present in the advice map", to_hex(Felt::elements_as_bytes(.key)))]
+    #[error("value for key {} not present in the advice map", key.to_hex())]
     #[diagnostic()]
     AdviceMapKeyNotFound {
         #[label]
         label: SourceSpan,
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
-        key: [Felt; WORD_SIZE],
+        key: Word,
     },
-    #[error("value for key {} already present in the advice map when loading MAST forest", to_hex(Felt::elements_as_bytes(.key)))]
+    #[error("value for key {} already present in the advice map when loading MAST forest", key.to_hex())]
     #[diagnostic(help(
         "previous values at key were '{prev_values:?}'. Operation would have replaced them with '{new_values:?}'",
     ))]
     AdviceMapKeyAlreadyPresent {
-        key: [Felt; WORD_SIZE],
+        key: Word,
         prev_values: Vec<Felt>,
         new_values: Vec<Felt>,
     },
@@ -195,7 +194,7 @@ pub enum ExecutionError {
         root_digest: Word,
     },
     #[error("merkle path verification failed for value {value} at index {index} in the Merkle tree with root {root} (error {err})",
-      value = to_hex(Felt::elements_as_bytes(value)),
+      value = to_hex(value.as_bytes()),
       root = to_hex(root.as_bytes()),
       err = match err_msg {
         Some(msg) => format!("message: {msg}"),
@@ -207,7 +206,7 @@ pub enum ExecutionError {
         label: SourceSpan,
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
-        value: [Felt; WORD_SIZE],
+        value: Word,
         index: Felt,
         root: Word,
         err_code: Felt,
@@ -296,23 +295,23 @@ pub enum ExecutionError {
     ProgramAlreadyExecuted,
     #[error("proof generation failed")]
     ProverError(#[source] ProverError),
-    #[error("smt node {node_hex} not found", node_hex = to_hex(Felt::elements_as_bytes(node)))]
+    #[error("smt node {node_hex} not found", node_hex = to_hex(node.as_bytes()))]
     SmtNodeNotFound {
         #[label]
         label: SourceSpan,
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
-        node: [Felt; WORD_SIZE],
+        node: Word,
     },
     #[error("expected pre-image length of node {node_hex} to be a multiple of 8 but was {preimage_len}",
-      node_hex = to_hex(Felt::elements_as_bytes(node)),
+      node_hex = to_hex(node.as_bytes()),
     )]
     SmtNodePreImageNotValid {
         #[label]
         label: SourceSpan,
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
-        node: [Felt; WORD_SIZE],
+        node: Word,
         preimage_len: usize,
     },
     #[error("syscall failed: procedure with root {hex} was not found in the kernel",
@@ -348,7 +347,7 @@ impl ExecutionError {
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
-        Self::AdviceMapKeyNotFound { label, source_file, key: key.into() }
+        Self::AdviceMapKeyNotFound { label, source_file, key }
     }
 
     pub fn advice_stack_read_failed(
@@ -467,7 +466,7 @@ impl ExecutionError {
         Self::MerklePathVerificationFailed {
             label,
             source_file,
-            value: value.into(),
+            value,
             index,
             root,
             err_code,
@@ -537,7 +536,7 @@ impl ExecutionError {
 
     pub fn smt_node_not_found(node: Word, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
-        Self::SmtNodeNotFound { label, source_file, node: node.into() }
+        Self::SmtNodeNotFound { label, source_file, node }
     }
 
     pub fn smt_node_preimage_not_valid(
@@ -546,12 +545,7 @@ impl ExecutionError {
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
-        Self::SmtNodePreImageNotValid {
-            label,
-            source_file,
-            node: node.into(),
-            preimage_len,
-        }
+        Self::SmtNodePreImageNotValid { label, source_file, node, preimage_len }
     }
 
     pub fn syscall_target_not_in_kernel(

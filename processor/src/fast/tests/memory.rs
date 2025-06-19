@@ -148,8 +148,8 @@ fn test_mload_success(#[case] addr_to_access: u32) {
 fn test_mstream() {
     let mut host = DefaultHost::default();
     let addr = 40_u32;
-    let word_at_addr_40 = [1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into()];
-    let word_at_addr_44 = [5_u32.into(), 6_u32.into(), 7_u32.into(), 8_u32.into()];
+    let word_at_addr_40 = Word::from([ONE, 2_u32.into(), 3_u32.into(), 4_u32.into()]);
+    let word_at_addr_44 = Word::from([Felt::from(5_u32), 6_u32.into(), 7_u32.into(), 8_u32.into()]);
     let ctx = 0_u32.into();
     let clk = 1_u32.into();
 
@@ -162,13 +162,10 @@ fn test_mstream() {
         FastProcessor::new(&stack_init)
     };
     // Store values at addresses 40 and 44
+    processor.memory.write_word(ctx, addr.into(), clk, word_at_addr_40).unwrap();
     processor
         .memory
-        .write_word(ctx, addr.into(), clk, word_at_addr_40.into())
-        .unwrap();
-    processor
-        .memory
-        .write_word(ctx, (addr + 4).into(), clk, word_at_addr_44.into())
+        .write_word(ctx, (addr + 4).into(), clk, word_at_addr_44)
         .unwrap();
 
     let program = simple_program_with_ops(vec![Operation::MStream]);

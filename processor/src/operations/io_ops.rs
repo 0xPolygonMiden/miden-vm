@@ -384,7 +384,7 @@ mod tests {
         // check memory state
         assert_eq!(1, process.chiplets.memory.num_accessed_words());
         assert_eq!(
-            Into::<Word>::into(word),
+            Word::from(word),
             process.chiplets.memory.get_word(ContextId::root(), 4).unwrap().unwrap()
         );
 

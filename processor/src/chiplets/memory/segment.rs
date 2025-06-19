@@ -4,7 +4,7 @@ use alloc::{
 };
 
 use miden_air::RowIndex;
-use vm_core::{WORD_SIZE, ZERO};
+use vm_core::WORD_SIZE;
 
 use super::{Felt, INIT_MEM_VALUE, MemoryError, Word};
 use crate::{ContextId, MemoryAddress};
@@ -170,7 +170,7 @@ impl MemorySegmentTrace {
             // initialized to 0, except for when the address being written to.
             Entry::Vacant(vacant_entry) => {
                 let word = {
-                    let mut word = [ZERO; WORD_SIZE];
+                    let mut word = Word::default();
                     word[addr_idx_in_word as usize] = value;
                     word
                 };
@@ -179,7 +179,7 @@ impl MemorySegmentTrace {
                     clk,
                     MemoryOperation::Write,
                     MemoryAccessType::Element { addr_idx_in_word },
-                    word.into(),
+                    word,
                 );
                 vacant_entry.insert(vec![access]);
                 Ok(())
@@ -195,11 +195,10 @@ impl MemorySegmentTrace {
                     Err(MemoryError::IllegalMemoryAccess { ctx, addr, clk })
                 } else {
                     let word = {
-                        let mut last_word: [Felt; WORD_SIZE] =
-                            addr_trace.last().expect("empty address trace").word().into();
+                        let mut last_word = addr_trace.last().expect("empty address trace").word();
                         last_word[addr_idx_in_word as usize] = value;
 
-                        last_word.into()
+                        last_word
                     };
 
                     let access = MemorySegmentAccess::new(

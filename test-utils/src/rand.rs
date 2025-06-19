@@ -8,8 +8,7 @@ use super::{Felt, WORD_SIZE, Word};
 /// Mutates a seed and generates a word deterministically
 pub fn seeded_word(seed: &mut u64) -> Word {
     let seed = generate_bytes_seed(seed);
-    let result: [Felt; WORD_SIZE] = prng_array(seed);
-    result.into()
+    prng_array::<Felt, WORD_SIZE>(seed).into()
 }
 
 /// Mutates a seed and generates an element deterministically

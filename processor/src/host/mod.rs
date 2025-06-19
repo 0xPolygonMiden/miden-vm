@@ -179,7 +179,7 @@ impl<A: AdviceProvider> DefaultHost<A> {
             if let Some(stored_values) = self.advice_provider().get_mapped_values(digest) {
                 if stored_values != values {
                     return Err(ExecutionError::AdviceMapKeyAlreadyPresent {
-                        key: (*digest).into(),
+                        key: *digest,
                         prev_values: stored_values.to_vec(),
                         new_values: values.clone(),
                     });

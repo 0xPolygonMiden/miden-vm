@@ -1,9 +1,10 @@
 use alloc::collections::BTreeMap;
 
 use miden_air::trace::chiplets::hasher::{
-    DIGEST_LEN, DIGEST_RANGE, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RATE_LEN,
+    DIGEST_RANGE, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RATE_LEN,
     RETURN_HASH, RETURN_STATE, STATE_WIDTH, Selectors, TRACE_WIDTH,
 };
+use vm_core::WORD_SIZE;
 
 use super::{
     Felt, HasherState, MerklePath, MerkleRootUpdate, ONE, OpBatch, TraceFragment, Word as Digest,
@@ -112,7 +113,7 @@ impl Hasher {
             self.insert_to_memoized_trace_map(addr, expected_hash);
         };
 
-        let result = get_digest(&state).into();
+        let result = get_digest(&state);
 
         (addr, result)
     }
@@ -186,7 +187,7 @@ impl Hasher {
             self.trace.copy_trace(&mut state, start_row..end_row);
         }
 
-        let result = get_digest(&state).into();
+        let result = get_digest(&state);
 
         (addr, result)
     }
@@ -346,7 +347,7 @@ impl Hasher {
         // remove the least significant bit from the index and return hash result
         *index >>= 1;
 
-        get_digest(&state).into()
+        get_digest(&state)
     }
 
     /// Checks if a trace for a program block already exists and returns the start and end rows
@@ -481,6 +482,8 @@ pub fn absorb_into_state(state: &mut [Felt; STATE_WIDTH], values: &[Felt; RATE_L
 }
 
 /// Returns elements representing the digest portion of the provided hasher's state.
-pub fn get_digest(state: &[Felt; STATE_WIDTH]) -> [Felt; DIGEST_LEN] {
-    state[DIGEST_RANGE].try_into().expect("failed to get digest from hasher state")
+pub fn get_digest(state: &[Felt; STATE_WIDTH]) -> Digest {
+    let digest: [Felt; WORD_SIZE] =
+        state[DIGEST_RANGE].try_into().expect("failed to get digest from hasher state");
+    digest.into()
 }
