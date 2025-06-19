@@ -16,6 +16,7 @@
 - `AssemblyError` was removed, and all uses replaced with `Report` (#1881).
 - Licensed the project under the Apache 2.0 license (in addition to the MIT) (#1840).
 - Uniform chiplet bus message flag encoding (#1887).
+- Add `compile_library` to `Library` implementation (#1899).
 
 #### Enhancements
 
