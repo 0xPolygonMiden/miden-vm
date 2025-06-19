@@ -1,8 +1,8 @@
 use alloc::collections::BTreeMap;
 
 use miden_air::trace::chiplets::hasher::{
-    DIGEST_RANGE, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RATE_LEN,
-    RETURN_HASH, RETURN_STATE, STATE_WIDTH, Selectors, TRACE_WIDTH,
+    DIGEST_RANGE, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RATE_LEN, RETURN_HASH,
+    RETURN_STATE, STATE_WIDTH, Selectors, TRACE_WIDTH,
 };
 use vm_core::WORD_SIZE;
 
