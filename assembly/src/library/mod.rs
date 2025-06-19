@@ -12,7 +12,7 @@ use vm_core::{
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
-use crate::ast::QualifiedProcedureName;
+use crate::{Assembler, ModuleParser, ast::QualifiedProcedureName, diagnostics::Report};
 
 mod error;
 mod module;
@@ -101,6 +101,29 @@ impl Library {
             mast_forest: Arc::new(mast_forest),
             ..self
         }
+    }
+
+    /// Compiles the provided library code and library path into a [`Library`]
+    pub fn compile_library(
+        assembler: &Assembler,
+        library_code: &str,
+        library_path: &str,
+    ) -> Result<Library, Report> {
+        let source_manager = assembler.source_manager();
+
+        let library_path = LibraryPath::new(library_path)
+            .map_err(|err| Report::msg(format!("Invalid library path: {}", err)))?;
+
+        let mut parser = ModuleParser::new(crate::ast::ModuleKind::Library);
+        let module = parser
+            .parse_str(library_path, library_code, &*source_manager)
+            .map_err(|err| Report::msg(format!("Failed to parse module: {}", err)))?;
+
+        let library = assembler
+            .clone()
+            .assemble_library([module])
+            .map_err(|err| Report::msg(format!("Failed to assemble library: {}", err)))?;
+        Ok(library)
     }
 }
 
