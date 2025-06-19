@@ -1,57 +1,23 @@
+use alloc::{boxed::Box, collections::BTreeMap, sync::Arc, vec::Vec};
+
 use vm_core::{
     DebugOptions,
+    crypto::hash::RpoDigest,
     mast::{MastForest, MastNodeExt},
+    utils::collections::KvMap,
 };
 
 use crate::{
-    AdviceProvider, Arc, Box, ErrorContext, ExecutionError, Host, KvMap, MastForestStore,
-    MemAdviceProvider, MemMastForestStore, ProcessState, Vec,
-    crypto::RpoDigest,
-    host::{
-        DebugHandler, TraceHandler,
-        events::{EventHandler, EventHandlerRegistry},
-    },
+    AdviceProvider, ErrorContext, ExecutionError, Host, HostLibrary, MastForestStore,
+    MemAdviceProvider, MemMastForestStore, ProcessState,
+    handlers::{DebugHandler, EventHandler, TraceHandler},
 };
 
 mod debug_handler;
-pub use crate::host::default::debug_handler::DefaultDebugHandler;
+pub use debug_handler::DefaultDebugHandler;
 
 mod trace_handler;
-pub use crate::host::default::trace_handler::DefaultTraceHandler;
-
-// DEFAULT HOST IMPLEMENTATION
-// ================================================================================================
-
-/// Trait for libraries that want to provide event handlers to a (Default) Host
-pub trait HostLibrary<A> {
-    /// Returns all event handlers defined by this library
-    fn event_handlers(&self) -> Vec<Box<dyn EventHandler<A>>>;
-
-    /// Returns the MAST forest for this library
-    fn mast_forest(&self) -> Arc<MastForest>;
-}
-
-/// Default implementation for loading a MastForest without handlers.
-impl<A, H: HostLibrary<A>> HostLibrary<A> for &H {
-    fn event_handlers(&self) -> Vec<Box<dyn EventHandler<A>>> {
-        H::event_handlers(self)
-    }
-
-    fn mast_forest(&self) -> Arc<MastForest> {
-        H::mast_forest(self)
-    }
-}
-
-/// Default implementation for loading a MastForest without handlers.
-impl<A> HostLibrary<A> for Arc<MastForest> {
-    fn event_handlers(&self) -> Vec<Box<dyn EventHandler<A>>> {
-        Vec::new()
-    }
-
-    fn mast_forest(&self) -> Arc<MastForest> {
-        (*self).clone()
-    }
-}
+pub use trace_handler::DefaultTraceHandler;
 
 // DEFAULT HOST IMPLEMENTATION
 // ================================================================================================
@@ -226,5 +192,43 @@ impl Default for DefaultHost<MemAdviceProvider> {
             debug_handler: DefaultDebugHandler,
             trace_handler: DefaultTraceHandler,
         }
+    }
+}
+
+// REGISTRY
+// ================================================================================================
+
+/// Registry for maintaining event handlers
+#[derive(Default)]
+pub struct EventHandlerRegistry<A> {
+    handlers: BTreeMap<u32, Box<dyn EventHandler<A>>>,
+}
+
+impl<A> EventHandlerRegistry<A> {
+    pub fn new() -> Self {
+        Self { handlers: BTreeMap::new() }
+    }
+
+    pub fn register(&mut self, handler: Box<dyn EventHandler<A>>) -> Result<(), ExecutionError> {
+        let id = handler.id();
+        if self.handlers.contains_key(&id) {
+            return Err(ExecutionError::DuplicateEventHandler { id });
+        }
+        self.handlers.insert(id, handler);
+        Ok(())
+    }
+
+    pub fn register_many(
+        &mut self,
+        handlers: Vec<Box<dyn EventHandler<A>>>,
+    ) -> Result<(), ExecutionError> {
+        for handler in handlers {
+            self.register(handler)?;
+        }
+        Ok(())
+    }
+
+    pub fn get(&mut self, id: u32) -> Option<&mut Box<dyn EventHandler<A>>> {
+        self.handlers.get_mut(&id)
     }
 }

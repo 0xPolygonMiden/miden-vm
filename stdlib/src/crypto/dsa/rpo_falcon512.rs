@@ -1,7 +1,8 @@
 use alloc::vec::Vec;
 
 use processor::{
-    AdviceProvider, AdviceSource, ErrorContext, EventError, EventHandler, ProcessState,
+    AdviceProvider, AdviceSource, ProcessState,
+    handlers::{EventError, EventHandler},
     utils::to_hex,
 };
 use vm_core::{
@@ -57,9 +58,7 @@ impl<A: AdviceProvider> EventHandler<A> for FalconEventHandler {
         })?;
 
         for r in result {
-            advice_provider
-                .push_stack(AdviceSource::Value(r), &ErrorContext::default())
-                .expect("stack push failed");
+            advice_provider.push_stack(AdviceSource::Value(r)).expect("stack push failed");
         }
         Ok(())
     }

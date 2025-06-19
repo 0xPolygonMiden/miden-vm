@@ -1,20 +1,23 @@
+use alloc::sync::Arc;
+use std::prelude::rust_2015::{Box, Vec};
+
 use vm_core::{
-    DebugOptions,
+    DebugOptions, Felt,
     crypto::hash::RpoDigest,
     mast::{MastForest, MastNodeExt},
 };
 
-use super::{ExecutionError, ProcessState};
-use crate::{Arc, Felt, errors::ErrorContext};
+use crate::{ErrorContext, ExecutionError, ProcessState, handlers::EventHandler};
 
-pub(super) mod advice;
+pub mod advice;
 use advice::AdviceProvider;
 
 mod mast_forest_store;
 pub use mast_forest_store::{MastForestStore, MemMastForestStore};
 
-pub(super) mod default;
-pub(super) mod events;
+pub mod default;
+
+pub mod handlers;
 
 // HOST TRAIT
 // ================================================================================================
@@ -67,31 +70,38 @@ pub trait Host {
     fn on_assert_failed(&mut self, _process: ProcessState, _err_code: Felt) {}
 }
 
-// DEBUG HANDLER
+// HOST LIBRARY
 // ================================================================================================
 
-/// Handler for debug and trace operations
-pub trait DebugHandler<A: AdviceProvider> {
-    /// TODO: What kind of error should we return
-    fn on_debug(
-        &mut self,
-        advice: &A,
-        process: ProcessState,
-        options: &DebugOptions,
-    ) -> Result<(), ExecutionError>;
+/// Trait for libraries that want to provide event handlers to a (Default) Host
+pub trait HostLibrary<A> {
+    /// Returns all event handlers defined by this library
+    fn event_handlers(&self) -> Vec<Box<dyn EventHandler<A>>>;
+
+    /// Returns the MAST forest for this library
+    fn mast_forest(&self) -> Arc<MastForest>;
 }
 
-// TRACE HANDLER
-// ================================================================================================
+/// Default implementation for loading a MastForest without handlers.
+impl<A, H: HostLibrary<A>> HostLibrary<A> for &H {
+    fn event_handlers(&self) -> Vec<Box<dyn EventHandler<A>>> {
+        H::event_handlers(self)
+    }
 
-pub trait TraceHandler<A: AdviceProvider> {
-    /// TODO: What kind of error should we return
-    fn on_trace(
-        &mut self,
-        advice: &A,
-        process: ProcessState,
-        trace_id: u32,
-    ) -> Result<(), ExecutionError>;
+    fn mast_forest(&self) -> Arc<MastForest> {
+        H::mast_forest(self)
+    }
+}
+
+/// Default implementation for loading a MastForest without handlers.
+impl<A> HostLibrary<A> for Arc<MastForest> {
+    fn event_handlers(&self) -> Vec<Box<dyn EventHandler<A>>> {
+        Vec::new()
+    }
+
+    fn mast_forest(&self) -> Arc<MastForest> {
+        (*self).clone()
+    }
 }
 
 impl<H> Host for &mut H

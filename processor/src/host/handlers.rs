@@ -1,7 +1,9 @@
-use alloc::collections::BTreeMap;
+use alloc::boxed::Box;
 use core::error::Error;
 
-use crate::{Box, ExecutionError, ProcessState, Vec};
+use vm_core::DebugOptions;
+
+use crate::{AdviceProvider, ExecutionError, ProcessState};
 
 // HANDLER TRAIT
 // ================================================================================================
@@ -19,6 +21,33 @@ pub trait EventHandler<A> {
         advice_provider: &mut A,
         process: ProcessState,
     ) -> Result<(), EventError>;
+}
+
+// DEBUG HANDLER
+// ================================================================================================
+
+/// Handler for debug and trace operations
+pub trait DebugHandler<A: AdviceProvider> {
+    /// TODO: What kind of error should we return
+    fn on_debug(
+        &mut self,
+        advice: &A,
+        process: ProcessState,
+        options: &DebugOptions,
+    ) -> Result<(), ExecutionError>;
+}
+
+// TRACE HANDLER
+// ================================================================================================
+
+pub trait TraceHandler<A: AdviceProvider> {
+    /// TODO: What kind of error should we return
+    fn on_trace(
+        &mut self,
+        advice: &A,
+        process: ProcessState,
+        trace_id: u32,
+    ) -> Result<(), ExecutionError>;
 }
 
 // STATELESS HANDLER
@@ -51,52 +80,12 @@ impl<A> EventHandler<A> for StatelessEventHandler<A> {
     }
 }
 
-// REGISTRY
+// EVENT ERROR
 // ================================================================================================
-
-/// Registry for maintaining event handlers
-#[derive(Default)]
-pub struct EventHandlerRegistry<A> {
-    handlers: BTreeMap<u32, Box<dyn EventHandler<A>>>,
-}
-
-impl<A> EventHandlerRegistry<A> {
-    pub fn new() -> Self {
-        Self { handlers: BTreeMap::new() }
-    }
-
-    pub fn register(&mut self, handler: Box<dyn EventHandler<A>>) -> Result<(), ExecutionError> {
-        let id = handler.id();
-        if self.handlers.contains_key(&id) {
-            return Err(ExecutionError::DuplicateEventHandler { id });
-        }
-        self.handlers.insert(id, handler);
-        Ok(())
-    }
-
-    pub fn register_many(
-        &mut self,
-        handlers: Vec<Box<dyn EventHandler<A>>>,
-    ) -> Result<(), ExecutionError> {
-        for handler in handlers {
-            self.register(handler)?;
-        }
-        Ok(())
-    }
-
-    pub fn get(&mut self, id: u32) -> Option<&mut Box<dyn EventHandler<A>>> {
-        self.handlers.get_mut(&id)
-    }
-}
-
-// REGISTRY
-// ================================================================================================
-
-type BoxedEventError = Box<dyn Error + Send + Sync + 'static>;
 
 #[derive(Debug, thiserror::Error)]
 #[error("{0}")]
-pub struct EventError(BoxedEventError);
+pub struct EventError(Box<dyn Error + Send + Sync + 'static>);
 
 impl EventError {
     pub fn from<E: Error + Send + Sync + 'static>(value: E) -> Self {

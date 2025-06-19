@@ -1,4 +1,4 @@
-use crate::{AdviceProvider, ExecutionError, ProcessState, host::TraceHandler};
+use crate::{AdviceProvider, ExecutionError, ProcessState, handlers::TraceHandler};
 
 /// Default implementation that does nothing
 #[derive(Clone, Default)]

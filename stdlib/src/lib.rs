@@ -10,7 +10,7 @@ use assembly::{
     mast::MastForest,
     utils::{Deserializable, sync::LazyLock},
 };
-use processor::{AdviceProvider, EventHandler, HostLibrary};
+use processor::{AdviceProvider, HostLibrary, handlers::EventHandler};
 
 pub mod crypto;
 use crate::crypto::dsa::rpo_falcon512::FalconEventHandler;

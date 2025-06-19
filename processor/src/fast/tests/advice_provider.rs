@@ -4,8 +4,8 @@ use pretty_assertions::assert_eq;
 
 use super::*;
 use crate::{
-    AdviceProvider, DefaultDebugHandler, MemAdviceProvider, MemoryAddress, ProcessState,
-    host::TraceHandler,
+    AdviceProvider, MemAdviceProvider, MemoryAddress, ProcessState, default::DefaultDebugHandler,
+    handlers::TraceHandler,
 };
 
 #[test]

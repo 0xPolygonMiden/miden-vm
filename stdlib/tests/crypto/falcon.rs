@@ -217,6 +217,7 @@ fn test_move_sig_to_adv_stack() {
 }
 
 #[test]
+// TODO(adr1anh): Fix failure by loading StdLibrary as HostLibrary
 fn falcon_execution() {
     let seed = Word::default();
     let mut rng = RpoRandomCoin::new(seed);
