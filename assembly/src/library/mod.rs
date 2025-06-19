@@ -112,17 +112,18 @@ impl Library {
         let source_manager = assembler.source_manager();
 
         let library_path = LibraryPath::new(library_path)
-            .map_err(|err| Report::msg(format!("Invalid library path: {}", err)))?;
+            .map_err(|err| Report::msg(format!("Invalid library path: {err}")))?;
 
         let mut parser = ModuleParser::new(crate::ast::ModuleKind::Library);
         let module = parser
             .parse_str(library_path, library_code, &*source_manager)
-            .map_err(|err| Report::msg(format!("Failed to parse module: {}", err)))?;
+            .map_err(|err| Report::msg(format!("Failed to parse module: {err}")))?;
 
         let library = assembler
             .clone()
             .assemble_library([module])
-            .map_err(|err| Report::msg(format!("Failed to assemble library: {}", err)))?;
+            .map_err(|err| Report::msg(format!("Failed to assemble library: {err}")))?;
+
         Ok(library)
     }
 }
