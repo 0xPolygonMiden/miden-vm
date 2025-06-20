@@ -70,7 +70,7 @@ impl<A: AdviceProvider> DefaultHost<A> {
 }
 
 impl<A: AdviceProvider, D: DebugHandler<A>, T: TraceHandler<A>> DefaultHost<A, D, T> {
-    pub fn load_library(&mut self, library: impl HostLibrary<A>) -> Result<(), ExecutionError> {
+    pub fn load_library(&mut self, library: &dyn HostLibrary<A>) -> Result<(), ExecutionError> {
         // Load the MAST forest
         self.load_mast_forest(library.mast_forest())?;
 

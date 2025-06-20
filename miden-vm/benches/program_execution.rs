@@ -36,7 +36,7 @@ fn program_execution(c: &mut Criterion) {
 
                 let new_host_fn = move || {
                     let mut host = DefaultHost::new(advice.clone());
-                    host.load_library(std_lib.as_ref().mast_forest()).unwrap();
+                    host.load_library(&std_lib).unwrap();
                     host
                 };
 

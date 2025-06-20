@@ -393,7 +393,7 @@ fn dynexec_with_procref() {
     end";
 
     let mut test = build_test!(program_source, &[]);
-    test.libraries = vec![StdLibrary::default().into()];
+    test.host_libraries = vec![Box::new(StdLibrary::default())];
     test.add_module(
         "external::module".parse().unwrap(),
         "\
@@ -458,7 +458,7 @@ fn simple_dyncall() {
             2,
         ])
         .unwrap(),
-        libraries: vec![StdLibrary::default().into()],
+        host_libraries: vec![Box::new(StdLibrary::default())],
         ..Test::new(&format!("test{}", line!()), program_source, false)
     };
 
@@ -575,7 +575,7 @@ fn procref() -> Result<(), Report> {
     end";
 
     let mut test = build_test!(source, &[]);
-    test.libraries = vec![StdLibrary::default().into()];
+    test.host_libraries = vec![Box::new(StdLibrary::default())];
 
     test.expect_stack(&[
         mast_roots[0][3].as_int(),

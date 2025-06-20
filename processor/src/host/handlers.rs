@@ -3,7 +3,7 @@ use core::error::Error;
 
 use vm_core::DebugOptions;
 
-use crate::{AdviceProvider, ExecutionError, ProcessState};
+use crate::{ExecutionError, ProcessState};
 
 // HANDLER TRAIT
 // ================================================================================================
@@ -27,7 +27,7 @@ pub trait EventHandler<A> {
 // ================================================================================================
 
 /// Handler for debug and trace operations
-pub trait DebugHandler<A: AdviceProvider> {
+pub trait DebugHandler<A> {
     /// TODO: What kind of error should we return
     fn on_debug(
         &mut self,
@@ -40,7 +40,7 @@ pub trait DebugHandler<A: AdviceProvider> {
 // TRACE HANDLER
 // ================================================================================================
 
-pub trait TraceHandler<A: AdviceProvider> {
+pub trait TraceHandler<A> {
     /// TODO: What kind of error should we return
     fn on_trace(
         &mut self,
