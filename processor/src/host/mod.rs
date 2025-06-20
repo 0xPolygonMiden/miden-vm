@@ -1,4 +1,4 @@
-use alloc::{sync::Arc, boxed::Box, vec::Vec};
+use alloc::{boxed::Box, sync::Arc, vec::Vec};
 
 use vm_core::{
     DebugOptions, Felt,
