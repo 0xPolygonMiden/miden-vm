@@ -1,5 +1,4 @@
-use alloc::sync::Arc;
-use std::prelude::rust_2015::{Box, Vec};
+use alloc::{sync::Arc, boxed::Box, vec::Vec};
 
 use vm_core::{
     DebugOptions, Felt,
