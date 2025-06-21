@@ -12,9 +12,9 @@ impl PrettyPrint for Instruction {
         match self {
             Self::Nop => const_text("nop"),
             Self::Assert => const_text("assert"),
-            Self::AssertWithError(err_code) => {
-                flatten(const_text("assert.err") + const_text("=") + display(err_code))
-            },
+            Self::AssertWithError(err_code) => flatten(
+                const_text("assert.err") + const_text("=") + text(&format!("\"{}\"", err_code)),
+            ),
             Self::AssertEq => const_text("assert_eq"),
             Self::AssertEqWithError(err_code) => {
                 flatten(const_text("assert_eq.err") + const_text("=") + display(err_code))
