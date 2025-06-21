@@ -280,6 +280,23 @@ impl MastForest {
         let block = MastNode::new_basic_block_with_raw_decorators(operations, decorators, self)?;
         self.add_node(block)
     }
+
+    /// Clears all debug information: decorators and error_codes.
+    pub fn clear_debug_info(&mut self) {
+        self.decorators.clear();
+        self.error_codes.clear();
+        for node in self.nodes.iter_mut() {
+            match node {
+                MastNode::Block(n) => n.clear_decorators(),
+                MastNode::Join(n) => n.clear_decorators(),
+                MastNode::Split(n) => n.clear_decorators(),
+                MastNode::Loop(n) => n.clear_decorators(),
+                MastNode::Call(n) => n.clear_decorators(),
+                MastNode::Dyn(n) => n.clear_decorators(),
+                MastNode::External(n) => n.clear_decorators(),
+            }
+        }
+    }
 }
 
 /// Helpers
