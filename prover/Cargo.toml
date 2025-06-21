@@ -29,5 +29,5 @@ winter-prover = { package = "winter-prover", version = "0.13", default-features 
 
 [target.'cfg(all(target_arch = "aarch64", target_os = "macos"))'.dependencies]
 elsa = { version = "1.9", optional = true }
-miden-gpu = { version = "0.5", optional = true }
+miden-gpu = { version = "0.6", optional = true }
 pollster = { version = "0.4", optional = true }

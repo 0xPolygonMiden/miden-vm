@@ -182,16 +182,13 @@ fn test_move_sig_to_adv_stack() {
     end
     ";
 
-    let public_key = {
-        let pk = secret_key.public_key().into();
-        pk
-    };
+    let public_key = secret_key.public_key().into();
     let secret_key_bytes = secret_key.to_bytes();
 
     let advice_map: Vec<(Word, Vec<Felt>)> = {
-        let sig_key = Rpo256::merge(&[message.into(), public_key]);
+        let sig_key = Rpo256::merge(&[message, public_key]);
         let sk_felts = secret_key_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
-        let signature = falcon_sign(&sk_felts, message.into()).expect("failed to sign message");
+        let signature = falcon_sign(&sk_felts, message).expect("failed to sign message");
 
         vec![(sig_key, signature.iter().rev().cloned().collect())]
     };
@@ -219,7 +216,7 @@ fn falcon_execution() {
     let mut rng = RpoRandomCoin::new(seed);
     let sk = SecretKey::with_rng(&mut rng);
     let message = rand_value::<Word>();
-    let (source, op_stack, adv_stack, store, advice_map) = generate_test(sk, message.into());
+    let (source, op_stack, adv_stack, store, advice_map) = generate_test(sk, message);
 
     let test = build_test!(&source, &op_stack, &adv_stack, store, advice_map.into_iter());
     test.expect_stack(&[])
@@ -229,7 +226,7 @@ fn falcon_execution() {
 fn falcon_prove_verify() {
     let sk = SecretKey::new();
     let message = rand_value::<Word>();
-    let (source, op_stack, _, _, advice_map) = generate_test(sk, message.into());
+    let (source, op_stack, _, _, advice_map) = generate_test(sk, message);
 
     let program: Program = Assembler::default()
         .with_dynamic_library(StdLibrary::default())

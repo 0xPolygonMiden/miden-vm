@@ -3,8 +3,8 @@ use alloc::vec::Vec;
 use air::{PartitionOptions, ProvingOptions, StarkField};
 use gpu::metal::{DIGEST_SIZE, MetalExecutionProver};
 use processor::{
-    StackInputs, StackOutputs,
-    crypto::{Hasher, Rpo256, RpoRandomCoin, Rpx256, RpxDigest, Word},
+    StackInputs, StackOutputs, Word,
+    crypto::{Hasher, Rpo256, RpoRandomCoin, Rpx256},
     math::fft,
 };
 use winter_prover::{
@@ -30,7 +30,7 @@ fn rpo_build_trace_commitment_on_gpu_with_padding_matches_cpu() {
 
 #[test]
 fn rpx_build_trace_commitment_on_gpu_with_padding_matches_cpu() {
-    build_trace_commitment_on_gpu_with_padding_matches_cpu::<RpxRandomCoin, Rpx256, RpxDigest>(
+    build_trace_commitment_on_gpu_with_padding_matches_cpu::<RpxRandomCoin, Rpx256, Word>(
         HashFn::Rpx256,
     );
 }
@@ -44,7 +44,7 @@ fn rpo_build_trace_commitment_on_gpu_without_padding_matches_cpu() {
 
 #[test]
 fn rpx_build_trace_commitment_on_gpu_without_padding_matches_cpu() {
-    build_trace_commitment_on_gpu_without_padding_matches_cpu::<RpxRandomCoin, Rpx256, RpxDigest>(
+    build_trace_commitment_on_gpu_without_padding_matches_cpu::<RpxRandomCoin, Rpx256, Word>(
         HashFn::Rpx256,
     );
 }
@@ -58,7 +58,7 @@ fn rpo_build_constraint_commitment_on_gpu_with_padding_matches_cpu() {
 
 #[test]
 fn rpx_build_constraint_commitment_on_gpu_with_padding_matches_cpu() {
-    build_constraint_commitment_on_gpu_with_padding_matches_cpu::<RpxRandomCoin, Rpx256, RpxDigest>(
+    build_constraint_commitment_on_gpu_with_padding_matches_cpu::<RpxRandomCoin, Rpx256, Word>(
         HashFn::Rpx256,
     );
 }
@@ -72,11 +72,9 @@ fn rpo_build_constraint_commitment_on_gpu_without_padding_matches_cpu() {
 
 #[test]
 fn rpx_build_constraint_commitment_on_gpu_without_padding_matches_cpu() {
-    build_constraint_commitment_on_gpu_without_padding_matches_cpu::<
-        RpxRandomCoin,
-        Rpx256,
-        RpxDigest,
-    >(HashFn::Rpx256);
+    build_constraint_commitment_on_gpu_without_padding_matches_cpu::<RpxRandomCoin, Rpx256, Word>(
+        HashFn::Rpx256,
+    );
 }
 
 // TEST FUNCTIONS

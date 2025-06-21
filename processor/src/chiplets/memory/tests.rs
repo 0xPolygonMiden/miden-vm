@@ -291,7 +291,7 @@ fn mem_write_read() {
     let mut clk: RowIndex = 1.into();
 
     // write [1,2,3,4] starting at address 0; clk = 1
-    let word1234 = Word::from([1_u32, 2, 3, 4_]);
+    let word1234 = Word::from([1_u32, 2, 3, 4]);
     mem.write_word(ContextId::root(), ZERO, clk, word1234, &error_context).unwrap();
     clk += 1_u32;
 
