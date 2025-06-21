@@ -20,7 +20,7 @@ To compile Miden VM into a binary, we have a [Makefile](https://www.gnu.org/soft
 make exec
 ```
 
-This will place an optimized, multi-threaded `miden` executable into the `./target/optimized` directory. It is equivalent to executing:
+This will place an optimized, multi-threaded `miden-vm` executable into the `./target/optimized` directory. It is equivalent to executing:
 
 ```shell
 cargo build --profile optimized --features concurrent,executable
@@ -44,7 +44,7 @@ Miden VM proof generation can be accelerated via GPUs. Currently, GPU accelerati
 make exec-metal
 ```
 
-Similar to `make exec` command, this will place the resulting `miden` executable into the `./target/optimized` directory.
+Similar to `make exec` command, this will place the resulting `miden-vm` executable into the `./target/optimized` directory.
 
 Currently, GPU acceleration is applicable only to recursive proofs which can be generated using the `-r` flag.
 
@@ -64,7 +64,7 @@ To compile Miden VM with SVE acceleration enabled, you can run the following com
 make exec-sve
 ```
 
-This will place the resulting `miden` executable into the `./target/optimized` directory.
+This will place the resulting `miden-vm` executable into the `./target/optimized` directory.
 
 Similar to Metal acceleration, SVE/AVX2 acceleration is currently applicable only to recursive proofs which can be generated using the `-r` flag.
 
@@ -73,7 +73,7 @@ Similar to Metal acceleration, SVE/AVX2 acceleration is currently applicable onl
 Once the executable has been compiled, you can run Miden VM like so:
 
 ```shell
-./target/optimized/miden [subcommand] [parameters]
+./target/optimized/miden-vm [subcommand] [parameters]
 ```
 
 Currently, Miden VM can be executed with the following subcommands:
@@ -90,13 +90,13 @@ Currently, Miden VM can be executed with the following subcommands:
 All of the above subcommands require various parameters to be provided. To get more detailed help on what is needed for a given subcommand, you can run the following:
 
 ```shell
-./target/optimized/miden [subcommand] --help
+./target/optimized/miden-vm [subcommand] --help
 ```
 
 For example:
 
 ```shell
-./target/optimized/miden prove --help
+./target/optimized/miden-vm prove --help
 ```
 
 To execute a program using the Miden VM there needs to be a `.masm` file containing the Miden Assembly code and a `.inputs` file containing the inputs.
@@ -106,7 +106,7 @@ To execute a program using the Miden VM there needs to be a `.masm` file contain
 You can use `MIDEN_LOG` environment variable to control how much logging output the VM produces. For example:
 
 ```shell
-MIDEN_LOG=trace ./target/optimized/miden [subcommand] [parameters]
+MIDEN_LOG=trace ./target/optimized/miden-vm [subcommand] [parameters]
 ```
 
 If the level is not specified, `warn` level is set as default.
@@ -116,7 +116,7 @@ If the level is not specified, `warn` level is set as default.
 You can use the run command with `--debug` parameter to enable debugging with the [debug instruction](../user_docs/assembly/debugging.md) such as `debug.stack`:
 
 ```shell
-./target/optimized/miden run [path_to.masm] --debug
+./target/optimized/miden-vm run [path_to.masm] --debug
 ```
 
 ### Inputs
@@ -142,7 +142,7 @@ After a program finishes executing, the elements that remain on the stack become
 In the `miden/masm-examples/fib` directory, we provide a very simple Fibonacci calculator example. This example computes the 1001st term of the Fibonacci sequence. You can execute this example on Miden VM like so:
 
 ```shell
-./target/optimized/miden run miden/masm-examples/fib/fib.masm
+./target/optimized/miden-vm run miden-vm/masm-examples/fib/fib.masm
 ```
 
 ### Capturing Output
@@ -152,17 +152,17 @@ This will run the example code to completion and will output the top element rem
 If you want the output of the program in a file, you can use the `--output` or `-o` flag and specify the path to the output file. For example:
 
 ```shell
-./target/optimized/miden run miden/masm-examples/fib/fib.masm -o fib.out
+./target/optimized/miden-vm run miden-vm/masm-examples/fib/fib.masm -o fib.out
 ```
 
 This will dump the output of the program into the `fib.out` file. The output file will contain the state of the stack at the end of the program execution.
 
 ### Running with debug instruction enabled
 
-Inside `miden/masm-examples/fib/fib.masm`, insert `debug.stack` instruction anywhere between `begin` and `end`. Then run:
+Inside `miden-vm/masm-examples/fib/fib.masm`, insert `debug.stack` instruction anywhere between `begin` and `end`. Then run:
 
 ```shell
-./target/optimized/miden run miden/masm-examples/fib/fib.masm -n 1 --debug
+./target/optimized/miden-vm run miden-vm/masm-examples/fib/fib.masm -n 1 --debug
 ```
 
 You should see output similar to "Stack state before step ..."

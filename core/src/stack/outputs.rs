@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 use core::ops::Deref;
 
-use miden_crypto::{Word, ZERO};
+use miden_crypto::{WORD_SIZE, Word, ZERO};
 
 use super::{ByteWriter, Felt, MIN_STACK_DEPTH, OutputError, Serializable, get_num_stack_values};
 use crate::utils::{ByteReader, Deserializable, DeserializationError, range};
@@ -72,7 +72,7 @@ impl StackOutputs {
     /// out of bounds. For example, passing in `0` returns the word at the top of the stack, and
     /// passing in `4` returns the word starting at element index `4`.
     pub fn get_stack_word(&self, idx: usize) -> Option<Word> {
-        let word_elements: Word = {
+        let word_elements: [Felt; WORD_SIZE] = {
             let word_elements: Vec<Felt> = range(idx, 4)
                 .map(|idx| self.get_stack_item(idx))
                 // Elements need to be reversed, since a word `[a, b, c, d]` will be stored on the
@@ -83,7 +83,7 @@ impl StackOutputs {
             word_elements.try_into().expect("a Word contains 4 elements")
         };
 
-        Some(word_elements)
+        Some(word_elements.into())
     }
 
     /// Returns the number of requested stack outputs or returns the full stack if fewer than the

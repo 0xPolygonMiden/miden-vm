@@ -245,7 +245,9 @@ impl FastProcessor {
         debug_assert!(start_idx < MIN_STACK_DEPTH);
 
         let word_start_idx = self.stack_top_idx - start_idx - 4;
-        self.stack[range(word_start_idx, WORD_SIZE)].try_into().unwrap()
+        let result: [Felt; WORD_SIZE] =
+            self.stack[range(word_start_idx, WORD_SIZE)].try_into().unwrap();
+        result.into()
     }
 
     /// Returns the number of elements on the stack in the current context.
@@ -272,7 +274,8 @@ impl FastProcessor {
         debug_assert!(start_idx < MIN_STACK_DEPTH);
 
         let word_start_idx = self.stack_top_idx - start_idx - 4;
-        self.stack[range(word_start_idx, WORD_SIZE)].copy_from_slice(word)
+        let source: [Felt; WORD_SIZE] = (*word).into();
+        self.stack[range(word_start_idx, WORD_SIZE)].copy_from_slice(&source)
     }
 
     /// Swaps the elements at the given indices on the stack.
@@ -511,7 +514,7 @@ impl FastProcessor {
             // set the system registers to the callee context
             self.ctx = self.clk.into();
             self.fmp = Felt::new(FMP_MIN);
-            self.caller_hash = callee_hash.into();
+            self.caller_hash = callee_hash;
         }
 
         // Execute the callee.
@@ -564,21 +567,18 @@ impl FastProcessor {
         // if the callee is not in the program's MAST forest, try to find a MAST forest for it in
         // the host (corresponding to an external library loaded in the host); if none are
         // found, return an error.
-        match program.find_procedure_root(callee_hash.into()) {
+        match program.find_procedure_root(callee_hash) {
             Some(callee_id) => self.execute_mast_node(callee_id, program, kernel, host)?,
             None => {
-                let mast_forest = host.get_mast_forest(&callee_hash.into()).ok_or_else(|| {
-                    ExecutionError::dynamic_node_not_found(
-                        callee_hash.into(),
-                        &ErrorContext::default(),
-                    )
+                let mast_forest = host.get_mast_forest(&callee_hash).ok_or_else(|| {
+                    ExecutionError::dynamic_node_not_found(callee_hash, &ErrorContext::default())
                 })?;
 
                 // We limit the parts of the program that can be called externally to procedure
                 // roots, even though MAST doesn't have that restriction.
-                let root_id = mast_forest.find_procedure_root(callee_hash.into()).ok_or(
+                let root_id = mast_forest.find_procedure_root(callee_hash).ok_or(
                     ExecutionError::malfored_mast_forest_in_host(
-                        callee_hash.into(),
+                        callee_hash,
                         &ErrorContext::default(),
                     ),
                 )?;

@@ -1,10 +1,11 @@
 use alloc::vec::Vec;
 
-use miden_crypto::hash::rpo::RpoDigest;
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 use super::{NodeDataOffset, basic_blocks::BasicBlockDataDecoder};
-use crate::mast::{BasicBlockNode, CallNode, JoinNode, LoopNode, MastNode, MastNodeId, SplitNode};
+use crate::mast::{
+    BasicBlockNode, CallNode, JoinNode, LoopNode, MastNode, MastNodeId, SplitNode, Word,
+};
 
 // MAST NODE INFO
 // ================================================================================================
@@ -17,7 +18,7 @@ use crate::mast::{BasicBlockNode, CallNode, JoinNode, LoopNode, MastNode, MastNo
 #[derive(Debug)]
 pub struct MastNodeInfo {
     ty: MastNodeType,
-    digest: RpoDigest,
+    digest: Word,
 }
 
 impl MastNodeInfo {
@@ -95,7 +96,7 @@ impl Serializable for MastNodeInfo {
 impl Deserializable for MastNodeInfo {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let ty = Deserializable::read_from(source)?;
-        let digest = RpoDigest::read_from(source)?;
+        let digest = Word::read_from(source)?;
 
         Ok(Self { ty, digest })
     }

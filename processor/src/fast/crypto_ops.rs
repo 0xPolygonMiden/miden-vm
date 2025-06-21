@@ -45,14 +45,14 @@ impl FastProcessor {
         )?;
 
         // verify the path
-        match path.verify(index.as_int(), node.into(), &root.into()) {
+        match path.verify(index.as_int(), node, &root) {
             Ok(_) => Ok(()),
             Err(_) => {
                 let err_msg = program.resolve_error_message(err_code);
                 Err(ExecutionError::merkle_path_verification_failed(
                     node,
                     index,
-                    root.into(),
+                    root,
                     err_code,
                     err_msg,
                     &ErrorContext::default(),
@@ -85,11 +85,11 @@ impl FastProcessor {
         assert_eq!(path.len(), depth.as_int() as usize);
 
         // verify that the old node is consistent with the Merkle path
-        if path.verify(index.as_int(), old_node.into(), &old_root.into()).is_err() {
+        if path.verify(index.as_int(), old_node, &old_root).is_err() {
             return Err(ExecutionError::merkle_path_verification_failed(
                 old_node,
                 index,
-                old_root.into(),
+                old_root,
                 ZERO,
                 None,
                 &ErrorContext::default(),

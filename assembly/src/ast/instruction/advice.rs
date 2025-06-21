@@ -67,25 +67,3 @@ impl fmt::Display for SystemEventNode {
         }
     }
 }
-
-/// A newtype wrapper for [vm_core::SignatureKind]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[repr(u8)]
-pub enum SignatureKind {
-    RpoFalcon512 = 0,
-}
-
-impl From<SignatureKind> for vm_core::SignatureKind {
-    fn from(kind: SignatureKind) -> Self {
-        match kind {
-            SignatureKind::RpoFalcon512 => Self::RpoFalcon512,
-        }
-    }
-}
-
-impl fmt::Display for SignatureKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let kind: vm_core::SignatureKind = (*self).into();
-        write!(f, "{kind}")
-    }
-}

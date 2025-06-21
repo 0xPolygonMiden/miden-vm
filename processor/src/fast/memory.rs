@@ -11,7 +11,7 @@ use crate::{ContextId, ExecutionError, MemoryAddress, MemoryError, errors::Error
 ///(context_id, word_address) to the word stored starting at that memory location.
 #[derive(Debug, Default)]
 pub struct Memory {
-    memory: BTreeMap<(ContextId, u32), [Felt; WORD_SIZE]>,
+    memory: BTreeMap<(ContextId, u32), Word>,
 }
 
 impl Memory {
@@ -60,12 +60,15 @@ impl Memory {
         self.memory
             .entry((ctx, word_addr))
             .and_modify(|word| {
-                word[idx as usize] = element;
+                let mut result: [Felt; WORD_SIZE];
+                result = (*word).into();
+                result[idx as usize] = element;
+                *word = result.into();
             })
             .or_insert_with(|| {
                 let mut word = [ZERO; WORD_SIZE];
                 word[idx as usize] = element;
-                word
+                word.into()
             });
 
         Ok(())

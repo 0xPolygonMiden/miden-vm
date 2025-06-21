@@ -496,8 +496,8 @@ fn b_chip_mpverify() {
         .get_path(NodeIndex::new(tree.depth(), index as u64).unwrap())
         .expect("failed to get Merkle tree path");
     let mp_state = init_state_from_words(
-        &[path[0][0], path[0][1], path[0][2], path[0][3]],
-        &[leaves[index][0], leaves[index][1], leaves[index][2], leaves[index][3]],
+        &[path[0][0], path[0][1], path[0][2], path[0][3]].into(),
+        &[leaves[index][0], leaves[index][1], leaves[index][2], leaves[index][3]].into(),
     );
     let mp_init = build_expected(
         &alphas,
@@ -642,8 +642,8 @@ fn b_chip_mrupdate() {
         .get_path(NodeIndex::new(tree.depth(), index as u64).unwrap())
         .expect("failed to get Merkle tree path");
     let mp_state = init_state_from_words(
-        &[path[0][0], path[0][1], path[0][2], path[0][3]],
-        &[leaves[index][0], leaves[index][1], leaves[index][2], leaves[index][3]],
+        &[path[0][0], path[0][1], path[0][2], path[0][3]].into(),
+        &[leaves[index][0], leaves[index][1], leaves[index][2], leaves[index][3]].into(),
     );
     let mp_init_old = build_expected(
         &alphas,
@@ -693,8 +693,8 @@ fn b_chip_mrupdate() {
         .get_path(NodeIndex::new(tree.depth(), index as u64).unwrap())
         .expect("failed to get Merkle tree path");
     let mp_state = init_state_from_words(
-        &[path[0][0], path[0][1], path[0][2], path[0][3]],
-        &[new_leaf_value[0], new_leaf_value[1], new_leaf_value[2], new_leaf_value[3]],
+        &[path[0][0], path[0][1], path[0][2], path[0][3]].into(),
+        &[new_leaf_value[0], new_leaf_value[1], new_leaf_value[2], new_leaf_value[3]].into(),
     );
 
     let mp_new_verify_complete = mp_old_verify_complete + (tree.depth() as usize) * HASH_CYCLE_LEN;
@@ -957,5 +957,5 @@ fn init_leaves(values: &[u64]) -> Vec<Word> {
 
 /// Initializes a Merkle tree leaf with the specified value.
 fn init_leaf(value: u64) -> Word {
-    [Felt::new(value), ZERO, ZERO, ZERO]
+    [Felt::new(value), ZERO, ZERO, ZERO].into()
 }

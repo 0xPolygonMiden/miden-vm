@@ -26,4 +26,4 @@ Currently, Miden standard library contains just a few modules, which are listed 
 At this point, all implementations listed above are considered to be experimental and are subject to change.
 
 ## License
-This project is [MIT licensed](../LICENSE).
+This project is dual-licensed under the [MIT](http://opensource.org/licenses/MIT) and [Apache 2.0](https://opensource.org/license/apache-2-0) licenses.

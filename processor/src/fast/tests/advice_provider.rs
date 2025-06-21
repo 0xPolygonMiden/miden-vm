@@ -1,7 +1,7 @@
 use alloc::collections::BTreeMap;
 
 use pretty_assertions::assert_eq;
-use vm_core::crypto::hash::RpoDigest;
+use vm_core::Word;
 
 use super::*;
 use crate::{MastForestStore, MemAdviceProvider, MemMastForestStore, MemoryAddress, ProcessState};
@@ -251,7 +251,7 @@ impl Host for ConsistencyHost {
         &mut self.advice_provider
     }
 
-    fn get_mast_forest(&self, node_digest: &RpoDigest) -> Option<Arc<MastForest>> {
+    fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>> {
         self.store.get(node_digest)
     }
 

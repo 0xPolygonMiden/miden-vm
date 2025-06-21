@@ -6,8 +6,7 @@ use alloc::{
 };
 
 use vm_core::{
-    AdviceMap, Kernel,
-    crypto::hash::RpoDigest,
+    AdviceMap, Kernel, Word,
     mast::{MastForest, MastNodeId},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
@@ -43,7 +42,7 @@ mod tests;
 pub struct Library {
     /// The content hash of this library, formed by hashing the roots of all exports in
     /// lexicographical order (by digest, not procedure name)
-    digest: RpoDigest,
+    digest: Word,
     /// A map between procedure paths and the corresponding procedure roots in the MAST forest.
     /// Multiple paths can map to the same root, and also, some roots may not be associated with
     /// any paths.
@@ -92,7 +91,7 @@ impl Library {
         Ok(Self { digest, exports, mast_forest })
     }
 
-    /// Produces a new library with the existing [`MastForest`] and where all key/values in the  
+    /// Produces a new library with the existing [`MastForest`] and where all key/values in the
     /// provided advice map are added to the internal advice map.
     pub fn with_advice_map(self, advice_map: AdviceMap) -> Self {
         let mut mast_forest = (*self.mast_forest).clone();
@@ -107,8 +106,8 @@ impl Library {
 // ------------------------------------------------------------------------------------------------
 /// Public accessors
 impl Library {
-    /// Returns the [RpoDigest] representing the content hash of this library
-    pub fn digest(&self) -> &RpoDigest {
+    /// Returns the [Word] representing the content hash of this library
+    pub fn digest(&self) -> &Word {
         &self.digest
     }
 
@@ -213,7 +212,7 @@ impl Deserializable for Library {
 fn compute_content_hash(
     exports: &BTreeMap<QualifiedProcedureName, MastNodeId>,
     mast_forest: &MastForest,
-) -> RpoDigest {
+) -> Word {
     let digests = BTreeSet::from_iter(exports.values().map(|&id| mast_forest[id].digest()));
     digests
         .into_iter()
@@ -450,7 +449,7 @@ mod use_std_kernel {
             if let Some(lib_dir) = lib_dir {
                 let lib_dir = lib_dir.as_ref();
                 let namespace = LibraryNamespace::new("kernel").expect("invalid namespace");
-                assembler.add_modules_from_dir(namespace, lib_dir)?;
+                assembler.compile_and_statically_link_from_dir(namespace, lib_dir)?;
             }
 
             assembler.assemble_kernel(sys_module_path.as_ref())

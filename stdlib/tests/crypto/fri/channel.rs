@@ -1,9 +1,9 @@
-use processor::Digest;
 use test_utils::{
     Felt, FieldElement, MerkleTreeVC,
     crypto::{BatchMerkleProof, ElementHasher, Hasher as HasherTrait, PartialMerkleTree},
     serde::DeserializationError,
 };
+use vm_core::Word;
 use winter_fri::{FriProof, VerifierError};
 
 pub trait UnBatch<E: FieldElement, H: ElementHasher> {
@@ -12,7 +12,7 @@ pub trait UnBatch<E: FieldElement, H: ElementHasher> {
         positions: &[usize],
         domain_size: usize,
         layer_commitments: Vec<<H as HasherTrait>::Digest>,
-    ) -> (Vec<PartialMerkleTree>, Vec<(Digest, Vec<Felt>)>);
+    ) -> (Vec<PartialMerkleTree>, Vec<(Word, Vec<Felt>)>);
 }
 
 pub struct MidenFriVerifierChannel<

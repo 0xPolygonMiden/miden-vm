@@ -3,7 +3,7 @@ use alloc::sync::Arc;
 use processor::{
     AdviceProvider, AdviceSource, DefaultHost, ErrorContext, MastForest, ProcessState,
 };
-use prover::{ExecutionError, Host, MemAdviceProvider};
+use prover::{ExecutionError, Host, MemAdviceProvider, Word};
 use stdlib::{EVENT_FALCON_SIG_TO_STACK, falcon_sign};
 use vm_core::mast::MastNodeExt;
 
@@ -42,7 +42,7 @@ impl Host for TestHost {
         self.0.advice_provider_mut()
     }
 
-    fn get_mast_forest(&self, node_digest: &prover::Digest) -> Option<Arc<processor::MastForest>> {
+    fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<processor::MastForest>> {
         self.0.get_mast_forest(node_digest)
     }
 
@@ -87,7 +87,7 @@ pub fn push_falcon_signature(
     let msg = process.get_stack_word(1);
 
     let pk_sk = advice_provider
-        .get_mapped_values(&pub_key.into())
+        .get_mapped_values(&pub_key)
         .ok_or(ExecutionError::advice_map_key_not_found(pub_key, err_ctx))?;
 
     let result = falcon_sign(pk_sk, msg)

@@ -4,7 +4,7 @@ use alloc::vec::Vec;
 // ================================================================================================
 pub use vm_core::crypto::{
     dsa::*,
-    hash::{Rpo256, RpoDigest},
+    hash::Rpo256,
     merkle::{
         EmptySubtreeRoots, LeafIndex, MerkleError, MerklePath, MerkleStore, MerkleTree, Mmr,
         MmrPeaks, NodeIndex, PartialMerkleTree, SimpleSmt, Smt,
@@ -31,5 +31,5 @@ pub fn init_merkle_leaves(values: &[u64]) -> Vec<Word> {
 }
 
 pub fn init_merkle_leaf(value: u64) -> Word {
-    [Felt::new(value), ZERO, ZERO, ZERO]
+    [Felt::new(value), ZERO, ZERO, ZERO].into()
 }

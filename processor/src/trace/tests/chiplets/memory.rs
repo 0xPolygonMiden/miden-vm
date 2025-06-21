@@ -65,8 +65,14 @@ fn b_chip_trace_mem() {
 
     // The first memory request from the stack is sent when the `MStoreW` operation is executed, at
     // cycle 1, so the request is included in the next row. (The trace begins by executing `span`).
-    let value =
-        build_expected_bus_word_msg(&rand_elements, MEMORY_WRITE_WORD_LABEL, ZERO, ZERO, ONE, word);
+    let value = build_expected_bus_word_msg(
+        &rand_elements,
+        MEMORY_WRITE_WORD_LABEL,
+        ZERO,
+        ZERO,
+        ONE,
+        word.into(),
+    );
     let mut expected = value.inv();
     assert_eq!(expected, b_chip[2]);
 
@@ -105,7 +111,7 @@ fn b_chip_trace_mem() {
         ZERO,
         ZERO,
         Felt::new(8),
-        word,
+        word.into(),
     );
     expected *= value.inv();
     expected *= build_expected_bus_msg_from_trace(&trace, &rand_elements, 8.into());
@@ -145,7 +151,7 @@ fn b_chip_trace_mem() {
         ZERO,
         ZERO,
         Felt::new(13),
-        word,
+        word.into(),
     );
     let value2 = build_expected_bus_word_msg(
         &rand_elements,
@@ -153,7 +159,7 @@ fn b_chip_trace_mem() {
         ZERO,
         Felt::new(4),
         Felt::new(13),
-        [ONE, ZERO, ZERO, ZERO],
+        [ONE, ZERO, ZERO, ZERO].into(),
     );
     expected *= (value1 * value2).inv();
     expected *= build_expected_bus_msg_from_trace(&trace, &rand_elements, 13.into());
@@ -261,7 +267,7 @@ fn build_expected_bus_msg_from_trace(
 
         build_expected_bus_element_msg(alphas, op_label, ctx, addr, clk, word[idx as usize])
     } else if element_or_word == MEMORY_ACCESS_WORD {
-        build_expected_bus_word_msg(alphas, op_label, ctx, addr, clk, word)
+        build_expected_bus_word_msg(alphas, op_label, ctx, addr, clk, word.into())
     } else {
         panic!("invalid element_or_word value: {element_or_word}");
     }

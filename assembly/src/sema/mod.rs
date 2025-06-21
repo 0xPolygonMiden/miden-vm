@@ -9,12 +9,14 @@ use alloc::{
     vec::Vec,
 };
 
+use vm_core::{Word, crypto::hash::Rpo256};
+
 use self::passes::{ConstEvalVisitor, VerifyInvokeTargets};
 pub use self::{
     context::AnalysisContext,
     errors::{SemanticAnalysisError, SyntaxError},
 };
-use crate::{LibraryPath, Spanned, ast::*, diagnostics::SourceFile};
+use crate::{LibraryPath, Span, Spanned, ast::*, diagnostics::SourceFile, parser::WordValue};
 
 /// Constructs and validates a [Module], given the forms constituting the module body.
 ///
@@ -96,6 +98,9 @@ pub fn analyze(
                 docs.take();
                 analyzer.error(SemanticAnalysisError::UnexpectedEntrypoint { span: body.span() });
             },
+            Form::AdviceMapEntry(entry) => {
+                add_advice_map_entry(&mut module, entry.with_docs(docs.take()), &mut analyzer)?;
+            },
         }
     }
 
@@ -166,25 +171,17 @@ fn visit_procedures(
                 }
                 module.procedures.push(Export::Procedure(procedure));
             },
-            Export::Alias(mut alias) => {
-                // Resolve the underlying import, and expand the `target`
-                // to its fully-qualified path. This is needed because after
-                // parsing, the path only contains the last component,
-                // e.g. `u64` of `std::math::u64`.
-                let is_absolute = alias.is_absolute();
-                if !is_absolute {
-                    if let AliasTarget::ProcedurePath(target) = alias.target_mut() {
-                        let imported_module =
-                            target.module.namespace().to_ident().with_span(target.span);
-                        if let Some(import) = module.resolve_import_mut(&imported_module) {
-                            target.module = import.path.clone();
-                            // Mark the backing import as used
-                            import.uses += 1;
-                        } else {
-                            // Missing import
-                            analyzer
-                                .error(SemanticAnalysisError::MissingImport { span: alias.span() });
-                        }
+            Export::Alias(alias) => {
+                // Resolve the underlying import, and mark it used if successful
+                if let AliasTarget::ProcedurePath(target) = alias.target() {
+                    let imported_module =
+                        target.module.namespace().to_ident().with_span(target.span);
+                    if let Some(import) = module.resolve_import_mut(&imported_module) {
+                        // Mark the backing import as used
+                        import.uses += 1;
+                    } else {
+                        // Missing import
+                        analyzer.error(SemanticAnalysisError::MissingImport { span: alias.span() });
                     }
                 }
                 module.procedures.push(Export::Alias(alias));
@@ -239,5 +236,35 @@ fn define_procedure(
 
     context.register_procedure_name(name);
 
+    Ok(())
+}
+
+/// Inserts a new entry in the Advice Map and defines a constant corresposnding to the entry's
+/// key.
+///
+/// Returns `Err` if the symbol is already defined
+fn add_advice_map_entry(
+    module: &mut Module,
+    entry: AdviceMapEntry,
+    context: &mut AnalysisContext,
+) -> Result<(), SyntaxError> {
+    let key = match entry.key {
+        Some(key) => Word::from(key.inner().0),
+        None => Rpo256::hash_elements(&entry.value),
+    };
+    let cst = Constant::new(
+        entry.span,
+        entry.name.clone(),
+        ConstantExpr::Word(Span::new(entry.span, WordValue(*key))),
+    );
+    context.define_constant(cst)?;
+    match module.advice_map.get(&key) {
+        Some(_) => {
+            context.error(SemanticAnalysisError::AdvMapKeyAlreadyDefined { span: entry.span });
+        },
+        None => {
+            module.advice_map.insert(key, entry.value);
+        },
+    }
     Ok(())
 }

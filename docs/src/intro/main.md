@@ -35,4 +35,4 @@ This document is meant to provide an in-depth description of Miden VM. It is org
 * Finally, in the background material section, we provide references to materials which could be useful for learning more about STARKs - the proving system behind Miden VM.
 
 ## License
-Licensed under the [MIT license](http://opensource.org/licenses/MIT).
+This project is dual-licensed under the [MIT](http://opensource.org/licenses/MIT) and [Apache 2.0](https://opensource.org/license/apache-2-0) licenses.

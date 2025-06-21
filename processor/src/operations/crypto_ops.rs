@@ -73,10 +73,12 @@ impl Process {
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<(), ExecutionError> {
         // read node value, depth, index and root value from the stack
-        let node = [self.stack.get(3), self.stack.get(2), self.stack.get(1), self.stack.get(0)];
+        let node =
+            [self.stack.get(3), self.stack.get(2), self.stack.get(1), self.stack.get(0)].into();
         let depth = self.stack.get(4);
         let index = self.stack.get(5);
-        let root = [self.stack.get(9), self.stack.get(8), self.stack.get(7), self.stack.get(6)];
+        let root =
+            [self.stack.get(9), self.stack.get(8), self.stack.get(7), self.stack.get(6)].into();
 
         // get a Merkle path from the advice provider for the specified root and node index.
         // the path is expected to be of the specified depth.
@@ -94,12 +96,7 @@ impl Process {
             // then it means that `node` is not the value currently in the tree at `index`
             let err_msg = program.resolve_error_message(err_code);
             return Err(ExecutionError::merkle_path_verification_failed(
-                node,
-                index,
-                root.into(),
-                err_code,
-                err_msg,
-                err_ctx,
+                node, index, root, err_code, err_msg, err_ctx,
             ));
         }
 
@@ -147,12 +144,14 @@ impl Process {
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<(), ExecutionError> {
         // read old node value, depth, index, tree root and new node values from the stack
-        let old_node = [self.stack.get(3), self.stack.get(2), self.stack.get(1), self.stack.get(0)];
+        let old_node =
+            [self.stack.get(3), self.stack.get(2), self.stack.get(1), self.stack.get(0)].into();
         let depth = self.stack.get(4);
         let index = self.stack.get(5);
-        let old_root = [self.stack.get(9), self.stack.get(8), self.stack.get(7), self.stack.get(6)];
+        let old_root =
+            [self.stack.get(9), self.stack.get(8), self.stack.get(7), self.stack.get(6)].into();
         let new_node =
-            [self.stack.get(13), self.stack.get(12), self.stack.get(11), self.stack.get(10)];
+            [self.stack.get(13), self.stack.get(12), self.stack.get(11), self.stack.get(10)].into();
 
         // update the node at the specified index in the Merkle tree specified by the old root, and
         // get a Merkle path to it. the length of the returned path is expected to match the
@@ -438,7 +437,7 @@ mod tests {
     }
 
     fn init_node(value: u64) -> Word {
-        [Felt::new(value), ZERO, ZERO, ZERO]
+        [Felt::new(value), ZERO, ZERO, ZERO].into()
     }
 
     fn build_expected(values: &[Felt]) -> [Felt; 16] {

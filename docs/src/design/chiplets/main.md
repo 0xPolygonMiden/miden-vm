@@ -73,24 +73,23 @@ Each operation supported by the chiplets is given a unique identifier to ensure 
 The labels are composed from the flag values of the chiplet selector(s) and internal operation selectors (if applicable).
 The unique label of the operation is computed as the binary aggregation of the combined selectors plus $1$, note that the combined flag is represented in big-endian, so the bit representation below is reversed.
 
-> **Note:** We started moving away from this scheme with the memory and kernel ROM chiplet, which more simply prepends the chiplet selector to the label (without reversing or adding 1).
-
-| Operation              | Chiplet Selector Flag | Internal Selector Flag | Combined Flag       | Label |
-|------------------------|-----------------------|:----------------------:|---------------------|:-----:|
-| `HASHER_LINEAR_HASH`   | $\{0\}$               |     $\{1, 0, 0\}$      | $\{0, 1, 0, 0\}$    |   3   |
-| `HASHER_MP_VERIFY`     | $\{0\}$               |     $\{1, 0, 1\}$      | $\{0, 1, 0, 1\}$    |  11   |
-| `HASHER_MR_UPDATE_OLD` | $\{0\}$               |     $\{1, 1, 0\}$      | $\{0, 1, 1, 0\}$    |   7   |
-| `HASHER_MR_UPDATE_NEW` | $\{0\}$               |     $\{1, 1, 1\}$      | $\{0, 1, 1, 1\}$    |  15   |
-| `HASHER_RETURN_HASH`   | $\{0\}$               |     $\{0, 0, 0\}$      | $\{0, 0, 0, 0\}$    |   1   |
-| `HASHER_RETURN_STATE`  | $\{0\}$               |     $\{0, 0, 1\}$      | $\{0, 0, 0, 1\}$    |   9   |
-| `BITWISE_AND`          | $\{1, 0\}$            |        $\{0\}$         | $\{1, 0, 0\}$       |   2   |
-| `BITWISE_XOR`          | $\{1, 0\}$            |        $\{1\}$         | $\{1, 0, 1\}$       |   6   |
-| `MEMORY_WRITE_ELEMENT` | $\{1, 1, 0\}$         |       $\{0, 0\}$       | $\{1, 1, 0, 0, 0\}$ |  24   |
-| `MEMORY_WRITE_WORD`    | $\{1, 1, 0\}$         |       $\{0, 1\}$       | $\{1, 1, 0, 0, 1\}$ |  25   |
-| `MEMORY_READ_ELEMENT`  | $\{1, 1, 0\}$         |       $\{1, 0\}$       | $\{1, 1, 0, 1, 0\}$ |  26   |
-| `MEMORY_READ_WORD`     | $\{1, 1, 0\}$         |       $\{1, 1\}$       | $\{1, 1, 0, 1, 1\}$ |  27   |
-| `KERNEL_PROC_CALL`     | $\{1, 1, 1, 0\}$      |        $\{0\}$         | $\{1, 1, 1, 0, 0\}$ |  28   |
-| `KERNEL_PROC_INIT`     | $\{1, 1, 1, 0\}$      |        $\{1\}$         | $\{1, 1, 1, 0, 1\}$ |  29   |
+| Operation              | Chiplet & Internal <br> Selector Flags | Label           | Value |
+|------------------------|----------------------------------------|-----------------|-------|
+| `HASHER_LINEAR_HASH`   | $\{0 \,\|\, 1, 0, 0\}$                 | `1 + 0b001_0`   | 3     |
+| `HASHER_MP_VERIFY`     | $\{0 \,\|\, 1, 0, 1\}$                 | `1 + 0b101_0`   | 11    |
+| `HASHER_MR_UPDATE_OLD` | $\{0 \,\|\, 1, 1, 0\}$                 | `1 + 0b011_0`   | 7     |
+| `HASHER_MR_UPDATE_NEW` | $\{0 \,\|\, 1, 1, 1\}$                 | `1 + 0b111_0`   | 15    |
+| `HASHER_RETURN_HASH`   | $\{0 \,\|\, 0, 0, 0\}$                 | `1 + 0b000_0`   | 1     |
+| `HASHER_RETURN_STATE`  | $\{0 \,\|\, 0, 0, 1\}$                 | `1 + 0b100_0`   | 9     |
+| `BITWISE_AND`          | $\{1, 0 \,\|\, 0\}$                    | `1 + 0b0_01`    | 2     |
+| `BITWISE_XOR`          | $\{1, 0 \,\|\, 1\}$                    | `1 + 0b1_01`    | 6     |
+| `MEMORY_WRITE_ELEMENT` | $\{1, 1, 0 \,\|\, 0, 0\}$              | `1 + 0b00_011`  | 4     |
+| `MEMORY_WRITE_WORD`    | $\{1, 1, 0 \,\|\, 0, 1\}$              | `1 + 0b10_011`  | 20    |
+| `MEMORY_READ_ELEMENT`  | $\{1, 1, 0 \,\|\, 1, 0\}$              | `1 + 0b01_011`  | 12    |
+| `MEMORY_READ_WORD`     | $\{1, 1, 0 \,\|\, 1, 1\}$              | `1 + 0b11_011`  | 28    |
+| `ACE_INIT`             | $\{1, 1, 1, 0 \,\|\, - \}$             | `1 + 0b_0111`   | 8     |
+| `KERNEL_PROC_CALL`     | $\{1, 1, 1, 1, 0 \,\|\, 0\}$           | `1 + 0b0_01111` | 16    |
+| `KERNEL_PROC_INIT`     | $\{1, 1, 1, 1, 0 \,\|\, 1\}$           | `1 + 0b1_01111` | 48    |
 
 ## Chiplets module constraints
 

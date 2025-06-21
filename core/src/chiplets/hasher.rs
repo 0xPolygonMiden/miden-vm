@@ -1,6 +1,8 @@
 //! TODO: add docs
+use miden_crypto::Word as Digest;
+
 use super::Felt;
-pub use crate::crypto::hash::{Rpo256 as Hasher, RpoDigest as Digest};
+pub use crate::crypto::hash::Rpo256 as Hasher;
 
 /// Number of field element needed to represent the sponge state for the hash function.
 ///

@@ -1,11 +1,8 @@
 use alloc::vec::Vec;
 
 use vm_core::{
-    AdviceMap, Felt,
-    crypto::{
-        hash::RpoDigest,
-        merkle::{InnerNodeInfo, MerkleStore},
-    },
+    AdviceMap, Felt, Word,
+    crypto::merkle::{InnerNodeInfo, MerkleStore},
     errors::InputError,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
@@ -63,7 +60,7 @@ impl AdviceInputs {
     /// Extends the map of values with the given argument, replacing previously inserted items.
     pub fn with_map<I>(mut self, iter: I) -> Self
     where
-        I: IntoIterator<Item = (RpoDigest, Vec<Felt>)>,
+        I: IntoIterator<Item = (Word, Vec<Felt>)>,
     {
         self.map.extend(iter);
         self
@@ -89,7 +86,7 @@ impl AdviceInputs {
     /// Extends the map of values with the given argument, replacing previously inserted items.
     pub fn extend_map<I>(&mut self, iter: I)
     where
-        I: IntoIterator<Item = (RpoDigest, Vec<Felt>)>,
+        I: IntoIterator<Item = (Word, Vec<Felt>)>,
     {
         self.map.extend(iter);
     }
@@ -118,7 +115,7 @@ impl AdviceInputs {
     }
 
     /// Fetch a values set mapped by the given key.
-    pub fn mapped_values(&self, key: &RpoDigest) -> Option<&[Felt]> {
+    pub fn mapped_values(&self, key: &Word) -> Option<&[Felt]> {
         self.map.get(key)
     }
 

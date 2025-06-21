@@ -6,7 +6,7 @@ use vm_core::Program;
 #[cfg(feature = "std")]
 use crate::diagnostics::reporting::set_panic_hook;
 use crate::{
-    Compile, CompileOptions, LibraryPath, RpoDigest,
+    Compile, CompileOptions, LibraryPath, Word,
     assembler::Assembler,
     ast::{Form, Module, ModuleKind},
     diagnostics::{
@@ -207,6 +207,12 @@ impl Default for TestContext {
 
 impl TestContext {
     pub fn new() -> Self {
+        #[cfg(feature = "logging")]
+        {
+            // Enable debug tracing to stderr via the MIDEN_LOG environment variable, if present
+            let _ = env_logger::Builder::from_env("MIDEN_LOG").format_timestamp(None).try_init();
+        }
+
         #[cfg(feature = "std")]
         {
             let result = set_hook(Box::new(|_| Box::new(ReportHandlerOpts::new().build())));
@@ -313,7 +319,7 @@ impl TestContext {
     /// other modules.
     #[track_caller]
     pub fn add_module(&mut self, module: impl Compile) -> Result<(), Report> {
-        self.assembler.add_module(module).map(|_| ())
+        self.assembler.compile_and_statically_link(module).map(|_| ())
     }
 
     /// Add a module to the [Assembler] constructed by this context, with the fully-qualified
@@ -327,21 +333,20 @@ impl TestContext {
         path: LibraryPath,
         source: impl Compile,
     ) -> Result<(), Report> {
-        self.assembler
-            .add_module_with_options(
-                source,
-                CompileOptions {
-                    path: Some(path),
-                    ..CompileOptions::for_library()
-                },
-            )
-            .map(|_| ())
+        let module = source.compile_with_options(
+            &self.source_manager,
+            CompileOptions {
+                path: Some(path),
+                ..CompileOptions::for_library()
+            },
+        )?;
+        self.assembler.compile_and_statically_link(module).map(|_| ())
     }
 
     /// Add the modules of `library` to the [Assembler] constructed by this context.
     #[track_caller]
     pub fn add_library(&mut self, library: impl AsRef<Library>) -> Result<(), Report> {
-        self.assembler.add_library(library)
+        self.assembler.link_dynamic_library(library)
     }
 
     /// Compile a [Program] from `source` using the [Assembler] constructed by this context.
@@ -372,7 +377,7 @@ impl TestContext {
         &self,
         _path: LibraryPath,
         _module: impl Compile,
-    ) -> Result<Vec<RpoDigest>, Report> {
+    ) -> Result<Vec<Word>, Report> {
         // This API will change after we implement `Assembler::add_library()`
         unimplemented!()
     }

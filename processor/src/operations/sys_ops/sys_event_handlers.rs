@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 use vm_core::{
     Felt, FieldElement, WORD_SIZE, Word, ZERO,
     crypto::{
-        hash::{Rpo256, RpoDigest},
+        hash::Rpo256,
         merkle::{EmptySubtreeRoots, SMT_DEPTH, Smt},
     },
     mast::MastNodeExt,
@@ -128,14 +128,14 @@ pub fn insert_hdword_into_adv_map(
     // get the top two words from the stack and hash them to compute the key value
     let word0 = process.get_stack_word(0);
     let word1 = process.get_stack_word(1);
-    let key = Rpo256::merge_in_domain(&[word1.into(), word0.into()], domain);
+    let key = Rpo256::merge_in_domain(&[word1, word0], domain);
 
     // build a vector of values from the two word and insert it into the advice map under the
     // computed key
     let mut values = Vec::with_capacity(2 * WORD_SIZE);
-    values.extend_from_slice(&word1);
-    values.extend_from_slice(&word0);
-    advice_provider.insert_into_map(key.into(), values);
+    values.extend_from_slice(&Into::<[Felt; WORD_SIZE]>::into(word1));
+    values.extend_from_slice(&Into::<[Felt; WORD_SIZE]>::into(word0));
+    advice_provider.insert_into_map(key, values);
 
     Ok(())
 }
@@ -178,13 +178,13 @@ pub fn insert_hperm_into_adv_map(
 
     // apply the permutation to the state and extract the key from it
     Rpo256::apply_permutation(&mut state);
-    let key = RpoDigest::new(
+    let key = Word::new(
         state[Rpo256::DIGEST_RANGE]
             .try_into()
             .expect("failed to extract digest from state"),
     );
 
-    advice_provider.insert_into_map(key.into(), values);
+    advice_provider.insert_into_map(key, values);
 
     Ok(())
 }
@@ -252,7 +252,7 @@ pub fn copy_merkle_node_to_adv_stack(
         process.get_stack_item(2),
     ];
 
-    let node = advice_provider.get_tree_node(root, &depth, &index, err_ctx)?;
+    let node = advice_provider.get_tree_node(root.into(), &depth, &index, err_ctx)?;
 
     advice_provider.push_stack(AdviceSource::Value(node[3]), err_ctx)?;
     advice_provider.push_stack(AdviceSource::Value(node[2]), err_ctx)?;
@@ -298,7 +298,7 @@ pub fn copy_map_value_to_adv_stack(
         process.get_stack_item(1),
         process.get_stack_item(0),
     ];
-    advice_provider.push_stack(AdviceSource::Map { key, include_len }, err_ctx)?;
+    advice_provider.push_stack(AdviceSource::Map { key: key.into(), include_len }, err_ctx)?;
 
     Ok(())
 }
@@ -690,7 +690,7 @@ pub fn push_smtpeek_result(
     let node =
         advice_provider.get_tree_node(root, &Felt::new(SMT_DEPTH as u64), &key[3], err_ctx)?;
 
-    if node == Word::from(empty_leaf) {
+    if node == *empty_leaf {
         // if the node is a root of an empty subtree, then there is no value associated with
         // the specified key
         advice_provider.push_stack(AdviceSource::Word(Smt::EMPTY_VALUE), err_ctx)?;
@@ -778,10 +778,8 @@ fn get_smt_leaf_preimage<A: AdviceProvider>(
     node: Word,
     err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<Vec<(Word, Word)>, ExecutionError> {
-    let node_bytes = RpoDigest::from(node);
-
     let kv_pairs = advice_provider
-        .get_mapped_values(&node_bytes)
+        .get_mapped_values(&node)
         .ok_or(ExecutionError::smt_node_not_found(node, err_ctx))?;
 
     if kv_pairs.len() % WORD_SIZE * 2 != 0 {
@@ -794,7 +792,7 @@ fn get_smt_leaf_preimage<A: AdviceProvider>(
             let key = [kv_chunk[0], kv_chunk[1], kv_chunk[2], kv_chunk[3]];
             let value = [kv_chunk[4], kv_chunk[5], kv_chunk[6], kv_chunk[7]];
 
-            (key, value)
+            (key.into(), value.into())
         })
         .collect())
 }

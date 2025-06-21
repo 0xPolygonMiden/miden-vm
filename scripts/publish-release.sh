@@ -11,11 +11,10 @@
 
 cargo publish -p miden-core
 cargo publish -p miden-air
+cargo publish -p miden-assembly
 cargo publish -p miden-processor
 cargo publish -p miden-prover
 cargo publish -p miden-verifier
-cargo publish -p miden-assembly
 cargo publish -p miden-stdlib
-cargo publish -p miden-package
-cargo publish -p miden-test-utils
+cargo publish -p miden-mast-package
 cargo publish -p miden-vm

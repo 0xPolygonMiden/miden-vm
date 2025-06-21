@@ -4,7 +4,7 @@ use vm_core::mast::MastNodeId;
 
 use super::GlobalProcedureIndex;
 use crate::{
-    LibraryPath, RpoDigest,
+    LibraryPath, Word,
     ast::{ProcedureName, QualifiedProcedureName, Visibility},
     diagnostics::{SourceManager, SourceSpan, Spanned},
 };
@@ -102,7 +102,7 @@ impl ProcedureContext {
     /// `mast_root` and `mast_node_id` must be consistent. That is, the node located in the MAST
     /// forest under `mast_node_id` must have the digest equal to the `mast_root`.
     /// </div>
-    pub fn into_procedure(self, mast_root: RpoDigest, mast_node_id: MastNodeId) -> Procedure {
+    pub fn into_procedure(self, mast_root: Word, mast_node_id: MastNodeId) -> Procedure {
         Procedure::new(self.name, self.visibility, self.num_locals as u32, mast_root, mast_node_id)
             .with_span(self.span)
     }
@@ -133,7 +133,7 @@ pub struct Procedure {
     visibility: Visibility,
     num_locals: u32,
     /// The MAST root of the procedure.
-    mast_root: RpoDigest,
+    mast_root: Word,
     /// The MAST node id which resolves to the above MAST root.
     body_node_id: MastNodeId,
 }
@@ -145,7 +145,7 @@ impl Procedure {
         path: QualifiedProcedureName,
         visibility: Visibility,
         num_locals: u32,
-        mast_root: RpoDigest,
+        mast_root: Word,
         body_node_id: MastNodeId,
     ) -> Self {
         Self {
@@ -194,7 +194,7 @@ impl Procedure {
     }
 
     /// Returns the root of this procedure's MAST.
-    pub fn mast_root(&self) -> RpoDigest {
+    pub fn mast_root(&self) -> Word {
         self.mast_root
     }
 

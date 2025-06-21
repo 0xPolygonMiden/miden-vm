@@ -4,6 +4,7 @@ use core::ops::ControlFlow;
 use crate::{
     Felt, Span, Spanned,
     ast::*,
+    parser::IntValue,
     sema::{AnalysisContext, SemanticAnalysisError},
 };
 
@@ -28,7 +29,7 @@ impl ConstEvalVisitor<'_> {
             Immediate::Constant(name) => {
                 let span = name.span();
                 match self.analyzer.get_constant(name) {
-                    Ok(value) => match T::try_from(value.as_int()) {
+                    Ok(ConstantExpr::Literal(value)) => match T::try_from(value.as_int()) {
                         Ok(value) => {
                             *imm = Immediate::Value(Span::new(span, value));
                         },
@@ -39,6 +40,7 @@ impl ConstEvalVisitor<'_> {
                     Err(error) => {
                         self.analyzer.error(error);
                     },
+                    _ => self.analyzer.error(SemanticAnalysisError::InvalidConstant { span }),
                 }
                 ControlFlow::Continue(())
             },
@@ -82,12 +84,35 @@ impl VisitMut for ConstEvalVisitor<'_> {
             Immediate::Constant(name) => {
                 let span = name.span();
                 match self.analyzer.get_constant(name) {
-                    Ok(value) => {
-                        *imm = Immediate::Value(Span::new(span, value));
+                    Ok(ConstantExpr::Literal(value)) => {
+                        *imm = Immediate::Value(Span::new(span, *value.inner()));
                     },
                     Err(error) => {
                         self.analyzer.error(error);
                     },
+                    _ => self.analyzer.error(SemanticAnalysisError::InvalidConstant { span }),
+                }
+                ControlFlow::Continue(())
+            },
+        }
+    }
+
+    fn visit_mut_immediate_hex(&mut self, imm: &mut Immediate<IntValue>) -> ControlFlow<()> {
+        match imm {
+            Immediate::Value(_) => ControlFlow::Continue(()),
+            Immediate::Constant(name) => {
+                let span = name.span();
+                match self.analyzer.get_constant(name) {
+                    Ok(ConstantExpr::Literal(value)) => {
+                        *imm = Immediate::Value(Span::new(span, IntValue::Felt(*value.inner())));
+                    },
+                    Ok(ConstantExpr::Word(value)) => {
+                        *imm = Immediate::Value(Span::new(span, IntValue::Word(*value.inner())));
+                    },
+                    Err(error) => {
+                        self.analyzer.error(error);
+                    },
+                    _ => self.analyzer.error(SemanticAnalysisError::InvalidConstant { span }),
                 }
                 ControlFlow::Continue(())
             },

@@ -1,7 +1,7 @@
 use vm_core::{Felt, Operation::*, ZERO, sys_events::SystemEvent};
 
 use super::BasicBlockBuilder;
-use crate::AssemblyError;
+use crate::Report;
 
 // HASHING
 // ================================================================================================
@@ -143,7 +143,7 @@ pub(super) fn mtree_get(block_builder: &mut BasicBlockBuilder) {
 /// - new root of the tree after the update, 4 elements
 ///
 /// This operation takes 29 VM cycles.
-pub(super) fn mtree_set(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
+pub(super) fn mtree_set(block_builder: &mut BasicBlockBuilder) -> Result<(), Report> {
     // stack: [d, i, R_old, V_new, ...]
 
     // stack: [V_old, R_new, ...] (29 cycles)
@@ -213,7 +213,7 @@ fn read_mtree_node(block_builder: &mut BasicBlockBuilder) {
 /// and perform the mutation on the copied tree.
 ///
 /// This operation takes 29 VM cycles.
-fn update_mtree(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
+fn update_mtree(block_builder: &mut BasicBlockBuilder) -> Result<(), Report> {
     // stack: [d, i, R_old, V_new, ...]
     // output: [R_new, R_old, V_new, V_old, ...]
 

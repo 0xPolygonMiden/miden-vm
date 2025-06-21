@@ -4,11 +4,14 @@ use miden_air::ProcessorAir;
 use processor::crypto::RpoRandomCoin;
 use test_utils::{
     MIN_STACK_DEPTH, VerifierError,
-    crypto::{MerkleStore, RandomCoin, Rpo256, RpoDigest},
+    crypto::{MerkleStore, RandomCoin, Rpo256},
     math::{FieldElement, QuadExtension, ToElements},
 };
-use vm_core::{Felt, WORD_SIZE};
-use winter_air::{Air, proof::Proof};
+use vm_core::{Felt, WORD_SIZE, Word};
+use winter_air::{
+    Air,
+    proof::{Proof, merge_ood_evaluations},
+};
 use winter_fri::VerifierChannel as FriVerifierChannel;
 
 mod channel;
@@ -21,7 +24,7 @@ pub struct VerifierData {
     pub initial_stack: Vec<u64>,
     pub advice_stack: Vec<u64>,
     pub store: MerkleStore,
-    pub advice_map: Vec<(RpoDigest, Vec<Felt>)>,
+    pub advice_map: Vec<(Word, Vec<Felt>)>,
 }
 
 pub fn generate_advice_inputs(
@@ -67,7 +70,7 @@ pub fn generate_advice_inputs(
     // create AIR instance for the computation specified in the proof
     let air = ProcessorAir::new(proof.trace_info().to_owned(), pub_inputs, proof.options().clone());
     let seed_digest = Rpo256::hash_elements(&public_coin_seed);
-    let mut public_coin: RpoRandomCoin = RpoRandomCoin::new(seed_digest.into());
+    let mut public_coin: RpoRandomCoin = RpoRandomCoin::new(seed_digest);
     let mut channel = VerifierChannel::new(&air, proof)?;
 
     // 1 ----- main segment trace -----------------------------------------------------------------
@@ -118,8 +121,7 @@ pub fn generate_advice_inputs(
     // read the main and auxiliary segments' OOD frames and add them to advice tape
     let ood_trace_frame = channel.read_ood_trace_frame();
     let ood_constraint_evaluations = channel.read_ood_constraint_evaluations();
-    let ood_trace_hash = ood_trace_frame.hash::<Rpo256>();
-    let ood_constraints_hash = ood_constraint_evaluations.hash::<Rpo256>();
+    let ood_evals_merged = merge_ood_evaluations(&ood_trace_frame, &ood_constraint_evaluations);
 
     let ood_main_trace_frame = ood_trace_frame.main_frame();
     let ood_aux_trace_frame = ood_trace_frame.aux_frame();
@@ -153,8 +155,7 @@ pub fn generate_advice_inputs(
     advice_stack.extend_from_slice(&to_int_vec(&ood_next));
 
     // reseed with the digests of the OOD evaluations
-    public_coin.reseed(ood_trace_hash);
-    public_coin.reseed(ood_constraints_hash);
+    public_coin.reseed(Rpo256::hash_elements(&ood_evals_merged));
 
     // 5 ----- FRI  -------------------------------------------------------------------------------
 
@@ -236,7 +237,7 @@ pub fn generate_advice_inputs(
 // HELPER FUNCTIONS
 // ================================================================================================
 
-pub fn digest_to_int_vec(digest: &[RpoDigest]) -> Vec<u64> {
+pub fn digest_to_int_vec(digest: &[Word]) -> Vec<u64> {
     digest
         .iter()
         .flat_map(|digest| digest.as_elements().iter().map(|e| e.as_int()))
