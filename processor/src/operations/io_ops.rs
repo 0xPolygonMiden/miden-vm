@@ -4,7 +4,7 @@ use vm_core::{
 };
 
 use super::{ExecutionError, Felt, Process};
-use crate::{AdviceProvider, Host, Word, errors::ErrorContext};
+use crate::{AdviceProvider, Host, errors::ErrorContext};
 
 // INPUT / OUTPUT OPERATIONS
 // ================================================================================================
@@ -294,7 +294,7 @@ impl Process {
         host: &mut impl Host,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<(), ExecutionError> {
-        let word: Word = host.advice_provider_mut().pop_stack_word(self.into(), err_ctx)?;
+        let word = host.advice_provider_mut().pop_stack_word(self.into(), err_ctx)?;
 
         self.stack.set(0, word[3]);
         self.stack.set(1, word[2]);
@@ -421,7 +421,7 @@ mod tests {
         // check memory state
         assert_eq!(1, process.chiplets.memory.num_accessed_words());
         assert_eq!(
-            Into::<Word>::into(word),
+            Word::new(word),
             process.chiplets.memory.get_word(ContextId::root(), 4).unwrap().unwrap()
         );
 
@@ -453,11 +453,11 @@ mod tests {
         // check memory state
         assert_eq!(2, process.chiplets.memory.num_accessed_words());
         assert_eq!(
-            Into::<Word>::into(word1_felts),
+            Word::new(word1_felts),
             process.chiplets.memory.get_word(ContextId::root(), 4).unwrap().unwrap()
         );
         assert_eq!(
-            Into::<Word>::into(word2_felts),
+            Word::new(word2_felts),
             process.chiplets.memory.get_word(ContextId::root(), 8).unwrap().unwrap()
         );
 
@@ -521,7 +521,7 @@ mod tests {
         // check memory state
         assert_eq!(1, process.chiplets.memory.num_accessed_words());
         assert_eq!(
-            Into::<Word>::into(word1),
+            Word::new(word1),
             process.chiplets.memory.get_word(ContextId::root(), 0).unwrap().unwrap()
         );
 
@@ -536,11 +536,11 @@ mod tests {
         // check memory state
         assert_eq!(2, process.chiplets.memory.num_accessed_words());
         assert_eq!(
-            Into::<Word>::into(word1),
+            Word::new(word1),
             process.chiplets.memory.get_word(ContextId::root(), 0).unwrap().unwrap()
         );
         assert_eq!(
-            Into::<Word>::into(word2),
+            Word::new(word2),
             process.chiplets.memory.get_word(ContextId::root(), 4).unwrap().unwrap()
         );
 
@@ -642,11 +642,11 @@ mod tests {
         // check memory state contains the words from the advice stack
         assert_eq!(2, process.chiplets.memory.num_accessed_words());
         assert_eq!(
-            Into::<Word>::into(word1_felts),
+            Word::new(word1_felts),
             process.chiplets.memory.get_word(ContextId::root(), 4).unwrap().unwrap()
         );
         assert_eq!(
-            Into::<Word>::into(word2_felts),
+            Word::new(word2_felts),
             process.chiplets.memory.get_word(ContextId::root(), 8).unwrap().unwrap()
         );
 

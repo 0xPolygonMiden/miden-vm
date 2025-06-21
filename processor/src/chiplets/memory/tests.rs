@@ -175,7 +175,7 @@ fn mem_write() {
 
     // write a word into address 4; clk = 5
     let addr4 = 4_u32;
-    let word1234 = [ONE, 2_u32.into(), 3_u32.into(), 4_u32.into()].into();
+    let word1234 = Word::from([1_u32, 2, 3, 4]);
     mem.write_word(ContextId::root(), addr4.into(), 5.into(), word1234, &ErrorContext::default())
         .unwrap();
     assert_eq!(word1234, mem.get_word(ContextId::root(), addr4).unwrap().unwrap());
@@ -183,7 +183,7 @@ fn mem_write() {
     assert_eq!(5, mem.trace_len());
 
     // write a word into address 0; clk = 6
-    let word5678: Word = [Felt::from(5_u32), 6_u32.into(), 7_u32.into(), 8_u32.into()].into();
+    let word5678 = Word::from([5_u32, 6, 7, 8]);
     mem.write_word(ContextId::root(), addr0.into(), 6.into(), word5678, &ErrorContext::default())
         .unwrap();
     assert_eq!(word5678, mem.get_word(ContextId::root(), addr0).unwrap().unwrap());
@@ -291,7 +291,7 @@ fn mem_write_read() {
     let mut clk: RowIndex = 1.into();
 
     // write [1,2,3,4] starting at address 0; clk = 1
-    let word1234: Word = [ONE, 2_u32.into(), 3_u32.into(), 4_u32.into()].into();
+    let word1234 = Word::from([1_u32, 2, 3, 4_]);
     mem.write_word(ContextId::root(), ZERO, clk, word1234, &error_context).unwrap();
     clk += 1_u32;
 
@@ -326,7 +326,7 @@ fn mem_write_read() {
 
     // read word from address 0; clk = 9
     let word_read = mem.read_word(ContextId::root(), ZERO, clk, &error_context).unwrap();
-    assert_eq!(word_read, [ONE, 2_u32.into(), 42_u32.into(), 4_u32.into()].into());
+    assert_eq!(word_read, Word::from([1_u32, 2, 42, 4]));
     clk += 1_u32;
 
     // check generated trace and memory data provided to the ChipletsBus; rows should be sorted by
@@ -408,7 +408,7 @@ fn mem_write_read() {
         ContextId::root(),
         2_u32.into(),
         clk,
-        [ONE, 2_u32.into(), 42_u32.into(), 4_u32.into()].into(),
+        Word::from([1_u32, 2, 42, 4]),
     );
     prev_row = verify_memory_access(&trace, 6, memory_access, prev_row);
     clk += 1_u32;
@@ -419,7 +419,7 @@ fn mem_write_read() {
         ContextId::root(),
         2_u32.into(),
         clk,
-        [ONE, 2_u32.into(), 42_u32.into(), 4_u32.into()].into(),
+        Word::from([1_u32, 2, 42, 4]),
     );
     prev_row = verify_memory_access(&trace, 7, memory_access, prev_row);
     clk += 1_u32;
@@ -430,7 +430,7 @@ fn mem_write_read() {
         ContextId::root(),
         ZERO,
         clk,
-        [ONE, 2_u32.into(), 42_u32.into(), 4_u32.into()].into(),
+        [1_u32, 2, 42, 4].into(),
     );
     verify_memory_access(&trace, 8, memory_access, prev_row);
 }
@@ -443,7 +443,7 @@ fn mem_get_state_at() {
 
     // Write word starting at (ctx = 0, addr = 40) at clk = 1.
     // This means that mem[40..43] is set at the beginning of clk = 2
-    let word1234 = [ONE, 2_u32.into(), 3_u32.into(), 4_u32.into()].into();
+    let word1234 = Word::from([1_u32, 2, 3, 4]);
     mem.write_word(
         ContextId::root(),
         addr_start.into(),
@@ -453,7 +453,7 @@ fn mem_get_state_at() {
     )
     .unwrap();
 
-    let word4567: Word = [Felt::from(4_u32), 5_u32.into(), 6_u32.into(), 7_u32.into()].into();
+    let word4567 = Word::from([4_u32, 5, 6, 7]);
     mem.write_word(
         ContextId::root(),
         addr_start.into(),

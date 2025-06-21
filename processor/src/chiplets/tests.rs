@@ -103,8 +103,8 @@ fn stacked_chiplet_trace() {
 
 /// Creates a kernel with two dummy procedures
 fn build_kernel() -> Kernel {
-    let proc_hash1: Word = [ONE, ZERO, ONE, ZERO].into();
-    let proc_hash2: Word = [ONE, ONE, ONE, ONE].into();
+    let proc_hash1 = Word::from([1_u32, 0, 1, 0]);
+    let proc_hash2 = Word::from([1_u32, 1, 1, 1]);
     Kernel::new(&[proc_hash1, proc_hash2]).unwrap()
 }
 

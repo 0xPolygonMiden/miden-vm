@@ -1,5 +1,3 @@
-use vm_core::Word;
-
 use super::{DOUBLE_WORD_SIZE, ExecutionError, FastProcessor, Felt, WORD_SIZE_FELT};
 use crate::{AdviceProvider, ErrorContext, Host, ProcessState};
 
@@ -26,7 +24,7 @@ impl FastProcessor {
         op_idx: usize,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
-        let word: Word = host
+        let word = host
             .advice_provider_mut()
             .pop_stack_word(ProcessState::new_fast(self, op_idx), &ErrorContext::default())?;
         self.stack_write_word(0, &word);

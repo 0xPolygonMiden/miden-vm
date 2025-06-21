@@ -455,7 +455,7 @@ fn test_mmr_pack_roundtrip() {
     hash_data.resize(16, Word::default());
     let mut map_data: Vec<Felt> = Vec::with_capacity(hash_data.len() + 1);
     map_data.extend_from_slice(&[Felt::new(accumulator.num_leaves() as u64), ZERO, ZERO, ZERO]);
-    map_data.extend_from_slice(digests_to_elements(&hash_data).as_ref());
+    map_data.extend_from_slice(Word::words_as_elements(&hash_data).as_ref());
 
     let advice_map: &[(Word, Vec<Felt>)] = &[
         // Under the MMR key is the number_of_leaves, followed by the MMR peaks, and any padding
@@ -659,7 +659,7 @@ fn test_mmr_large_add_roundtrip() {
     let mut map_data: Vec<Felt> = Vec::with_capacity(hash_data.len() + 1);
     let num_leaves = old_accumulator.num_leaves() as u64;
     map_data.extend_from_slice(&[Felt::try_from(num_leaves).unwrap(), ZERO, ZERO, ZERO]);
-    map_data.extend_from_slice(&digests_to_elements(&hash_data));
+    map_data.extend_from_slice(Word::words_as_elements(&hash_data));
 
     let advice_map: &[(Word, Vec<Felt>)] = &[
         // Under the MMR key is the number_of_leaves, followed by the MMR peaks, and any padding
@@ -699,10 +699,6 @@ fn test_mmr_large_add_roundtrip() {
 
 // HELPER FUNCTIONS
 // ================================================================================================
-
-fn digests_to_elements(digests: &[Word]) -> Vec<Felt> {
-    digests.iter().flat_map(Into::<[Felt; WORD_SIZE]>::into).collect()
-}
 
 fn digests_to_ints(digests: &[Word]) -> Vec<u64> {
     digests

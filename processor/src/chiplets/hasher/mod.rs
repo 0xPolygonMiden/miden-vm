@@ -4,7 +4,6 @@ use miden_air::trace::chiplets::hasher::{
     DIGEST_RANGE, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RATE_LEN, RETURN_HASH,
     RETURN_STATE, STATE_WIDTH, Selectors, TRACE_WIDTH,
 };
-use vm_core::WORD_SIZE;
 
 use super::{
     Felt, HasherState, MerklePath, MerkleRootUpdate, ONE, OpBatch, TraceFragment, Word as Digest,
@@ -483,7 +482,5 @@ pub fn absorb_into_state(state: &mut [Felt; STATE_WIDTH], values: &[Felt; RATE_L
 
 /// Returns elements representing the digest portion of the provided hasher's state.
 pub fn get_digest(state: &[Felt; STATE_WIDTH]) -> Digest {
-    let digest: [Felt; WORD_SIZE] =
-        state[DIGEST_RANGE].try_into().expect("failed to get digest from hasher state");
-    digest.into()
+    state[DIGEST_RANGE].try_into().expect("failed to get digest from hasher state")
 }

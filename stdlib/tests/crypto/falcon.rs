@@ -17,9 +17,9 @@ use test_utils::{
     expect_exec_error_matches,
     host::TestHost,
     proptest::proptest,
-    rand::rand_vector,
+    rand::rand_value,
 };
-use vm_core::{StarkField, WORD_SIZE, ZERO};
+use vm_core::{StarkField, ZERO};
 
 /// Modulus used for rpo falcon 512.
 const M: u64 = 12289;
@@ -171,7 +171,7 @@ fn test_move_sig_to_adv_stack() {
     let seed = Word::default();
     let mut rng = RpoRandomCoin::new(seed);
     let secret_key = SecretKey::with_rng(&mut rng);
-    let message: [Felt; WORD_SIZE] = rand_vector::<Felt>(4).try_into().unwrap();
+    let message = rand_value::<Word>();
 
     let source = "
     use.std::crypto::dsa::rpo_falcon512
@@ -183,7 +183,7 @@ fn test_move_sig_to_adv_stack() {
     ";
 
     let public_key = {
-        let pk: Word = secret_key.public_key().into();
+        let pk = secret_key.public_key().into();
         pk
     };
     let secret_key_bytes = secret_key.to_bytes();
@@ -218,7 +218,7 @@ fn falcon_execution() {
     let seed = Word::default();
     let mut rng = RpoRandomCoin::new(seed);
     let sk = SecretKey::with_rng(&mut rng);
-    let message: [Felt; WORD_SIZE] = rand_vector::<Felt>(4).try_into().unwrap();
+    let message = rand_value::<Word>();
     let (source, op_stack, adv_stack, store, advice_map) = generate_test(sk, message.into());
 
     let test = build_test!(&source, &op_stack, &adv_stack, store, advice_map.into_iter());
@@ -228,7 +228,7 @@ fn falcon_execution() {
 #[test]
 fn falcon_prove_verify() {
     let sk = SecretKey::new();
-    let message: [Felt; WORD_SIZE] = rand_vector::<Felt>(4).try_into().unwrap();
+    let message = rand_value::<Word>();
     let (source, op_stack, _, _, advice_map) = generate_test(sk, message.into());
 
     let program: Program = Assembler::default()
