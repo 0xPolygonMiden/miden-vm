@@ -46,7 +46,7 @@ fn test_mloadw_success() {
     // load the contents of address 40
     {
         let mut processor = FastProcessor::new(&[addr]);
-        processor.memory.write_word(ctx, addr, dummy_clk, word_at_addr).unwrap();
+        processor.memory.write_word(ctx, addr, dummy_clk, word_at_addr.into()).unwrap();
 
         let program = simple_program_with_ops(vec![Operation::MLoadW]);
         let stack_outputs = processor.execute_impl(&program, &mut host).unwrap();
@@ -61,7 +61,7 @@ fn test_mloadw_success() {
     // load the contents of address 100 (should yield the ZERO word)
     {
         let mut processor = FastProcessor::new(&[100_u32.into()]);
-        processor.memory.write_word(ctx, addr, dummy_clk, word_at_addr).unwrap();
+        processor.memory.write_word(ctx, addr, dummy_clk, word_at_addr.into()).unwrap();
 
         let program = simple_program_with_ops(vec![Operation::MLoadW]);
         let stack_outputs = processor.execute_impl(&program, &mut host).unwrap();
@@ -90,7 +90,7 @@ fn test_mstorew_success() {
     processor.execute_impl(&program, &mut host).unwrap();
 
     // Ensure that the memory was correctly modified
-    assert_eq!(processor.memory.read_word(ctx, addr, clk).unwrap(), &word_to_store);
+    assert_eq!(processor.memory.read_word(ctx, addr, clk).unwrap(), &word_to_store.into());
 }
 
 #[rstest]
@@ -131,7 +131,7 @@ fn test_mload_success(#[case] addr_to_access: u32) {
     let mut processor = FastProcessor::new(&[addr_to_access.into()]);
     processor
         .memory
-        .write_word(ctx, addr_with_word.into(), dummy_clk, word_at_addr)
+        .write_word(ctx, addr_with_word.into(), dummy_clk, word_at_addr.into())
         .unwrap();
 
     let program = simple_program_with_ops(vec![Operation::MLoad]);
@@ -148,8 +148,8 @@ fn test_mload_success(#[case] addr_to_access: u32) {
 fn test_mstream() {
     let mut host = DefaultHost::default();
     let addr = 40_u32;
-    let word_at_addr_40 = [1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into()];
-    let word_at_addr_44 = [5_u32.into(), 6_u32.into(), 7_u32.into(), 8_u32.into()];
+    let word_at_addr_40 = Word::from([ONE, 2_u32.into(), 3_u32.into(), 4_u32.into()]);
+    let word_at_addr_44 = Word::from([Felt::from(5_u32), 6_u32.into(), 7_u32.into(), 8_u32.into()]);
     let ctx = 0_u32.into();
     let clk = 1_u32.into();
 

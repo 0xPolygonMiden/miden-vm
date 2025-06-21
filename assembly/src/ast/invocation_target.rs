@@ -1,7 +1,7 @@
 use core::fmt;
 
 use crate::{
-    LibraryPath, RpoDigest, SourceSpan, Span, Spanned,
+    LibraryPath, SourceSpan, Span, Spanned, Word,
     ast::{Ident, ProcedureName},
 };
 
@@ -54,9 +54,9 @@ impl Invoke {
 /// Describes targets of `exec`, `call`, and `syscall` instructions.
 ///
 /// A label of an invoked procedure must comply with the following rules:
-/// - It can be a hexadecimal string representing a MAST root digest ([RpoDigest]). In this case,
-///   the label must start with "0x" and must be followed by a valid hexadecimal string
-///   representation of an [RpoDigest].
+/// - It can be a hexadecimal string representing a MAST root digest ([Word]). In this case, the
+///   label must start with "0x" and must be followed by a valid hexadecimal string representation
+///   of an [Word].
 /// - It can contain a single procedure name. In this case, the label must comply with procedure
 ///   name rules.
 /// - It can contain module name followed by procedure name (e.g., "module::procedure"). In this
@@ -68,7 +68,7 @@ pub enum InvocationTarget {
     /// An absolute procedure reference, but opaque in that we do not know where the callee is
     /// defined. However, it does not actually matter, we consider such references to be _a priori_
     /// valid.
-    MastRoot(Span<RpoDigest>),
+    MastRoot(Span<Word>),
     /// A locally-defined procedure.
     ProcedureName(ProcedureName),
     /// A context-sensitive procedure path, which references the name of an import in the

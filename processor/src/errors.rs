@@ -9,10 +9,10 @@ use vm_core::{
     stack::MIN_STACK_DEPTH,
     utils::to_hex,
 };
-use winter_prover::{ProverError, math::FieldElement};
+use winter_prover::ProverError;
 
 use super::{
-    Digest, Felt, QuadFelt, Word,
+    Felt, QuadFelt, Word,
     crypto::MerkleError,
     system::{FMP_MAX, FMP_MIN},
 };
@@ -23,7 +23,7 @@ use crate::MemoryError;
 
 #[derive(Debug, thiserror::Error, Diagnostic)]
 pub enum ExecutionError {
-    #[error("value for key {} not present in the advice map", to_hex(Felt::elements_as_bytes(.key)))]
+    #[error("value for key {} not present in the advice map", key.to_hex())]
     #[diagnostic()]
     AdviceMapKeyNotFound {
         #[label]
@@ -32,7 +32,7 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         key: Word,
     },
-    #[error("value for key {} already present in the advice map when loading MAST forest", to_hex(Felt::elements_as_bytes(.key)))]
+    #[error("value for key {} already present in the advice map when loading MAST forest", key.to_hex())]
     #[diagnostic(help(
         "previous values at key were '{prev_values:?}'. Operation would have replaced them with '{new_values:?}'",
     ))]
@@ -57,7 +57,7 @@ pub enum ExecutionError {
     #[error("instruction `caller` used outside of kernel context")]
     CallerNotInSyscall,
     #[error("external node with mast root {0} resolved to an external node")]
-    CircularExternalNode(Digest),
+    CircularExternalNode(Word),
     #[error("exceeded the allowed number of max cycles {0}")]
     CycleLimitExceeded(u32),
     #[error("decorator id {decorator_id} does not exist in MAST forest")]
@@ -80,7 +80,7 @@ pub enum ExecutionError {
         label: SourceSpan,
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
-        digest: Digest,
+        digest: Word,
     },
     #[error("error during processing of event in on_event handler")]
     #[diagnostic()]
@@ -178,7 +178,7 @@ pub enum ExecutionError {
         label: SourceSpan,
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
-        root_digest: Digest,
+        root_digest: Word,
     },
     #[error("node id {node_id} does not exist in MAST forest")]
     MastNodeNotFoundInForest { node_id: MastNodeId },
@@ -191,10 +191,10 @@ pub enum ExecutionError {
         label: SourceSpan,
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
-        root_digest: Digest,
+        root_digest: Word,
     },
     #[error("merkle path verification failed for value {value} at index {index} in the Merkle tree with root {root} (error {err})",
-      value = to_hex(Felt::elements_as_bytes(value)),
+      value = to_hex(value.as_bytes()),
       root = to_hex(root.as_bytes()),
       err = match err_msg {
         Some(msg) => format!("message: {msg}"),
@@ -208,7 +208,7 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         value: Word,
         index: Felt,
-        root: Digest,
+        root: Word,
         err_code: Felt,
         err_msg: Option<Arc<str>>,
     },
@@ -295,7 +295,7 @@ pub enum ExecutionError {
     ProgramAlreadyExecuted,
     #[error("proof generation failed")]
     ProverError(#[source] ProverError),
-    #[error("smt node {node_hex} not found", node_hex = to_hex(Felt::elements_as_bytes(node)))]
+    #[error("smt node {node_hex} not found", node_hex = to_hex(node.as_bytes()))]
     SmtNodeNotFound {
         #[label]
         label: SourceSpan,
@@ -304,7 +304,7 @@ pub enum ExecutionError {
         node: Word,
     },
     #[error("expected pre-image length of node {node_hex} to be a multiple of 8 but was {preimage_len}",
-      node_hex = to_hex(Felt::elements_as_bytes(node)),
+      node_hex = to_hex(node.as_bytes()),
     )]
     SmtNodePreImageNotValid {
         #[label]
@@ -322,7 +322,7 @@ pub enum ExecutionError {
         label: SourceSpan,
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
-        proc_root: Digest,
+        proc_root: Word,
     },
     #[error("failed to execute arithmetic circuit evaluation operation: {error}")]
     #[diagnostic()]
@@ -373,7 +373,7 @@ impl ExecutionError {
     }
 
     pub fn dynamic_node_not_found(
-        digest: Digest,
+        digest: Word,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
@@ -438,7 +438,7 @@ impl ExecutionError {
     }
 
     pub fn malfored_mast_forest_in_host(
-        root_digest: Digest,
+        root_digest: Word,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
@@ -456,7 +456,7 @@ impl ExecutionError {
     pub fn merkle_path_verification_failed(
         value: Word,
         index: Felt,
-        root: Digest,
+        root: Word,
         err_code: Felt,
         err_msg: Option<Arc<str>>,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
@@ -500,7 +500,7 @@ impl ExecutionError {
     }
 
     pub fn no_mast_forest_with_procedure(
-        root_digest: Digest,
+        root_digest: Word,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
@@ -549,7 +549,7 @@ impl ExecutionError {
     }
 
     pub fn syscall_target_not_in_kernel(
-        proc_root: Digest,
+        proc_root: Word,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();

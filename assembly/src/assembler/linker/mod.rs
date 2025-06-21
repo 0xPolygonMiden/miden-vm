@@ -9,7 +9,7 @@ use alloc::{boxed::Box, collections::BTreeMap, sync::Arc, vec::Vec};
 use core::ops::Index;
 
 use smallvec::{SmallVec, smallvec};
-use vm_core::{Kernel, crypto::hash::RpoDigest};
+use vm_core::{Kernel, Word};
 
 use self::{analysis::MaybeRewriteCheck, name_resolver::NameResolver, rewrites::ModuleRewriter};
 pub use self::{
@@ -201,7 +201,7 @@ pub enum LinkLibraryKind {
 #[derive(Clone)]
 pub struct Linker {
     /// The set of libraries to link against.
-    libraries: BTreeMap<RpoDigest, LinkLibrary>,
+    libraries: BTreeMap<Word, LinkLibrary>,
     /// The nodes of the module graph data structure maintained by the linker.
     modules: Vec<Option<ModuleLink>>,
     /// The set of modules pending additional processing before adding them to the graph.
@@ -218,7 +218,7 @@ pub struct Linker {
     callgraph: CallGraph,
     /// The set of MAST roots which have procedure definitions in this graph. There can be
     /// multiple procedures bound to the same root due to having identical code.
-    procedures_by_mast_root: BTreeMap<RpoDigest, SmallVec<[GlobalProcedureIndex; 1]>>,
+    procedures_by_mast_root: BTreeMap<Word, SmallVec<[GlobalProcedureIndex; 1]>>,
     /// The index of the kernel module in `modules`, if present
     kernel_index: Option<ModuleIndex>,
     /// The kernel library being linked against.
@@ -692,7 +692,7 @@ impl Linker {
     /// arbitrary one.
     pub fn get_procedure_index_by_digest(
         &self,
-        procedure_digest: &RpoDigest,
+        procedure_digest: &Word,
     ) -> Option<GlobalProcedureIndex> {
         self.procedures_by_mast_root.get(procedure_digest).map(|indices| indices[0])
     }
@@ -718,7 +718,7 @@ impl Linker {
     pub(crate) fn register_procedure_root(
         &mut self,
         id: GlobalProcedureIndex,
-        procedure_mast_root: RpoDigest,
+        procedure_mast_root: Word,
     ) -> Result<(), LinkerError> {
         use alloc::collections::btree_map::Entry;
         match self.procedures_by_mast_root.entry(procedure_mast_root) {

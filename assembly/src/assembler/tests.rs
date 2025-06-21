@@ -2,8 +2,7 @@ use alloc::vec::Vec;
 
 use pretty_assertions::assert_eq;
 use vm_core::{
-    Program, assert_matches,
-    crypto::hash::RpoDigest,
+    Program, Word, assert_matches,
     mast::{MastForest, MastNode},
 };
 
@@ -183,7 +182,7 @@ fn emit_instruction_digest() {
 
     let program = context.assemble(program_source).unwrap();
 
-    let procedure_digests: Vec<RpoDigest> = program.mast_forest().procedure_digests().collect();
+    let procedure_digests: Vec<Word> = program.mast_forest().procedure_digests().collect();
 
     // foo, bar and entrypoint
     assert_eq!(3, procedure_digests.len());

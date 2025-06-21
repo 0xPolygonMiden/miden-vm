@@ -3,7 +3,7 @@ use alloc::sync::Arc;
 use assembly::{Assembler, DefaultSourceManager};
 use miden_vm::DefaultHost;
 use processor::{ExecutionOptions, MastForest};
-use prover::{Digest, StackInputs};
+use prover::{StackInputs, Word};
 use vm_core::{ONE, Program, assert_matches};
 
 #[test]
@@ -40,7 +40,7 @@ fn advice_map_loaded_before_execution() {
     // Test `processor::execute` works if advice map provided with the program
     let mast_forest: MastForest = (**program_without_advice_map.mast_forest()).clone();
 
-    let key = Digest::new([ONE, ONE, ONE, ONE]);
+    let key = Word::new([ONE, ONE, ONE, ONE]);
     let value = vec![ONE, ONE];
 
     let mut mast_forest = mast_forest.clone();

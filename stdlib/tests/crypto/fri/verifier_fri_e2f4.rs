@@ -1,15 +1,13 @@
 use core::{marker::PhantomData, mem};
 
-use processor::{
-    Digest as MidenDigest,
-    crypto::{Hasher, RandomCoin, RpoDigest, WinterRandomCoin},
-};
+use processor::crypto::{Hasher, RandomCoin, WinterRandomCoin};
 use test_utils::{
     EMPTY_WORD, Felt, FieldElement, MerkleTreeVC, QuadFelt as QuadExt, StarkField,
     crypto::{MerklePath, NodeIndex, PartialMerkleTree, Rpo256 as MidenHasher},
     group_slice_elements,
     math::fft,
 };
+use vm_core::Word;
 use winter_fri::{
     DefaultProverChannel, FriOptions, FriProof, FriProver, VerifierError, folding::fold_positions,
 };
@@ -21,7 +19,7 @@ const FRI_FOLDING_FACTOR: usize = 4;
 const BLOWUP_FACTOR: usize = 8;
 const NUM_FRI_QUERIES: usize = 32;
 
-type AdvMap = Vec<(RpoDigest, Vec<Felt>)>;
+type AdvMap = Vec<(Word, Vec<Felt>)>;
 
 pub struct FriResult {
     /// A vector containing the Merkle authentication paths used to authenticate the queries.
@@ -175,7 +173,7 @@ fn verify_proof(
 pub struct FriVerifierFold4Ext2 {
     domain_size: usize,
     domain_generator: Felt,
-    layer_commitments: Vec<MidenDigest>,
+    layer_commitments: Vec<Word>,
     layer_alphas: Vec<QuadExt>,
     options: FriOptions,
     _channel: PhantomData<MidenFriVerifierChannel<QuadExt, MidenHasher>>,
@@ -302,7 +300,7 @@ impl FriVerifierFold4Ext2 {
 fn iterate_query_fold_4_quad_ext(
     layer_alphas: &[QuadExt],
     partial_trees: &[PartialMerkleTree],
-    key_val_map: &[(RpoDigest, Vec<Felt>)],
+    key_val_map: &[(Word, Vec<Felt>)],
     position: usize,
     number_of_layers: usize,
     initial_domain_size: usize,
@@ -403,8 +401,8 @@ impl UnBatch<QuadExt, MidenHasher> for MidenFriVerifierChannel<QuadExt, MidenHas
         &mut self,
         positions_: &[usize],
         domain_size: usize,
-        layer_commitments: Vec<MidenDigest>,
-    ) -> (Vec<PartialMerkleTree>, Vec<(RpoDigest, Vec<Felt>)>) {
+        layer_commitments: Vec<Word>,
+    ) -> (Vec<PartialMerkleTree>, Vec<(Word, Vec<Felt>)>) {
         let queries = self.layer_queries().clone();
         let mut current_domain_size = domain_size;
         let mut positions = positions_.to_vec();
@@ -419,8 +417,7 @@ impl UnBatch<QuadExt, MidenHasher> for MidenFriVerifierChannel<QuadExt, MidenHas
             let layer_proof = layer_proofs.remove(0);
 
             let x = group_slice_elements::<QuadExt, N>(query);
-            let leaves: Vec<RpoDigest> =
-                x.iter().map(|row| MidenHasher::hash_elements(row)).collect();
+            let leaves: Vec<Word> = x.iter().map(|row| MidenHasher::hash_elements(row)).collect();
             let unbatched_proof = layer_proof.into_openings(&leaves, &folded_positions).unwrap();
             assert_eq!(x.len(), unbatched_proof.len());
 
@@ -436,7 +433,7 @@ impl UnBatch<QuadExt, MidenHasher> for MidenFriVerifierChannel<QuadExt, MidenHas
             let iter_paths = paths.into_iter();
             let mut tmp_vec = vec![];
             for (p, (node, path)) in iter_pos.zip(iter_nodes.zip(iter_paths)) {
-                tmp_vec.push((p, RpoDigest::from(*node), path));
+                tmp_vec.push((p, Word::from(*node), path));
             }
 
             let new_set =

@@ -4,8 +4,7 @@ use basic_block_builder::BasicBlockOrDecorators;
 use linker::{ModuleLink, ProcedureLink};
 use mast_forest_builder::MastForestBuilder;
 use vm_core::{
-    AssemblyOp, Decorator, DecoratorList, Felt, Kernel, Operation, Program, WORD_SIZE,
-    crypto::hash::RpoDigest,
+    AssemblyOp, Decorator, DecoratorList, Felt, Kernel, Operation, Program, WORD_SIZE, Word,
     debuginfo::SourceSpan,
     mast::{DecoratorId, MastNodeId},
 };
@@ -909,7 +908,7 @@ impl Assembler {
         &self,
         kind: InvokeKind,
         span: SourceSpan,
-        mast_root: RpoDigest,
+        mast_root: Word,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<MastNodeId, Report> {
         // Get the procedure from the assembler

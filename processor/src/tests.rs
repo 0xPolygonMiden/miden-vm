@@ -52,8 +52,8 @@ fn test_diagnostic_advice_map_key_already_present() {
         let lib = test_context.assemble_library(std::iter::once(module)).unwrap();
         let lib_1 = lib
             .clone()
-            .with_advice_map(AdviceMap::from_iter([(Digest::default(), vec![ZERO])]));
-        let lib_2 = lib.with_advice_map(AdviceMap::from_iter([(Digest::default(), vec![ONE])]));
+            .with_advice_map(AdviceMap::from_iter([(Word::default(), vec![ZERO])]));
+        let lib_2 = lib.with_advice_map(AdviceMap::from_iter([(Word::default(), vec![ONE])]));
 
         (lib_1, lib_2)
     };
@@ -64,7 +64,7 @@ fn test_diagnostic_advice_map_key_already_present() {
 
     assert_diagnostic_lines!(
         err,
-        "x value for key 0000000000000000000000000000000000000000000000000000000000000000 already present in the advice map when loading MAST forest",
+        "x value for key 0x0000000000000000000000000000000000000000000000000000000000000000 already present in the advice map when loading MAST forest",
         "help: previous values at key were '[0]'. Operation would have replaced them with '[1]'"
     );
 }
@@ -83,7 +83,7 @@ fn test_diagnostic_advice_map_key_not_found_1() {
     let err = build_test.execute().expect_err("expected error");
     assert_diagnostic_lines!(
         err,
-        "value for key 00000000000000000000000000000000ffffffff00000000feffffff01000000 not present in the advice map",
+        "value for key 0x0000000000000000000000000000000001000000000000000200000000000000 not present in the advice map",
         regex!(r#",-\[test[\d]+:3:31\]"#),
         " 2 |         begin",
         " 3 |             swap swap trace.2 adv.push_mapval",
@@ -104,7 +104,7 @@ fn test_diagnostic_advice_map_key_not_found_2() {
     let err = build_test.execute().expect_err("expected error");
     assert_diagnostic_lines!(
         err,
-        "value for key 00000000000000000000000000000000ffffffff00000000feffffff01000000 not present in the advice map",
+        "value for key 0x0000000000000000000000000000000001000000000000000200000000000000 not present in the advice map",
         regex!(r#",-\[test[\d]+:3:31\]"#),
         " 2 |         begin",
         " 3 |             swap swap trace.2 adv.push_mapvaln",
@@ -328,7 +328,7 @@ fn test_diagnostic_merkle_path_verification_failed() {
     let err = build_test.execute().expect_err("expected error");
     assert_diagnostic_lines!(
         err,
-        "merkle path verification failed for value fcffffff03000000000000000000000000000000000000000000000000000000 at index 4 in the Merkle tree with root",
+        "merkle path verification failed for value 0400000000000000000000000000000000000000000000000000000000000000 at index 4 in the Merkle tree with root",
         "| c9b007301fbe49f9c96698ea31f251b61d51674c892fbb2d8d349280bbd4a273 (error code: 0)",
         regex!(r#",-\[test[\d]+:3:13\]"#),
         " 2 |         begin",
@@ -366,7 +366,7 @@ fn test_diagnostic_merkle_path_verification_failed() {
     let err = build_test.execute().expect_err("expected error");
     assert_diagnostic_lines!(
         err,
-        "merkle path verification failed for value fcffffff03000000000000000000000000000000000000000000000000000000 at index 4 in the Merkle tree with root",
+        "merkle path verification failed for value 0400000000000000000000000000000000000000000000000000000000000000 at index 4 in the Merkle tree with root",
         "| c9b007301fbe49f9c96698ea31f251b61d51674c892fbb2d8d349280bbd4a273 (error message: some error message)",
         regex!(r#",-\[test[\d]+:3:13\]"#),
         " 2 |         begin",
@@ -662,7 +662,7 @@ fn test_diagnostic_merkle_store_lookup_failed() {
     assert_diagnostic_lines!(
         err,
         "failed to lookup value in Merkle store",
-        "  `-> node RpoDigest([1, 0, 0, 0]) with index `depth=10, value=0` not found in the store",
+        "  `-> node Word([1, 0, 0, 0]) with index `depth=10, value=0` not found in the store",
         regex!(r#",-\[test[\d]+:3:13\]"#),
         " 2 |         begin",
         " 3 |             mtree_set",

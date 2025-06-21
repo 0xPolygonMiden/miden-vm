@@ -302,7 +302,7 @@ mod tests {
                 ctx,
                 inputs[2].as_int().try_into().expect("Shouldn't fail by construction"),
                 process.system.clk(),
-                alpha_mem_word,
+                alpha_mem_word.into(),
                 &ErrorContext::default(),
             )
             .unwrap();
@@ -393,7 +393,7 @@ mod tests {
                 ctx,
                 inputs[2].as_int().try_into().expect("Shouldn't fail by construction"),
                 process.system.clk(),
-                alpha_mem_word,
+                alpha_mem_word.into(),
                 &ErrorContext::default(),
             )
             .unwrap();

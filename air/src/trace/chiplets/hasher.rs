@@ -2,7 +2,7 @@
 
 use core::ops::Range;
 
-pub use vm_core::crypto::hash::{Rpo256 as Hasher, RpoDigest as Digest};
+pub use vm_core::{Word, crypto::hash::Rpo256 as Hasher};
 
 use super::{Felt, HASH_KERNEL_VTABLE_AUX_TRACE_OFFSET, ONE, ZERO, create_range};
 

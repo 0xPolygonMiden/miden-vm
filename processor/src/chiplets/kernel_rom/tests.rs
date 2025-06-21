@@ -1,13 +1,15 @@
 use alloc::vec::Vec;
 
-use super::{Felt, Kernel, KernelRom, TRACE_WIDTH, TraceFragment, Word};
+use vm_core::WORD_SIZE;
+
+use super::{Felt, Kernel, KernelRom, TRACE_WIDTH, TraceFragment};
 use crate::{ErrorContext, ONE, ZERO};
 
 // CONSTANTS
 // ================================================================================================
 
-const PROC1_HASH: Word = [ONE, ZERO, ONE, ZERO];
-const PROC2_HASH: Word = [ONE, ONE, ONE, ONE];
+const PROC1_HASH: [Felt; WORD_SIZE] = [ONE, ZERO, ONE, ZERO];
+const PROC2_HASH: [Felt; WORD_SIZE] = [ONE, ONE, ONE, ONE];
 
 // TESTS
 // ================================================================================================

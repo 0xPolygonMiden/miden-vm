@@ -10,7 +10,7 @@ use miden_air::{
         V_2_0_IDX, V_2_1_IDX,
     },
 };
-use vm_core::{ZERO, mast::BasicBlockNode};
+use vm_core::{WORD_SIZE, ZERO, mast::BasicBlockNode};
 
 use crate::{
     ContextId, Felt, QuadFelt, Word,
@@ -210,11 +210,13 @@ fn verify_encoded_circuit_eval(
         evaluator.do_read(ptr, *word).expect("failed to read a word during `READ`");
         ptr += PTR_OFFSET_WORD;
     }
-    for instruction in mem_iter.flatten() {
-        evaluator
-            .do_eval(ptr, *instruction, err_ctx)
-            .expect("failed to read an element during `EVAL`");
-        ptr += PTR_OFFSET_ELEM;
+    for &instruction_group in mem_iter {
+        for instruction in Into::<[Felt; WORD_SIZE]>::into(instruction_group) {
+            evaluator
+                .do_eval(ptr, instruction, err_ctx)
+                .expect("failed to read an element during `EVAL`");
+            ptr += PTR_OFFSET_ELEM;
+        }
     }
 
     // Check final eval is 0
@@ -266,7 +268,12 @@ fn generate_memory(circuit: &EncodedCircuit, inputs: &[QuadFelt]) -> Vec<Word> {
     mem.extend(circuit.encoded_circuit().iter());
 
     // Convert to words
-    mem.chunks_exact(4).map(|word| word.try_into().unwrap()).collect()
+    mem.chunks_exact(4)
+        .map(|word| {
+            let result: [Felt; WORD_SIZE] = word.try_into().unwrap();
+            result.into()
+        })
+        .collect()
 }
 
 /// Given an EvaluationContext

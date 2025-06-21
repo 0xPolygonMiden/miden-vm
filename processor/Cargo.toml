@@ -33,7 +33,7 @@ miette = { package = "miden-miette", version = "8.0", default-features = false, 
 ] }
 tracing = { version = "0.1", default-features = false, features = ["attributes"] }
 vm-core = { package = "miden-core", path = "../core", version = "0.15", default-features = false, features = ["diagnostics"] }
-winter-prover = { package = "winter-prover", version = "0.12", default-features = false }
+winter-prover = { package = "winter-prover", version = "0.13", default-features = false }
 thiserror = { workspace = true }
 
 [dev-dependencies]
@@ -42,5 +42,5 @@ logtest = { version = "2.0", default-features = false }
 pretty_assertions = "1.4"
 rstest = { version = "0.25" }
 test-utils = { package = "miden-test-utils", path = "../test-utils" }
-winter-fri = { package = "winter-fri", version = "0.12" }
-winter-utils = { package = "winter-utils", version = "0.12" }
+winter-fri = { package = "winter-fri", version = "0.13" }
+winter-utils = { package = "winter-utils", version = "0.13" }
