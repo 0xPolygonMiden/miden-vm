@@ -8,6 +8,7 @@ extern crate std;
 #[cfg(not(target_family = "wasm"))]
 use alloc::format;
 use alloc::{
+    boxed::Box,
     string::{String, ToString},
     sync::Arc,
     vec::Vec,
@@ -20,7 +21,7 @@ pub use processor::{
     AdviceInputs, AdviceProvider, ContextId, ExecutionError, ExecutionOptions, ExecutionTrace,
     Process, ProcessState, VmStateIterator,
 };
-use processor::{Program, fast::FastProcessor};
+use processor::{DefaultHost, HostLibrary, Program, fast::FastProcessor};
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
 use prover::utils::range;
@@ -50,8 +51,7 @@ pub mod serde {
 
 pub mod crypto;
 
-pub mod host;
-use host::TestHost;
+pub type TestHost = DefaultHost<MemAdviceProvider>;
 
 #[cfg(not(target_family = "wasm"))]
 pub mod rand;
@@ -157,6 +157,10 @@ macro_rules! assert_assembler_diagnostic {
     }};
 }
 
+pub trait CompileHostLibrary<A>: HostLibrary<A> + AsRef<Library> {}
+
+impl<A, H: HostLibrary<A> + AsRef<Library>> CompileHostLibrary<A> for H {}
+
 /// This is a container for the data required to run tests, which allows for running several
 /// different types of tests.
 ///
@@ -170,7 +174,7 @@ macro_rules! assert_assembler_diagnostic {
 ///   which contains the specified substring.
 /// - Execution error test: check that running a program compiled from the given source causes an
 ///   ExecutionError which contains the specified substring.
-pub struct Test {
+pub struct Test<A = MemAdviceProvider> {
     pub source_manager: Arc<dyn SourceManager + Send + Sync>,
     pub source: Arc<SourceFile>,
     pub kernel_source: Option<Arc<SourceFile>>,
@@ -178,6 +182,7 @@ pub struct Test {
     pub advice_inputs: AdviceInputs,
     pub in_debug_mode: bool,
     pub libraries: Vec<Library>,
+    pub host_libraries: Vec<Box<dyn CompileHostLibrary<A>>>,
     pub add_modules: Vec<(LibraryPath, String)>,
 }
 
@@ -197,6 +202,7 @@ impl Test {
             advice_inputs: AdviceInputs::default(),
             in_debug_mode,
             libraries: Vec::default(),
+            host_libraries: Vec::default(),
             add_modules: Vec::default(),
         }
     }
@@ -229,14 +235,7 @@ impl Test {
         expected_mem: &[u64],
     ) {
         // compile the program
-        let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = TestHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
-        if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
-        }
-        for library in &self.libraries {
-            host.load_mast_forest(library.mast_forest().clone()).unwrap();
-        }
+        let (program, mut host) = self.get_program_and_host();
 
         // execute the test
         let mut process = Process::new(
@@ -323,6 +322,9 @@ impl Test {
             .with_debug_mode(self.in_debug_mode);
         for library in &self.libraries {
             assembler.link_dynamic_library(library).unwrap();
+        }
+        for host_library in &self.host_libraries {
+            assembler.link_dynamic_library(host_library.as_ref()).unwrap();
         }
 
         Ok((assembler.assemble_program(self.source.clone())?, kernel_lib))
@@ -444,10 +446,13 @@ impl Test {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = TestHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
+            host.load_library(kernel.mast_forest()).unwrap();
         }
         for library in &self.libraries {
-            host.load_mast_forest(library.mast_forest().clone()).unwrap();
+            host.load_library(library.mast_forest()).unwrap();
+        }
+        for host_library in &self.host_libraries {
+            host.load_library(host_library.as_ref()).unwrap();
         }
 
         (program, host)

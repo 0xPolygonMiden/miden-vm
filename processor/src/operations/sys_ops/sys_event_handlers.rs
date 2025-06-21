@@ -214,7 +214,9 @@ pub fn merge_merkle_nodes(
     let rhs = process.get_stack_word(0);
 
     // perform the merge
-    advice_provider.merge_roots(lhs, rhs, err_ctx)?;
+    advice_provider
+        .merge_roots(lhs, rhs)
+        .map_err(|err| ExecutionError::advice_error_at_clk(err, process.clk(), err_ctx))?;
 
     Ok(())
 }
@@ -252,12 +254,14 @@ pub fn copy_merkle_node_to_adv_stack(
         process.get_stack_item(2),
     ];
 
-    let node = advice_provider.get_tree_node(root, &depth, &index, err_ctx)?;
+    let err_map = |err| ExecutionError::advice_error_at_clk(err, process.clk(), err_ctx);
 
-    advice_provider.push_stack(AdviceSource::Value(node[3]), err_ctx)?;
-    advice_provider.push_stack(AdviceSource::Value(node[2]), err_ctx)?;
-    advice_provider.push_stack(AdviceSource::Value(node[1]), err_ctx)?;
-    advice_provider.push_stack(AdviceSource::Value(node[0]), err_ctx)?;
+    let node = advice_provider.get_tree_node(root, &depth, &index).map_err(err_map)?;
+
+    advice_provider.push_stack(AdviceSource::Value(node[3])).map_err(err_map)?;
+    advice_provider.push_stack(AdviceSource::Value(node[2])).map_err(err_map)?;
+    advice_provider.push_stack(AdviceSource::Value(node[1])).map_err(err_map)?;
+    advice_provider.push_stack(AdviceSource::Value(node[0])).map_err(err_map)?;
 
     Ok(())
 }
@@ -298,7 +302,9 @@ pub fn copy_map_value_to_adv_stack(
         process.get_stack_item(1),
         process.get_stack_item(0),
     ];
-    advice_provider.push_stack(AdviceSource::Map { key, include_len }, err_ctx)?;
+    advice_provider
+        .push_stack(AdviceSource::Map { key, include_len })
+        .map_err(|err| ExecutionError::advice_error_at_clk(err, process.clk(), err_ctx))?;
 
     Ok(())
 }
@@ -368,10 +374,12 @@ pub fn push_u64_div_result(
     let (q_hi, q_lo) = u64_to_u32_elements(quotient);
     let (r_hi, r_lo) = u64_to_u32_elements(remainder);
 
-    advice_provider.push_stack(AdviceSource::Value(r_hi), err_ctx)?;
-    advice_provider.push_stack(AdviceSource::Value(r_lo), err_ctx)?;
-    advice_provider.push_stack(AdviceSource::Value(q_hi), err_ctx)?;
-    advice_provider.push_stack(AdviceSource::Value(q_lo), err_ctx)?;
+    let err_map = |err| ExecutionError::advice_error_at_clk(err, process.clk(), err_ctx);
+
+    advice_provider.push_stack(AdviceSource::Value(r_hi)).map_err(err_map)?;
+    advice_provider.push_stack(AdviceSource::Value(r_lo)).map_err(err_map)?;
+    advice_provider.push_stack(AdviceSource::Value(q_hi)).map_err(err_map)?;
+    advice_provider.push_stack(AdviceSource::Value(q_lo)).map_err(err_map)?;
 
     Ok(())
 }
@@ -415,9 +423,11 @@ pub fn push_falcon_mod_result(
     let (r_hi, r_lo) = u64_to_u32_elements(remainder);
     assert_eq!(r_hi, ZERO);
 
-    advice_provider.push_stack(AdviceSource::Value(r_lo), err_ctx)?;
-    advice_provider.push_stack(AdviceSource::Value(q_lo), err_ctx)?;
-    advice_provider.push_stack(AdviceSource::Value(q_hi), err_ctx)?;
+    let err_map = |err| ExecutionError::advice_error_at_clk(err, process.clk(), err_ctx);
+
+    advice_provider.push_stack(AdviceSource::Value(r_lo)).map_err(err_map)?;
+    advice_provider.push_stack(AdviceSource::Value(q_lo)).map_err(err_map)?;
+    advice_provider.push_stack(AdviceSource::Value(q_hi)).map_err(err_map)?;
 
     Ok(())
 }
@@ -452,8 +462,10 @@ pub fn push_ext2_inv_result(
     }
     let result = element.inv().to_base_elements();
 
-    advice_provider.push_stack(AdviceSource::Value(result[1]), err_ctx)?;
-    advice_provider.push_stack(AdviceSource::Value(result[0]), err_ctx)?;
+    let err_map = |err| ExecutionError::advice_error_at_clk(err, process.clk(), err_ctx);
+
+    advice_provider.push_stack(AdviceSource::Value(result[1])).map_err(err_map)?;
+    advice_provider.push_stack(AdviceSource::Value(result[0])).map_err(err_map)?;
 
     Ok(())
 }
@@ -537,7 +549,9 @@ pub fn push_ext2_intt_result(
     fft::interpolate_poly::<Felt, QuadFelt>(&mut poly, &twiddles);
 
     for element in QuadFelt::slice_as_base_elements(&poly[..output_size]).iter().rev() {
-        advice_provider.push_stack(AdviceSource::Value(*element), err_ctx)?;
+        advice_provider
+            .push_stack(AdviceSource::Value(*element))
+            .map_err(|err| ExecutionError::advice_error_at_clk(err, process.clk(), err_ctx))?;
     }
 
     Ok(())
@@ -652,7 +666,9 @@ pub fn push_ilog2(
         return Err(ExecutionError::log_argument_zero(process.clk(), err_ctx));
     }
     let ilog2 = Felt::from(n.ilog2());
-    advice_provider.push_stack(AdviceSource::Value(ilog2), err_ctx)?;
+    advice_provider
+        .push_stack(AdviceSource::Value(ilog2))
+        .map_err(|err| ExecutionError::advice_error_at_clk(err, process.clk(), err_ctx))?;
     Ok(())
 }
 
@@ -687,20 +703,25 @@ pub fn push_smtpeek_result(
 
     // get the node from the SMT for the specified key; this node can be either a leaf node,
     // or a root of an empty subtree at the returned depth
-    let node =
-        advice_provider.get_tree_node(root, &Felt::new(SMT_DEPTH as u64), &key[3], err_ctx)?;
+    let node = advice_provider
+        .get_tree_node(root, &Felt::new(SMT_DEPTH as u64), &key[3])
+        .map_err(|err| ExecutionError::advice_error_at_clk(err, process.clk(), err_ctx))?;
 
     if node == Word::from(empty_leaf) {
         // if the node is a root of an empty subtree, then there is no value associated with
         // the specified key
-        advice_provider.push_stack(AdviceSource::Word(Smt::EMPTY_VALUE), err_ctx)?;
+        advice_provider
+            .push_stack(AdviceSource::Word(Smt::EMPTY_VALUE))
+            .map_err(|err| ExecutionError::advice_error_at_clk(err, process.clk(), err_ctx))?;
     } else {
         let leaf_preimage = get_smt_leaf_preimage(advice_provider, node, err_ctx)?;
 
         for (key_in_leaf, value_in_leaf) in leaf_preimage {
             if key == key_in_leaf {
                 // Found key - push value associated with key, and return
-                advice_provider.push_stack(AdviceSource::Word(value_in_leaf), err_ctx)?;
+                advice_provider.push_stack(AdviceSource::Word(value_in_leaf)).map_err(|err| {
+                    ExecutionError::advice_error_at_clk(err, process.clk(), err_ctx)
+                })?;
 
                 return Ok(());
             }
@@ -708,7 +729,9 @@ pub fn push_smtpeek_result(
 
         // if we can't find any key in the leaf that matches `key`, it means no value is
         // associated with `key`
-        advice_provider.push_stack(AdviceSource::Word(Smt::EMPTY_VALUE), err_ctx)?;
+        advice_provider
+            .push_stack(AdviceSource::Word(Smt::EMPTY_VALUE))
+            .map_err(|err| ExecutionError::advice_error_at_clk(err, process.clk(), err_ctx))?;
     }
     Ok(())
 }
@@ -769,7 +792,9 @@ fn push_transformed_stack_top<A: AdviceProvider>(
         .try_into()
         .map_err(|_| ExecutionError::not_u32_value(stack_top, ZERO, err_ctx))?;
     let transformed_stack_top = f(stack_top);
-    advice_provider.push_stack(AdviceSource::Value(transformed_stack_top), err_ctx)?;
+    advice_provider
+        .push_stack(AdviceSource::Value(transformed_stack_top))
+        .map_err(|err| ExecutionError::advice_error_at_clk(err, process.clk(), err_ctx))?;
     Ok(())
 }
 

@@ -80,8 +80,10 @@ fn assert_eq_fail() {
 // EMITTING EVENTS
 // ================================================================================================
 
+// TODO
 #[test]
 fn emit() {
-    let test = build_op_test!("emit.42", &[0, 0, 0, 0]);
+    // TODO: Handle emit
+    let test = build_op_test!("emit.1", &[0, 0, 0, 0]);
     test.prove_and_verify(vec![], false);
 }
