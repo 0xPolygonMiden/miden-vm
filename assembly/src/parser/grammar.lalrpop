@@ -275,20 +275,15 @@ Doc: Form = {
 }
 
 Import: Form = {
-    <l:@L> "use" "." <import_path:MaybeQualifiedName> <alias:("->" <BareIdent>)?> <r:@R> =>? {
-        match import_path {
-            (module_name, None) => Err(ParseError::User {
-                error: ParsingError::UnqualifiedImport { span: span!(source_file.id(), l, r) },
-            }),
-            (module_name, Some(path)) => {
-                let path = path.append_ident(module_name.clone())
-                    .map_err(|error| {
-                        ParseError::User { error: ParsingError::InvalidLibraryPath { span: span!(source_file.id(), l, r), message: error.to_string() }}
-                    })?;
-                let name = alias.unwrap_or(module_name);
-                Ok(Form::Import(Import { span: span!(source_file.id(), l, r), name, path, uses: 0 }))
-            }
+    <l:@L> "use" "." <path:MaybeQualifiedPath> <alias:("->" <BareIdent>)?> <r:@R> =>? {
+        let span = span!(source_file.id(), l, r);
+        if path.num_components() == 1 {
+            return Err(ParseError::User {
+                error: ParsingError::UnqualifiedImport { span },
+            });
         }
+        let name = alias.unwrap_or(path.last_component().to_ident());
+        Ok(Form::Import(Import { span, name, path: path.into_inner(), uses: 0 }))
     }
 }
 
@@ -1536,8 +1531,7 @@ MaybeQualifiedProcedurePath: InvocationTarget = {
         let ns = match ns.as_str() {
             // Disallow the use of special namespaces with other components
             special_ns @ (
-                LibraryNamespace::KERNEL_PATH
-                | LibraryNamespace::EXEC_PATH
+                LibraryNamespace::EXEC_PATH
                 | LibraryNamespace::ANON_PATH
             ) if !components.is_empty() => {
                 return Err(ParseError::User {
@@ -1584,20 +1578,20 @@ BareIdent: Ident = {
     OpcodeName,
 }
 
-MaybeQualifiedName: (Ident, Option<LibraryPath>) = {
-    <l:@L> <mut components:PathComponents<BareIdent>> <r:@R> =>? {
+MaybeQualifiedPath: Span<LibraryPath> = {
+    <l:@L> <_is_absolute:MaybeAbsolute> <mut components:PathComponents<BareIdent>> <r:@R> =>? {
         let span = span!(source_file.id(), l, r);
         let name = components.pop().unwrap();
         if components.is_empty() {
-            Ok((name, None))
+            let ns = LibraryNamespace::User(name.into_inner());
+            Ok(Span::new(span, LibraryPath::new_from_components(ns, [])))
         } else {
             let mut components = VecDeque::from(components);
             let ns = components.pop_front().unwrap();
             let ns = match ns.as_str() {
                 // Disallow the use of special namespaces with other components
                 special_ns @ (
-                    LibraryNamespace::KERNEL_PATH
-                    | LibraryNamespace::EXEC_PATH
+                    LibraryNamespace::EXEC_PATH
                     | LibraryNamespace::ANON_PATH
                 ) if !components.is_empty() => {
                     return Err(ParseError::User {
@@ -1612,9 +1606,16 @@ MaybeQualifiedName: (Ident, Option<LibraryPath>) = {
                 LibraryNamespace::ANON_PATH => LibraryNamespace::Anon,
                 _ => LibraryNamespace::User(ns.into_inner()),
             };
-            Ok((name, Some(LibraryPath::new_from_components(ns, components))))
+            components.push_back(name);
+            Ok(Span::new(span, LibraryPath::new_from_components(ns, components)))
         }
     }
+}
+
+#[inline]
+MaybeAbsolute: bool = {
+    "::" => true,
+    => false,
 }
 
 QualifiedName: (Ident, LibraryPath) = {
@@ -1625,8 +1626,7 @@ QualifiedName: (Ident, LibraryPath) = {
         let ns = match first.as_str() {
             // Disallow the use of special namespaces with other components
             special_ns @ (
-                LibraryNamespace::KERNEL_PATH
-                | LibraryNamespace::EXEC_PATH
+                LibraryNamespace::EXEC_PATH
                 | LibraryNamespace::ANON_PATH
             ) if !components.is_empty() => {
                 return Err(ParseError::User {

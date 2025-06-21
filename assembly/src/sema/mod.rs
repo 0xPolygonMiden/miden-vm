@@ -63,7 +63,7 @@ pub fn analyze(
                 define_import(import, &mut module, &mut analyzer)?;
             },
             Form::Procedure(export @ Export::Alias(_)) => match kind {
-                ModuleKind::Kernel => {
+                ModuleKind::Kernel if module.is_kernel() => {
                     docs.take();
                     analyzer
                         .error(SemanticAnalysisError::ReexportFromKernel { span: export.span() });
@@ -72,7 +72,7 @@ pub fn analyze(
                     docs.take();
                     analyzer.error(SemanticAnalysisError::UnexpectedExport { span: export.span() });
                 },
-                ModuleKind::Library => {
+                _ => {
                     define_procedure(export.with_docs(docs.take()), &mut module, &mut analyzer)?;
                 },
             },
