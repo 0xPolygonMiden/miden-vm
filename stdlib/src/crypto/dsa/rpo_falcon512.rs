@@ -24,8 +24,8 @@ use vm_core::{Felt, Word};
 /// # TODO:
 /// Eventually, we might want to make this a handler stateful, containing the signing keys.
 /// These could be loaded into the advice provider by the host when loaded into the Host.
-pub fn falcon_sig_to_stack_handler<A: AdviceProvider>(
-    advice_provider: &mut A,
+pub fn falcon_sig_to_stack_handler(
+    advice_provider: &mut dyn AdviceProvider,
     process: ProcessState,
 ) -> Result<(), EventError> {
     let pub_key = process.get_stack_word(0);

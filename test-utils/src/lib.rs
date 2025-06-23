@@ -157,7 +157,7 @@ macro_rules! assert_assembler_diagnostic {
 }
 
 /// Alias for a free function or closure handling an `Event`.
-pub type HandlerFunc = fn(&mut MemAdviceProvider, ProcessState) -> Result<(), EventError>;
+pub type HandlerFunc = fn(&mut dyn AdviceProvider, ProcessState) -> Result<(), EventError>;
 
 /// This is a container for the data required to run tests, which allows for running several
 /// different types of tests.

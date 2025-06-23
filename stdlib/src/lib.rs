@@ -2,14 +2,14 @@
 
 extern crate alloc;
 
-use alloc::{boxed::Box, sync::Arc, vec::Vec};
+use alloc::sync::Arc;
 
 use assembly::{
     Library,
     mast::MastForest,
     utils::{Deserializable, sync::LazyLock},
 };
-use processor::{AdviceProvider, HostLibrary, handlers::EventHandler};
+use processor::HostLibrary;
 
 pub mod crypto;
 
@@ -20,11 +20,7 @@ pub mod crypto;
 #[derive(Clone)]
 pub struct StdLibrary(Library);
 
-impl<A: AdviceProvider> HostLibrary<A> for StdLibrary {
-    fn event_handlers(&self) -> Vec<Box<dyn EventHandler<A>>> {
-        Vec::default()
-    }
-
+impl HostLibrary for StdLibrary {
     /// Returns a reference to the [MastForest] underlying the Miden standard library.
     fn mast_forest(&self) -> Arc<MastForest> {
         self.0.mast_forest().clone()

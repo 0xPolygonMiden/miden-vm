@@ -254,7 +254,7 @@ fn falcon_prove_verify() {
         EVENT_FALCON_SIG_TO_STACK,
         falcon_sig_to_stack_handler,
     )))
-    .unwrap();
+    .expect("failed to load Falcon handler");
 
     let options = ProvingOptions::with_96_bit_security(false);
     let (stack_outputs, proof) = test_utils::prove(

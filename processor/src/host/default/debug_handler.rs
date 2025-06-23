@@ -6,11 +6,11 @@ use crate::{AdviceProvider, ExecutionError, ProcessState, handlers::DebugHandler
 #[derive(Clone, Default)]
 pub struct DefaultDebugHandler;
 
-impl<A: AdviceProvider> DebugHandler<A> for DefaultDebugHandler {
+impl DebugHandler for DefaultDebugHandler {
     /// Prints the info about the VM state specified by the provided options to stdout.
     fn on_debug(
         &mut self,
-        _advice: &A,
+        _advice: &dyn AdviceProvider,
         _process: ProcessState,
         _options: &DebugOptions,
     ) -> Result<(), ExecutionError> {
@@ -32,8 +32,8 @@ mod printer {
 
     use crate::{AdviceProvider, ContextId, Felt, MemoryAddress, ProcessState};
 
-    pub(super) fn debug<A: AdviceProvider>(
-        advice: &A,
+    pub(super) fn debug(
+        advice: &dyn AdviceProvider,
         process: ProcessState,
         options: &DebugOptions,
     ) {
@@ -98,7 +98,7 @@ mod printer {
 
         /// Prints length items from the top of the  advice stack. If length is 0 it returns the
         /// whole stack.
-        fn print_vm_adv_stack(&self, advice_provider: &impl AdviceProvider, length: usize) {
+        fn print_vm_adv_stack(&self, advice_provider: &dyn AdviceProvider, length: usize) {
             let stack = advice_provider.peek_stack(length);
 
             // we may have less elements than requested

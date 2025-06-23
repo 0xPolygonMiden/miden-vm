@@ -66,9 +66,8 @@ pub enum ExecutionError {
         clk: RowIndex,
     },
     #[error(
-        "failed to execute the dynamic code block provided by the stack with root {}; the block could not be found",
-        .digest.to_hex()
-    )]
+        "failed to execute the dynamic code block provided by the stack with root {};\
+        the block could not be found", .digest.to_hex())]
     #[diagnostic()]
     DynamicNodeNotFound {
         #[label]

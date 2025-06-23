@@ -226,10 +226,10 @@ impl From<ProcessState<'_>> for ProcessStateSnapshot {
 #[derive(Default)]
 struct TraceSnapshotHandler(BTreeMap<u32, Vec<ProcessStateSnapshot>>);
 
-impl<A: AdviceProvider> TraceHandler<A> for TraceSnapshotHandler {
+impl TraceHandler for TraceSnapshotHandler {
     fn on_trace(
         &mut self,
-        _advice: &A,
+        _advice: &dyn AdviceProvider,
         process: ProcessState,
         trace_id: u32,
     ) -> Result<(), ExecutionError> {

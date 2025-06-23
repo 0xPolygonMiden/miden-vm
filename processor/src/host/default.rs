@@ -25,14 +25,14 @@ pub use trace_handler::DefaultTraceHandler;
 pub struct DefaultHost<A, D = DefaultDebugHandler, T = DefaultTraceHandler> {
     adv_provider: A,
     store: MemMastForestStore,
-    event_handlers: EventHandlerRegistry<A>,
+    event_handlers: EventHandlerRegistry,
     debug_handler: D,
     trace_handler: T,
 }
 
-impl<A: AdviceProvider, T: TraceHandler<A>> DefaultHost<A, DefaultDebugHandler, T> {
+impl<A: AdviceProvider, T: TraceHandler> DefaultHost<A, DefaultDebugHandler, T> {
     /// Replace the [`DefaultDebugHandler`] with a custom one, ensuring it cannot be overridden.
-    pub fn with_debug_handler<D: DebugHandler<A>>(self, handler: D) -> DefaultHost<A, D, T> {
+    pub fn with_debug_handler<D: DebugHandler>(self, handler: D) -> DefaultHost<A, D, T> {
         DefaultHost {
             adv_provider: self.adv_provider,
             store: self.store,
@@ -43,9 +43,9 @@ impl<A: AdviceProvider, T: TraceHandler<A>> DefaultHost<A, DefaultDebugHandler, 
     }
 }
 
-impl<A: AdviceProvider, D: DebugHandler<A>> DefaultHost<A, D, DefaultTraceHandler> {
+impl<A: AdviceProvider, D: DebugHandler> DefaultHost<A, D, DefaultTraceHandler> {
     /// Replace the [`DefaultTraceHandler`] with a custom one, ensuring it cannot be overridden.
-    pub fn with_trace_handler<T: TraceHandler<A>>(self, handler: T) -> DefaultHost<A, D, T> {
+    pub fn with_trace_handler<T: TraceHandler>(self, handler: T) -> DefaultHost<A, D, T> {
         DefaultHost {
             adv_provider: self.adv_provider,
             store: self.store,
@@ -68,8 +68,8 @@ impl<A: AdviceProvider> DefaultHost<A> {
     }
 }
 
-impl<A: AdviceProvider, D: DebugHandler<A>, T: TraceHandler<A>> DefaultHost<A, D, T> {
-    pub fn load_library(&mut self, library: &dyn HostLibrary<A>) -> Result<(), ExecutionError> {
+impl<A: AdviceProvider, D: DebugHandler, T: TraceHandler> DefaultHost<A, D, T> {
+    pub fn load_library(&mut self, library: &dyn HostLibrary) -> Result<(), ExecutionError> {
         // Load the MAST forest
         self.load_mast_forest(library.mast_forest())?;
 
@@ -79,10 +79,7 @@ impl<A: AdviceProvider, D: DebugHandler<A>, T: TraceHandler<A>> DefaultHost<A, D
         Ok(())
     }
 
-    pub fn load_handler(
-        &mut self,
-        handler: Box<dyn EventHandler<A>>,
-    ) -> Result<(), ExecutionError> {
+    pub fn load_handler(&mut self, handler: Box<dyn EventHandler>) -> Result<(), ExecutionError> {
         self.event_handlers.register(handler)
     }
 
@@ -141,7 +138,7 @@ impl<A: AdviceProvider, D: DebugHandler<A>, T: TraceHandler<A>> DefaultHost<A, D
     }
 }
 
-impl<A: AdviceProvider, D: DebugHandler<A>, T: TraceHandler<A>> Host for DefaultHost<A, D, T> {
+impl<A: AdviceProvider, D: DebugHandler, T: TraceHandler> Host for DefaultHost<A, D, T> {
     type AdviceProvider = A;
 
     fn advice_provider(&self) -> &Self::AdviceProvider {
@@ -199,18 +196,18 @@ impl Default for DefaultHost<MemAdviceProvider> {
 // REGISTRY
 // ================================================================================================
 
-/// Registry for maintaining event handlers
+/// Registry for maintaining event handlers.
 #[derive(Default)]
-pub struct EventHandlerRegistry<A> {
-    handlers: BTreeMap<u32, Box<dyn EventHandler<A>>>,
+pub struct EventHandlerRegistry {
+    handlers: BTreeMap<u32, Box<dyn EventHandler>>,
 }
 
-impl<A> EventHandlerRegistry<A> {
+impl EventHandlerRegistry {
     pub fn new() -> Self {
         Self { handlers: BTreeMap::new() }
     }
 
-    pub fn register(&mut self, handler: Box<dyn EventHandler<A>>) -> Result<(), ExecutionError> {
+    pub fn register(&mut self, handler: Box<dyn EventHandler>) -> Result<(), ExecutionError> {
         let id = handler.id();
         if self.handlers.contains_key(&id) {
             return Err(ExecutionError::DuplicateEventHandler { id });
@@ -221,7 +218,7 @@ impl<A> EventHandlerRegistry<A> {
 
     pub fn register_many(
         &mut self,
-        handlers: Vec<Box<dyn EventHandler<A>>>,
+        handlers: Vec<Box<dyn EventHandler>>,
     ) -> Result<(), ExecutionError> {
         for handler in handlers {
             self.register(handler)?;
@@ -229,7 +226,7 @@ impl<A> EventHandlerRegistry<A> {
         Ok(())
     }
 
-    pub fn get(&mut self, id: u32) -> Option<&mut Box<dyn EventHandler<A>>> {
+    pub fn get(&mut self, id: u32) -> Option<&mut Box<dyn EventHandler>> {
         self.handlers.get_mut(&id)
     }
 }

@@ -4,10 +4,10 @@ use crate::{AdviceProvider, ExecutionError, ProcessState, handlers::TraceHandler
 #[derive(Clone, Default)]
 pub struct DefaultTraceHandler;
 
-impl<A: AdviceProvider> TraceHandler<A> for DefaultTraceHandler {
+impl TraceHandler for DefaultTraceHandler {
     fn on_trace(
         &mut self,
-        _advice: &A,
+        _advice: &dyn AdviceProvider,
         _process: ProcessState,
         _trace_id: u32,
     ) -> Result<(), ExecutionError> {

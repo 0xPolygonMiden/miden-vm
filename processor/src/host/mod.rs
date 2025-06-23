@@ -73,20 +73,18 @@ pub trait Host {
 // ================================================================================================
 
 /// Trait for libraries that want to provide event handlers to a (Default) Host
-pub trait HostLibrary<A> {
+pub trait HostLibrary {
     /// Returns all event handlers defined by this library
-    fn event_handlers(&self) -> Vec<Box<dyn EventHandler<A>>>;
+    fn event_handlers(&self) -> Vec<Box<dyn EventHandler>> {
+        Vec::default()
+    }
 
     /// Returns the MAST forest for this library
     fn mast_forest(&self) -> Arc<MastForest>;
 }
 
 /// Default implementation for loading a MastForest without handlers.
-impl<A> HostLibrary<A> for Arc<MastForest> {
-    fn event_handlers(&self) -> Vec<Box<dyn EventHandler<A>>> {
-        Vec::new()
-    }
-
+impl HostLibrary for Arc<MastForest> {
     fn mast_forest(&self) -> Arc<MastForest> {
         (*self).clone()
     }

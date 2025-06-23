@@ -3,22 +3,26 @@ use core::error::Error;
 
 use vm_core::DebugOptions;
 
-use crate::{ExecutionError, ProcessState};
+use crate::{AdviceProvider, ExecutionError, ProcessState};
 
 // HANDLER TRAIT
 // ================================================================================================
 
-/// Trait for handling VM events
-/// # TODO
-/// - Does the handler need to be stateful?
-pub trait EventHandler<A> {
-    /// Returns the event ID this handler responds to
+/// An `EventHandler` defines a function that that can be called from the processor, which can
+/// read the current execution state and modify the advice, to which an output can be piped.
+pub trait EventHandler {
+    /// Returns the event ID this handler responds to. It corresponds to the argument
+    /// given to the `emit` op code.
     fn id(&self) -> u32;
 
-    /// Handles the event when triggered
+    /// Handles the event when triggered.
+    ///
+    /// While this function *may* modify it's own state, it is recommended to use the
+    /// `AdviceProvider` instead, and define the handler as a free function wrapped in a
+    /// [`StatelessHandler`].
     fn on_event(
         &mut self,
-        advice_provider: &mut A,
+        advice_provider: &mut dyn AdviceProvider,
         process: ProcessState,
     ) -> Result<(), EventError>;
 }
@@ -28,11 +32,11 @@ pub trait EventHandler<A> {
 
 /// Handler for debug and trace operations
 /// TODO: Should we merge into a single handler?
-pub trait DebugHandler<A> {
+pub trait DebugHandler {
     /// TODO: What kind of error should we return
     fn on_debug(
         &mut self,
-        advice: &A,
+        advice: &dyn AdviceProvider,
         process: ProcessState,
         options: &DebugOptions,
     ) -> Result<(), ExecutionError>;
@@ -41,11 +45,11 @@ pub trait DebugHandler<A> {
 // TRACE HANDLER
 // ================================================================================================
 
-pub trait TraceHandler<A> {
+pub trait TraceHandler {
     /// TODO: What kind of error should we return
     fn on_trace(
         &mut self,
-        advice: &A,
+        advice: &dyn AdviceProvider,
         process: ProcessState,
         trace_id: u32,
     ) -> Result<(), ExecutionError>;
@@ -66,19 +70,19 @@ impl<F> StatelessHandler<F> {
     }
 }
 
-pub fn trivial_handler<A: 'static>(id: u32) -> Box<dyn EventHandler<A>> {
-    pub fn trivial_event_handler<A>(
-        _advice: &mut A,
+pub fn trivial_handler(id: u32) -> Box<dyn EventHandler> {
+    pub fn trivial_event_handler(
+        _advice: &mut dyn AdviceProvider,
         _process: ProcessState,
     ) -> Result<(), EventError> {
         Ok(())
     }
-    Box::new(StatelessHandler::new(id, trivial_event_handler::<A>))
+    Box::new(StatelessHandler::new(id, trivial_event_handler))
 }
 
-impl<A, F> EventHandler<A> for StatelessHandler<F>
+impl<F> EventHandler for StatelessHandler<F>
 where
-    F: Fn(&mut A, ProcessState) -> Result<(), EventError> + 'static,
+    F: Fn(&mut dyn AdviceProvider, ProcessState) -> Result<(), EventError> + 'static,
 {
     fn id(&self) -> u32 {
         self.id
@@ -86,7 +90,7 @@ where
 
     fn on_event(
         &mut self,
-        advice_provider: &mut A,
+        advice_provider: &mut dyn AdviceProvider,
         process: ProcessState,
     ) -> Result<(), EventError> {
         (self.handler)(advice_provider, process)
