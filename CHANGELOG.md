@@ -17,6 +17,7 @@
 - Licensed the project under the Apache 2.0 license (in addition to the MIT) (#1840).
 - Uniform chiplet bus message flag encoding (#1887).
 - [BREAKING] Updated dependencies Winterfell to v0.13 and Crypto to v0.15 (#1896).
+- Fixed instructions with errors print without quotes (#1882).
 
 #### Enhancements
 
