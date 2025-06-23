@@ -2,9 +2,9 @@ use alloc::sync::Arc;
 
 use assembly::{Assembler, DefaultSourceManager};
 use miden_vm::DefaultHost;
-use processor::{ExecutionOptions, MastForest};
+use processor::{AdviceProviderError, ExecutionError, ExecutionOptions, MastForest};
 use prover::{StackInputs, Word};
-use vm_core::{ONE, Program, assert_matches};
+use vm_core::{ONE, Program};
 
 #[test]
 fn advice_map_loaded_before_execution() {
@@ -28,13 +28,11 @@ fn advice_map_loaded_before_execution() {
         ExecutionOptions::default(),
         Arc::new(DefaultSourceManager::default()),
     ) {
-        Ok(_) => panic!("Expected error"),
-        Err(e) => {
-            assert_matches!(
-                e,
-                prover::ExecutionError::AdviceMapKeyNotFound { key: _, label: _, source_file: _ }
-            );
-        },
+        Err(ExecutionError::AdviceProviderError {
+            err: AdviceProviderError::AdviceMapKeyNotFound { .. },
+            ..
+        }) => (),
+        _ => panic!("Expected error"),
     }
 
     // Test `processor::execute` works if advice map provided with the program

@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, sync::Arc, vec::Vec};
+use alloc::{boxed::Box, string::ToString, sync::Arc, vec::Vec};
 use core::error::Error;
 
 use miden_air::RowIndex;
@@ -11,27 +11,16 @@ use vm_core::{
 };
 use winter_prover::ProverError;
 
-use super::{
-    Felt, QuadFelt, Word,
-    crypto::MerkleError,
+use crate::{
+    AdviceProviderError, Felt, MemoryError, QuadFelt, Word,
     system::{FMP_MAX, FMP_MIN},
 };
-use crate::MemoryError;
 
 // EXECUTION ERROR
 // ================================================================================================
 
 #[derive(Debug, thiserror::Error, Diagnostic)]
 pub enum ExecutionError {
-    #[error("value for key {} not present in the advice map", key.to_hex())]
-    #[diagnostic()]
-    AdviceMapKeyNotFound {
-        #[label]
-        label: SourceSpan,
-        #[source_code]
-        source_file: Option<Arc<SourceFile>>,
-        key: Word,
-    },
     #[error("value for key {} already present in the advice map when loading MAST forest", key.to_hex())]
     #[diagnostic(help(
         "previous values at key were '{prev_values:?}'. Operation would have replaced them with '{new_values:?}'",
@@ -41,14 +30,19 @@ pub enum ExecutionError {
         prev_values: Vec<Felt>,
         new_values: Vec<Felt>,
     },
-    #[error("advice stack read failed at clock cycle {row}")]
+    #[error(
+        "advice provider error at clock cycle {}",
+        .clk.map_or_else(|| "unknown".to_string(), |n| n.to_string()))
+    ]
     #[diagnostic()]
-    AdviceStackReadFailed {
+    AdviceProviderError {
         #[label]
         label: SourceSpan,
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
-        row: RowIndex,
+        #[source]
+        err: AdviceProviderError,
+        clk: Option<RowIndex>,
     },
     /// This error is caught by the assembler, so we don't need diagnostics here.
     #[error("illegal use of instruction {0} while inside a syscall")]
@@ -131,27 +125,6 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         depth: usize,
     },
-    #[error(
-        "provided merkle tree {depth} is out of bounds and cannot be represented as an unsigned 8-bit integer"
-    )]
-    #[diagnostic()]
-    InvalidMerkleTreeDepth {
-        #[label]
-        label: SourceSpan,
-        #[source_code]
-        source_file: Option<Arc<SourceFile>>,
-        depth: Felt,
-    },
-    #[error("provided node index {index} is out of bounds for a merkle tree node at depth {depth}")]
-    #[diagnostic()]
-    InvalidMerkleTreeNodeIndex {
-        #[label]
-        label: SourceSpan,
-        #[source_code]
-        source_file: Option<Arc<SourceFile>>,
-        depth: Felt,
-        index: Felt,
-    },
     #[error("attempted to calculate integer logarithm with zero argument at clock cycle {clk}")]
     #[diagnostic()]
     LogArgumentZero {
@@ -211,33 +184,6 @@ pub enum ExecutionError {
         root: Word,
         err_code: Felt,
         err_msg: Option<Arc<str>>,
-    },
-    #[error("failed to lookup value in Merkle store")]
-    MerkleStoreLookupFailed {
-        #[label]
-        label: SourceSpan,
-        #[source_code]
-        source_file: Option<Arc<SourceFile>>,
-        #[source]
-        err: MerkleError,
-    },
-    #[error("advice provider Merkle store backend merge failed")]
-    MerkleStoreMergeFailed {
-        #[label]
-        label: SourceSpan,
-        #[source_code]
-        source_file: Option<Arc<SourceFile>>,
-        #[source]
-        err: MerkleError,
-    },
-    #[error("advice provider Merkle store backend update failed")]
-    MerkleStoreUpdateFailed {
-        #[label]
-        label: SourceSpan,
-        #[source_code]
-        source_file: Option<Arc<SourceFile>>,
-        #[source]
-        err: MerkleError,
     },
     #[error("if statement expected a binary value on top of the stack, but got {value}")]
     #[diagnostic()]
@@ -342,20 +288,21 @@ impl From<Ext2InttError> for ExecutionError {
 }
 
 impl ExecutionError {
-    pub fn advice_map_key_not_found(
-        key: Word,
+    pub fn advice_error(
+        err: AdviceProviderError,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
-        Self::AdviceMapKeyNotFound { label, source_file, key }
+        Self::AdviceProviderError { label, source_file, err, clk: None }
     }
 
-    pub fn advice_stack_read_failed(
-        row: RowIndex,
+    pub fn advice_error_at_clk(
+        err: AdviceProviderError,
+        clk: RowIndex,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
-        Self::AdviceStackReadFailed { label, source_file, row }
+        Self::AdviceProviderError { label, source_file, err, clk: Some(clk) }
     }
 
     pub fn divide_by_zero(clk: RowIndex, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
@@ -407,23 +354,6 @@ impl ExecutionError {
         }
     }
 
-    pub fn invalid_merkle_tree_depth(
-        depth: Felt,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Self {
-        let (label, source_file) = err_ctx.label_and_source_file();
-        Self::InvalidMerkleTreeDepth { label, source_file, depth }
-    }
-
-    pub fn invalid_merkle_tree_node_index(
-        depth: Felt,
-        index: Felt,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Self {
-        let (label, source_file) = err_ctx.label_and_source_file();
-        Self::InvalidMerkleTreeNodeIndex { label, source_file, depth, index }
-    }
-
     pub fn invalid_stack_depth_on_return(
         depth: usize,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
@@ -472,31 +402,6 @@ impl ExecutionError {
             err_code,
             err_msg,
         }
-    }
-
-    pub fn merkle_store_lookup_failed(
-        err: MerkleError,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Self {
-        let (label, source_file) = err_ctx.label_and_source_file();
-        Self::MerkleStoreLookupFailed { label, source_file, err }
-    }
-
-    /// Note: This error currently never occurs, since `MerkleStore::merge_roots()` never fails.
-    pub fn merkle_store_merge_failed(
-        err: MerkleError,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Self {
-        let (label, source_file) = err_ctx.label_and_source_file();
-        Self::MerkleStoreMergeFailed { label, source_file, err }
-    }
-
-    pub fn merkle_store_update_failed(
-        err: MerkleError,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Self {
-        let (label, source_file) = err_ctx.label_and_source_file();
-        Self::MerkleStoreUpdateFailed { label, source_file, err }
     }
 
     pub fn no_mast_forest_with_procedure(

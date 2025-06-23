@@ -8,7 +8,7 @@ use vm_core::{
 use super::{ExecutionError, ProcessState};
 use crate::{Felt, KvMap, MemAdviceProvider, errors::ErrorContext};
 
-pub(super) mod advice;
+pub mod advice;
 use advice::AdviceProvider;
 
 #[cfg(feature = "std")]

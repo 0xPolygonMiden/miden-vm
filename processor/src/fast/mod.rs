@@ -549,7 +549,10 @@ impl FastProcessor {
         // Retrieve callee hash from memory, using stack top as the memory address.
         let callee_hash = {
             let mem_addr = self.stack_get(0);
-            self.memory.read_word(self.ctx, mem_addr, self.clk).copied()?
+            self.memory
+                .read_word(self.ctx, mem_addr, self.clk)
+                .copied()
+                .map_err(ExecutionError::MemoryError)?
         };
 
         // Drop the memory address from the stack. This needs to be done BEFORE saving the context,
