@@ -1,5 +1,4 @@
-use alloc::{boxed::Box, string::ToString, sync::Arc, vec::Vec};
-use core::error::Error;
+use alloc::{string::ToString, sync::Arc, vec::Vec};
 
 use miden_air::RowIndex;
 use miette::Diagnostic;
@@ -13,6 +12,7 @@ use winter_prover::ProverError;
 
 use crate::{
     AdviceProviderError, Felt, MemoryError, QuadFelt, Word,
+    handlers::EventError,
     system::{FMP_MAX, FMP_MIN},
 };
 
@@ -65,8 +65,9 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         clk: RowIndex,
     },
-    #[error("failed to execute the dynamic code block provided by the stack with root 0x{hex}; the block could not be found",
-      hex = to_hex(.digest.as_bytes())
+    #[error(
+        "failed to execute the dynamic code block provided by the stack with root {}; the block could not be found",
+        .digest.to_hex()
     )]
     #[diagnostic()]
     DynamicNodeNotFound {
@@ -83,8 +84,9 @@ pub enum ExecutionError {
         label: SourceSpan,
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
+        event_id: u32,
         #[source]
-        error: Box<dyn Error + Send + Sync + 'static>,
+        error: EventError,
     },
     #[error("failed to execute Ext2Intt operation: {0}")]
     Ext2InttError(Ext2InttError),
@@ -279,6 +281,18 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         error: AceError,
     },
+    #[error("attempted to add event handler with previously inserted id: {id}")]
+    #[diagnostic()]
+    DuplicateEventHandler { id: u32 },
+    #[error("got unexpected event_id: {id}")]
+    #[diagnostic()]
+    InvalidEventId {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        id: u32,
+    },
 }
 
 impl From<Ext2InttError> for ExecutionError {
@@ -329,12 +343,19 @@ impl ExecutionError {
     }
 
     pub fn event_error(
-        error: Box<dyn Error + Send + Sync + 'static>,
+        event_id: u32,
+        error: EventError,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
 
-        Self::EventError { label, source_file, error }
+        Self::EventError { label, source_file, event_id, error }
+    }
+
+    pub fn invalid_event_id_error(id: u32, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+
+        Self::InvalidEventId { label, source_file, id }
     }
 
     pub fn failed_assertion(

@@ -8,6 +8,7 @@ extern crate std;
 #[cfg(not(target_family = "wasm"))]
 use alloc::format;
 use alloc::{
+    boxed::Box,
     string::{String, ToString},
     sync::Arc,
     vec::Vec,
@@ -18,13 +19,10 @@ pub use assembly::{LibraryPath, SourceFile, SourceManager, diagnostics::Report};
 pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
 pub use processor::{
     AdviceInputs, AdviceProvider, ContextId, ExecutionError, ExecutionOptions, ExecutionTrace,
-    Process, ProcessState, VmStateIterator,
+    MemAdviceProvider, Process, ProcessState, VmStateIterator, handlers::EventError,
 };
-use processor::{Program, fast::FastProcessor};
-#[cfg(not(target_family = "wasm"))]
-use proptest::prelude::{Arbitrary, Strategy};
-use prover::utils::range;
-pub use prover::{MemAdviceProvider, MerkleTreeVC, ProvingOptions, prove};
+use processor::{DefaultHost, Program, fast::FastProcessor, handlers::StatelessHandler};
+pub use prover::{MerkleTreeVC, ProvingOptions, prove};
 pub use test_case::test_case;
 pub use verifier::{AcceptableOptions, VerifierError, verify};
 pub use vm_core::{
@@ -34,7 +32,7 @@ pub use vm_core::{
     stack::MIN_STACK_DEPTH,
     utils::{IntoBytes, ToElements, collections, group_slice_elements},
 };
-use vm_core::{ProgramInfo, chiplets::hasher::apply_permutation};
+use vm_core::{ProgramInfo, chiplets::hasher::apply_permutation, utils::range};
 
 pub mod math {
     pub use winter_prover::math::{
@@ -50,8 +48,7 @@ pub mod serde {
 
 pub mod crypto;
 
-pub mod host;
-use host::TestHost;
+pub type TestHost = DefaultHost<MemAdviceProvider>;
 
 #[cfg(not(target_family = "wasm"))]
 pub mod rand;
@@ -60,6 +57,8 @@ mod test_builders;
 
 #[cfg(not(target_family = "wasm"))]
 pub use proptest;
+#[cfg(not(target_family = "wasm"))]
+use proptest::prelude::{Arbitrary, Strategy};
 
 // TYPE ALIASES
 // ================================================================================================
@@ -157,6 +156,9 @@ macro_rules! assert_assembler_diagnostic {
     }};
 }
 
+/// Alias for a free function or closure handling an `Event`.
+pub type HandlerFunc = fn(&mut MemAdviceProvider, ProcessState) -> Result<(), EventError>;
+
 /// This is a container for the data required to run tests, which allows for running several
 /// different types of tests.
 ///
@@ -178,6 +180,7 @@ pub struct Test {
     pub advice_inputs: AdviceInputs,
     pub in_debug_mode: bool,
     pub libraries: Vec<Library>,
+    pub handlers: Vec<(u32, HandlerFunc)>,
     pub add_modules: Vec<(LibraryPath, String)>,
 }
 
@@ -189,7 +192,7 @@ impl Test {
     pub fn new(name: &str, source: &str, in_debug_mode: bool) -> Self {
         let source_manager = Arc::new(assembly::DefaultSourceManager::default());
         let source = source_manager.load(name, source.to_string());
-        Test {
+        Self {
             source_manager,
             source,
             kernel_source: None,
@@ -197,6 +200,7 @@ impl Test {
             advice_inputs: AdviceInputs::default(),
             in_debug_mode,
             libraries: Vec::default(),
+            handlers: Vec::default(),
             add_modules: Vec::default(),
         }
     }
@@ -204,6 +208,11 @@ impl Test {
     /// Add an extra module to link in during assembly
     pub fn add_module(&mut self, path: assembly::LibraryPath, source: impl ToString) {
         self.add_modules.push((path, source.to_string()));
+    }
+
+    /// Add a handler for a specifc event when running the `Host`.
+    pub fn add_handler(&mut self, id: u32, handler_func: HandlerFunc) {
+        self.handlers.push((id, handler_func))
     }
 
     // TEST METHODS
@@ -229,14 +238,7 @@ impl Test {
         expected_mem: &[u64],
     ) {
         // compile the program
-        let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = TestHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
-        if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
-        }
-        for library in &self.libraries {
-            host.load_mast_forest(library.mast_forest().clone()).unwrap();
-        }
+        let (program, mut host) = self.get_program_and_host();
 
         // execute the test
         let mut process = Process::new(
@@ -444,10 +446,14 @@ impl Test {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = TestHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
+            host.load_library(kernel.mast_forest()).unwrap();
         }
         for library in &self.libraries {
-            host.load_mast_forest(library.mast_forest().clone()).unwrap();
+            host.load_library(library.mast_forest()).unwrap();
+        }
+        for &(id, handler_func) in &self.handlers {
+            let handler = StatelessHandler::new(id, handler_func);
+            host.load_handler(Box::new(handler)).unwrap();
         }
 
         (program, host)

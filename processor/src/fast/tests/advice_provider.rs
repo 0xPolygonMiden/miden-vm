@@ -4,7 +4,10 @@ use pretty_assertions::assert_eq;
 use vm_core::Word;
 
 use super::*;
-use crate::{MastForestStore, MemAdviceProvider, MemMastForestStore, MemoryAddress, ProcessState};
+use crate::{
+    AdviceProvider, MemAdviceProvider, MemoryAddress, ProcessState, default::DefaultDebugHandler,
+    handlers::TraceHandler,
+};
 
 #[test]
 fn test_advice_provider() {
@@ -169,21 +172,21 @@ fn test_advice_provider() {
     assert_eq!(fast_stack_outputs, slow_stack_outputs);
 
     // check hosts. Check one trace event at a time to help debugging.
-    for (trace_id, fast_snapshots) in fast_host.snapshots.iter() {
-        let slow_snapshots = slow_host.snapshots.get(trace_id).unwrap_or_else(|| {
+    for (trace_id, fast_snapshots) in fast_host.snapshots().iter() {
+        let slow_snapshots = slow_host.snapshots().get(trace_id).unwrap_or_else(|| {
             panic!("fast host has snapshot(s) for trace id {trace_id}, but slow host doesn't")
         });
         assert_eq!(fast_snapshots, slow_snapshots, "trace id: {trace_id}");
     }
-    for (trace_id, slow_snapshots) in slow_host.snapshots.iter() {
-        let fast_snapshots = fast_host.snapshots.get(trace_id).unwrap_or_else(|| {
+    for (trace_id, slow_snapshots) in slow_host.snapshots().iter() {
+        let fast_snapshots = fast_host.snapshots().get(trace_id).unwrap_or_else(|| {
             panic!("slow host has snapshot(s) for trace id {trace_id}, but fast host doesn't")
         });
         assert_eq!(fast_snapshots, slow_snapshots, "trace_id: {trace_id}");
     }
 
     // Still check the snapshots explicitly just in case we have a bug in the logic above.
-    assert_eq!(fast_host.snapshots, slow_host.snapshots);
+    assert_eq!(fast_host.snapshots(), slow_host.snapshots());
 }
 
 // Host Implementation
@@ -218,47 +221,34 @@ impl From<ProcessState<'_>> for ProcessStateSnapshot {
     }
 }
 
-#[derive(Debug)]
-struct ConsistencyHost {
-    /// A map of trace ID to a list of snapshots. A single trace ID can be associated with multiple
-    /// snapshots for example if it's used in a loop.
-    snapshots: BTreeMap<u32, Vec<ProcessStateSnapshot>>,
-    advice_provider: MemAdviceProvider,
-    store: MemMastForestStore,
+/// A map of trace ID to a list of snapshots. A single trace ID can be associated with multiple
+/// snapshots for example if it's used in a loop.
+#[derive(Default)]
+struct TraceSnapshotHandler(BTreeMap<u32, Vec<ProcessStateSnapshot>>);
+
+impl<A: AdviceProvider> TraceHandler<A> for TraceSnapshotHandler {
+    fn on_trace(
+        &mut self,
+        _advice: &A,
+        process: ProcessState,
+        trace_id: u32,
+    ) -> Result<(), ExecutionError> {
+        let snapshot = ProcessStateSnapshot::from(process);
+        self.0.entry(trace_id).or_default().push(snapshot);
+        Ok(())
+    }
 }
+
+type ConsistencyHost = DefaultHost<MemAdviceProvider, DefaultDebugHandler, TraceSnapshotHandler>;
 
 impl ConsistencyHost {
     fn new(kernel_forest: Arc<MastForest>) -> Self {
-        let mut store = MemMastForestStore::default();
-        store.insert(kernel_forest);
-
-        Self {
-            snapshots: BTreeMap::new(),
-            advice_provider: MemAdviceProvider::default(),
-            store,
-        }
-    }
-}
-
-impl Host for ConsistencyHost {
-    type AdviceProvider = MemAdviceProvider;
-
-    fn advice_provider(&self) -> &Self::AdviceProvider {
-        &self.advice_provider
+        let mut host = DefaultHost::default().with_trace_handler(TraceSnapshotHandler::default());
+        host.load_library(&kernel_forest).unwrap();
+        host
     }
 
-    fn advice_provider_mut(&mut self) -> &mut Self::AdviceProvider {
-        &mut self.advice_provider
-    }
-
-    fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>> {
-        self.store.get(node_digest)
-    }
-
-    fn on_trace(&mut self, process: ProcessState, trace_id: u32) -> Result<(), ExecutionError> {
-        let snapshot = ProcessStateSnapshot::from(process);
-        self.snapshots.entry(trace_id).or_default().push(snapshot);
-
-        Ok(())
+    fn snapshots(&self) -> &BTreeMap<u32, Vec<ProcessStateSnapshot>> {
+        &self.trace_handler().0
     }
 }

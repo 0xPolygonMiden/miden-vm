@@ -59,8 +59,8 @@ fn test_diagnostic_advice_map_key_already_present() {
     };
 
     let mut host = DefaultHost::default();
-    host.load_mast_forest(lib_1.mast_forest().clone()).unwrap();
-    let err = host.load_mast_forest(lib_2.mast_forest().clone()).unwrap_err();
+    host.load_library(lib_1.mast_forest()).unwrap();
+    let err = host.load_library(lib_2.mast_forest()).unwrap_err();
 
     assert_diagnostic_lines!(
         err,

@@ -64,7 +64,7 @@ impl Analyze {
         // fetch the stack and program inputs from the arguments
         let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
         let mut host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
-        host.load_mast_forest(StdLibrary::default().mast_forest().clone())?;
+        host.load_library(StdLibrary::default().mast_forest())?;
 
         let execution_details: ExecutionDetails =
             analyze(&program, stack_inputs, host, source_manager)

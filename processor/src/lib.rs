@@ -54,11 +54,14 @@ use range::RangeChecker;
 
 mod host;
 pub use host::{
-    DefaultHost, Host, MastForestStore, MemMastForestStore,
+    Host, HostLibrary, MastForestStore, MemMastForestStore,
     advice::{
         AdviceInputs, AdviceProvider, AdviceProviderError, AdviceSource, MemAdviceProvider,
         RecAdviceProvider,
     },
+    default,
+    default::DefaultHost,
+    handlers,
 };
 
 mod chiplets;
