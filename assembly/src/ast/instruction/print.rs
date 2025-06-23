@@ -13,20 +13,20 @@ impl PrettyPrint for Instruction {
             Self::Nop => const_text("nop"),
             Self::Assert => const_text("assert"),
             Self::AssertWithError(err_code) => flatten(
-                const_text("assert.err") + const_text("=") + text(&format!("\"{}\"", err_code)),
+                const_text("assert.err") + const_text("=") + text(format!("\"{err_code}\"")),
             ),
             Self::AssertEq => const_text("assert_eq"),
-            Self::AssertEqWithError(err_code) => {
-                flatten(const_text("assert_eq.err") + const_text("=") + display(err_code))
-            },
+            Self::AssertEqWithError(err_code) => flatten(
+                const_text("assert_eq.err") + const_text("=") + text(format!("\"{err_code}\"")),
+            ),
             Self::AssertEqw => const_text("assert_eqw"),
-            Self::AssertEqwWithError(err_code) => {
-                flatten(const_text("assert_eqw.err") + const_text("=") + display(err_code))
-            },
+            Self::AssertEqwWithError(err_code) => flatten(
+                const_text("assert_eqw.err") + const_text("=") + text(format!("\"{err_code}\"")),
+            ),
             Self::Assertz => const_text("assertz"),
-            Self::AssertzWithError(err_code) => {
-                flatten(const_text("assertz.err") + const_text("=") + display(err_code))
-            },
+            Self::AssertzWithError(err_code) => flatten(
+                const_text("assertz.err") + const_text("=") + text(format!("\"{err_code}\"")),
+            ),
             Self::Add => const_text("add"),
             Self::AddImm(value) => inst_with_felt_imm("add", value),
             Self::Sub => const_text("sub"),
@@ -70,17 +70,17 @@ impl PrettyPrint for Instruction {
             Self::U32Test => const_text("u32test"),
             Self::U32TestW => const_text("u32testw"),
             Self::U32Assert => const_text("u32assert"),
-            Self::U32AssertWithError(err_code) => {
-                flatten(const_text("u32assert.err") + const_text("=") + display(err_code))
-            },
+            Self::U32AssertWithError(err_code) => flatten(
+                const_text("u32assert.err") + const_text("=") + text(format!("\"{err_code}\"")),
+            ),
             Self::U32Assert2 => const_text("u32assert2"),
-            Self::U32Assert2WithError(err_code) => {
-                flatten(const_text("u32assert2.err") + const_text("=") + display(err_code))
-            },
+            Self::U32Assert2WithError(err_code) => flatten(
+                const_text("u32assert2.err") + const_text("=") + text(format!("\"{err_code}\"")),
+            ),
             Self::U32AssertW => const_text("u32assertw"),
-            Self::U32AssertWWithError(err_code) => {
-                flatten(const_text("u32assertw.err") + const_text("=") + display(err_code))
-            },
+            Self::U32AssertWWithError(err_code) => flatten(
+                const_text("u32assertw.err") + const_text("=") + text(format!("\"{err_code}\"")),
+            ),
             Self::U32Split => const_text("u32split"),
             Self::U32Cast => const_text("u32cast"),
             Self::U32WrappingAdd => const_text("u32wrapping_add"),
@@ -258,9 +258,9 @@ impl PrettyPrint for Instruction {
             Self::MTreeSet => const_text("mtree_set"),
             Self::MTreeMerge => const_text("mtree_merge"),
             Self::MTreeVerify => const_text("mtree_verify"),
-            Self::MTreeVerifyWithError(err_code) => {
-                flatten(const_text("mtree_verify.err") + const_text("=") + display(err_code))
-            },
+            Self::MTreeVerifyWithError(err_code) => flatten(
+                const_text("mtree_verify.err") + const_text("=") + text(format!("\"{err_code}\"")),
+            ),
 
             // ----- STARK proof verification -----------------------------------------------------
             Self::FriExt2Fold4 => const_text("fri_ext2fold4"),
