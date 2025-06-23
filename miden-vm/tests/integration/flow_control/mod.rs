@@ -3,7 +3,7 @@ use alloc::sync::Arc;
 use assembly::{Assembler, LibraryPath, Report, SourceManager, ast::ModuleKind};
 use miden_vm::Module;
 use processor::ExecutionError;
-use prover::Digest;
+use prover::Word;
 use stdlib::StdLibrary;
 use test_utils::{StackInputs, Test, build_test, expect_exec_error_matches, push_inputs};
 
@@ -542,7 +542,7 @@ fn procref() -> Result<(), Report> {
     ";
 
     // obtain procedures' MAST roots by compiling them as module
-    let mast_roots: Vec<Digest> = {
+    let mast_roots: Vec<Word> = {
         let source_manager = Arc::new(assembly::DefaultSourceManager::default());
         let module_path = "test::foo".parse::<LibraryPath>().unwrap();
         let mut parser = Module::parser(ModuleKind::Library);

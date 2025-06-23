@@ -10,9 +10,9 @@ use assembly::{
     ast::{Module, ModuleKind},
     diagnostics::{Report, WrapErr},
     report,
+    utils::Deserializable,
 };
-use miden_vm::{Digest, ExecutionProof, Program, StackOutputs, utils::SliceReader};
-use prover::utils::Deserializable;
+use miden_vm::{ExecutionProof, Program, StackOutputs, Word, utils::SliceReader};
 use serde_derive::{Deserialize, Serialize};
 use stdlib::StdLibrary;
 use tracing::instrument;
@@ -235,7 +235,7 @@ pub struct ProgramHash;
 /// Helper method to parse program hash from hex
 impl ProgramHash {
     #[instrument(name = "read_program_hash", skip_all)]
-    pub fn read(hash_hex_string: &String) -> Result<Digest, String> {
+    pub fn read(hash_hex_string: &String) -> Result<Word, String> {
         // decode hex to bytes
         let program_hash_bytes = hex::decode(hash_hex_string)
             .map_err(|err| format!("Failed to convert program hash to bytes {err}"))?;
@@ -244,7 +244,7 @@ impl ProgramHash {
         let mut program_hash_slice = SliceReader::new(&program_hash_bytes);
 
         // create hash digest from slice
-        let program_hash = Digest::read_from(&mut program_hash_slice)
+        let program_hash = Word::read_from(&mut program_hash_slice)
             .map_err(|err| format!("Failed to deserialize program hash from bytes - {err}"))?;
 
         Ok(program_hash)

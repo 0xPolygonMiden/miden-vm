@@ -6,8 +6,7 @@ use alloc::{
 use core::ops::{Index, IndexMut};
 
 use vm_core::{
-    AdviceMap, Decorator, DecoratorList, Felt, Operation,
-    crypto::hash::RpoDigest,
+    AdviceMap, Decorator, DecoratorList, Felt, Operation, Word,
     mast::{
         DecoratorFingerprint, DecoratorId, MastForest, MastNode, MastNodeFingerprint, MastNodeId,
         Remapping, SubtreeIterator,
@@ -54,7 +53,7 @@ pub struct MastForestBuilder {
     /// A map from procedure MAST root to its global procedure index. Similar to the `procedures`
     /// map, this map contains only the first inserted procedure for procedures with the same MAST
     /// root.
-    proc_gid_by_mast_root: BTreeMap<RpoDigest, GlobalProcedureIndex>,
+    proc_gid_by_mast_root: BTreeMap<Word, GlobalProcedureIndex>,
     /// A map of MAST node fingerprints to their corresponding positions in the MAST forest.
     node_id_by_fingerprint: BTreeMap<MastNodeFingerprint, MastNodeId>,
     /// The reverse mapping of `node_id_by_fingerprint`. This map caches the fingerprints of all
@@ -181,7 +180,7 @@ impl MastForestBuilder {
     /// Returns a reference to the procedure with the specified MAST root, or None
     /// if such a procedure is not present in this MAST forest builder.
     #[inline(always)]
-    pub fn find_procedure_by_mast_root(&self, mast_root: &RpoDigest) -> Option<&Procedure> {
+    pub fn find_procedure_by_mast_root(&self, mast_root: &Word) -> Option<&Procedure> {
         self.proc_gid_by_mast_root
             .get(mast_root)
             .and_then(|gid| self.get_procedure(*gid))
@@ -498,7 +497,7 @@ impl MastForestBuilder {
     /// * If statically-linked, then the entire subtree is copied, and the MastNodeId of the root of
     ///   the inserted subtree is returned.
     /// * If dynamically-linked, then an external node is inserted, and its MastNodeId is returned
-    pub fn ensure_external_link(&mut self, mast_root: RpoDigest) -> Result<MastNodeId, Report> {
+    pub fn ensure_external_link(&mut self, mast_root: Word) -> Result<MastNodeId, Report> {
         if let Some(root_id) = self.statically_linked_mast.find_procedure_root(mast_root) {
             for old_id in SubtreeIterator::new(&root_id, &self.statically_linked_mast.clone()) {
                 let node = self.statically_linked_mast[old_id]

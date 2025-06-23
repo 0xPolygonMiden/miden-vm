@@ -6,7 +6,7 @@ use vm_core::Program;
 #[cfg(feature = "std")]
 use crate::diagnostics::reporting::set_panic_hook;
 use crate::{
-    Compile, CompileOptions, LibraryPath, RpoDigest,
+    Compile, CompileOptions, LibraryPath, Word,
     assembler::Assembler,
     ast::{Form, Module, ModuleKind},
     diagnostics::{
@@ -377,7 +377,7 @@ impl TestContext {
         &self,
         _path: LibraryPath,
         _module: impl Compile,
-    ) -> Result<Vec<RpoDigest>, Report> {
+    ) -> Result<Vec<Word>, Report> {
         // This API will change after we implement `Assembler::add_library()`
         unimplemented!()
     }

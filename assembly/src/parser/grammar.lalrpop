@@ -8,7 +8,7 @@ use alloc::{
 use core::{marker::PhantomData, num::NonZeroU32};
 
 use smallvec::smallvec;
-use vm_core::{Felt, FieldElement, StarkField, crypto::hash::RpoDigest};
+use vm_core::{Felt, FieldElement, StarkField, Word};
 
 use crate::{LibraryPath, LibraryNamespace, ast::*, diagnostics::SourceFile, SourceSpan};
 use super::{
@@ -1382,10 +1382,10 @@ U32: u32 = {
     }
 }
 
-MastRoot: Span<RpoDigest> = {
+MastRoot: Span<Word> = {
     <l:@L> <value:hex_value> <r:@R> =>? {
         match value {
-            IntValue::Word(word) => Ok(Span::new(span!(source_file.id(), l, r), RpoDigest::from(word.0))),
+            IntValue::Word(word) => Ok(Span::new(span!(source_file.id(), l, r), Word::from(word.0))),
             _ => {
                 Err(ParseError::User { error: ParsingError::InvalidMastRoot { span: span!(source_file.id(), l, r) } })
             }

@@ -7,11 +7,11 @@ use std::{
 use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use serde_derive::Deserialize;
 pub use tracing::{Level, event, instrument};
-use vm_core::Felt;
+use vm_core::{Felt, WORD_SIZE};
 
 use crate::{
-    AdviceInputs, MemAdviceProvider, StackInputs, Word,
-    crypto::{MerkleStore, MerkleTree, NodeIndex, PartialMerkleTree, RpoDigest, SimpleSmt},
+    AdviceInputs, MemAdviceProvider, StackInputs, Word, ZERO,
+    crypto::{MerkleStore, MerkleTree, NodeIndex, PartialMerkleTree, SimpleSmt},
 };
 
 // CONSTANTS
@@ -147,7 +147,7 @@ impl InputFile {
     }
 
     /// Parse advice map data from the input file.
-    fn parse_advice_map(&self) -> Result<Option<BTreeMap<RpoDigest, Vec<Felt>>>, String> {
+    fn parse_advice_map(&self) -> Result<Option<BTreeMap<Word, Vec<Felt>>>, String> {
         let advice_map = match &self.advice_map {
             Some(advice_map) => advice_map,
             None => return Ok(None),
@@ -156,8 +156,8 @@ impl InputFile {
         let map = advice_map
             .iter()
             .map(|(k, v)| {
-                // Convert key to RpoDigest
-                let key = RpoDigest::try_from(k)
+                // Convert key to Word
+                let key = Word::try_from(k)
                     .map_err(|e| format!("failed to decode advice map key '{k}': {e}"))?;
 
                 // convert values to Felt
@@ -171,7 +171,7 @@ impl InputFile {
                     .collect::<Result<Vec<_>, _>>()?;
                 Ok((key, values))
             })
-            .collect::<Result<BTreeMap<RpoDigest, Vec<Felt>>, String>>()?;
+            .collect::<Result<BTreeMap<Word, Vec<Felt>>, String>>()?;
 
         Ok(Some(map))
     }
@@ -248,7 +248,7 @@ impl InputFile {
     /// Parse and return Partial Merkle Tree entries.
     fn parse_partial_merkle_tree(
         tree: &[((u8, u64), String)],
-    ) -> Result<Vec<(NodeIndex, RpoDigest)>, String> {
+    ) -> Result<Vec<(NodeIndex, Word)>, String> {
         tree.iter()
             .map(|((depth, index), v)| {
                 let node_index = NodeIndex::new(*depth, *index).map_err(|e| {
@@ -257,7 +257,7 @@ impl InputFile {
                     )
                 })?;
                 let leaf = Self::parse_word(v)?;
-                Ok((node_index, RpoDigest::new(leaf)))
+                Ok((node_index, leaf))
             })
             .collect()
     }
@@ -268,13 +268,13 @@ impl InputFile {
         let mut word_data = [0u8; 32];
         hex::decode_to_slice(word_value, &mut word_data)
             .map_err(|e| format!("failed to decode `Word` from hex {word_hex} - {e}"))?;
-        let mut word = Word::default();
+        let mut word = [ZERO; WORD_SIZE];
         for (i, value) in word_data.chunks(8).enumerate() {
             word[i] = Felt::try_from(value).map_err(|e| {
                 format!("failed to convert `Word` data {word_hex} (element {i}) to Felt - {e}")
             })?;
         }
-        Ok(word)
+        Ok(word.into())
     }
 
     /// Parse and return the stack inputs for the program.

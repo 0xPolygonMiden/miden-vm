@@ -1,10 +1,6 @@
 use alloc::vec::Vec;
 
-use vm_core::{
-    Felt,
-    crypto::{hash::RpoDigest, merkle::MerklePath},
-    mast::MastNodeExt,
-};
+use vm_core::{Felt, crypto::merkle::MerklePath, mast::MastNodeExt};
 
 use crate::{ErrorContext, ExecutionError, ProcessState, Word};
 
@@ -97,7 +93,7 @@ pub trait AdviceProvider: Sized {
     // --------------------------------------------------------------------------------------------
 
     /// Returns a reference to the value(s) associated with the specified key in the advice map.
-    fn get_mapped_values(&self, key: &RpoDigest) -> Option<&[Felt]>;
+    fn get_mapped_values(&self, key: &Word) -> Option<&[Felt]>;
 
     /// Inserts the provided value into the advice map under the specified key.
     ///

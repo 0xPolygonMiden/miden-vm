@@ -1,8 +1,5 @@
-use test_utils::{
-    TRUNCATE_STACK_PROC, build_test,
-    crypto::{MerkleStore, RpoDigest},
-    rand::rand_value,
-};
+use prover::Word;
+use test_utils::{TRUNCATE_STACK_PROC, build_test, crypto::MerkleStore, rand::rand_value};
 use vm_core::Felt;
 
 // ADVICE INJECTION
@@ -225,7 +222,7 @@ fn advice_push_mapval() {
 
     let stack_inputs = [1, 2, 3, 4];
     let adv_map = [(
-        RpoDigest::try_from(stack_inputs).unwrap(),
+        Word::try_from(stack_inputs).unwrap(),
         vec![Felt::new(8), Felt::new(7), Felt::new(6), Felt::new(5)],
     )];
 
@@ -249,7 +246,7 @@ fn advice_push_mapval() {
 
     let stack_inputs = [1, 2, 3, 4];
     let adv_map = [(
-        RpoDigest::try_from(stack_inputs).unwrap(),
+        Word::try_from(stack_inputs).unwrap(),
         vec![Felt::new(11), Felt::new(12), Felt::new(13), Felt::new(14), Felt::new(15)],
     )];
 

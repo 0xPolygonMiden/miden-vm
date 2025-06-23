@@ -8,8 +8,6 @@ use core::{
     ops::{Index, IndexMut},
 };
 
-use miden_crypto::hash::rpo::RpoDigest;
-
 use crate::crypto::hash::{Blake3_256, Blake3Digest, Digest};
 
 mod node;
@@ -19,7 +17,7 @@ pub use node::{
 };
 use winter_utils::{ByteWriter, DeserializationError, Serializable};
 
-use crate::{AdviceMap, Decorator, DecoratorList, Felt, Operation};
+use crate::{AdviceMap, Decorator, DecoratorList, Felt, Operation, Word};
 
 mod serialization;
 
@@ -163,7 +161,7 @@ impl MastForest {
     }
 
     /// Adds an external node to the forest, and returns the [`MastNodeId`] associated with it.
-    pub fn add_external(&mut self, mast_root: RpoDigest) -> Result<MastNodeId, MastForestError> {
+    pub fn add_external(&mut self, mast_root: Word) -> Result<MastNodeId, MastForestError> {
         self.add_node(MastNode::new_external(mast_root))
     }
 
@@ -421,7 +419,7 @@ impl MastForest {
 
     /// Returns the [`MastNodeId`] of the procedure associated with a given digest, if any.
     #[inline(always)]
-    pub fn find_procedure_root(&self, digest: RpoDigest) -> Option<MastNodeId> {
+    pub fn find_procedure_root(&self, digest: Word) -> Option<MastNodeId> {
         self.roots.iter().find(|&&root_id| self[root_id].digest() == digest).copied()
     }
 
@@ -431,14 +429,14 @@ impl MastForest {
     }
 
     /// Returns an iterator over the digests of all procedures in this MAST forest.
-    pub fn procedure_digests(&self) -> impl Iterator<Item = RpoDigest> + '_ {
+    pub fn procedure_digests(&self) -> impl Iterator<Item = Word> + '_ {
         self.roots.iter().map(|&root_id| self[root_id].digest())
     }
 
     /// Returns an iterator over the digests of local procedures in this MAST forest.
     ///
     /// A local procedure is defined as a procedure which is not a single external node.
-    pub fn local_procedure_digests(&self) -> impl Iterator<Item = RpoDigest> + '_ {
+    pub fn local_procedure_digests(&self) -> impl Iterator<Item = Word> + '_ {
         self.roots.iter().filter_map(|&root_id| {
             let node = &self[root_id];
             if node.is_external() { None } else { Some(node.digest()) }
@@ -781,5 +779,5 @@ pub enum MastForestError {
     )]
     ChildFingerprintMissing(MastNodeId),
     #[error("advice map key {0} already exists when merging forests")]
-    AdviceMapKeyCollisionOnMerge(RpoDigest),
+    AdviceMapKeyCollisionOnMerge(Word),
 }

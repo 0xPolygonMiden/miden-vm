@@ -3,6 +3,7 @@ use std::sync::Arc;
 use processor::{
     AdviceProvider, ErrorContext, ExecutionError, Host, MastForest, MemAdviceProvider, ProcessState,
 };
+use prover::Word;
 use vm_core::{DebugOptions, mast::MastNodeExt};
 
 mod advice;
@@ -64,7 +65,7 @@ impl<A: AdviceProvider> Host for TestHost<A> {
         Ok(())
     }
 
-    fn get_mast_forest(&self, _node_digest: &prover::Digest) -> Option<Arc<MastForest>> {
+    fn get_mast_forest(&self, _node_digest: &Word) -> Option<Arc<MastForest>> {
         // Empty MAST forest store
         None
     }
