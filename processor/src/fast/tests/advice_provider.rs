@@ -5,8 +5,7 @@ use vm_core::Word;
 
 use super::*;
 use crate::{
-    AdviceProvider, MemAdviceProvider, MemoryAddress, ProcessState, default::DefaultDebugHandler,
-    handlers::TraceHandler,
+    AdviceProvider, MemAdviceProvider, MemoryAddress, ProcessState, handlers::DebugHandler,
 };
 
 #[test]
@@ -226,7 +225,7 @@ impl From<ProcessState<'_>> for ProcessStateSnapshot {
 #[derive(Default)]
 struct TraceSnapshotHandler(BTreeMap<u32, Vec<ProcessStateSnapshot>>);
 
-impl TraceHandler for TraceSnapshotHandler {
+impl DebugHandler for TraceSnapshotHandler {
     fn on_trace(
         &mut self,
         _advice: &dyn AdviceProvider,
@@ -239,16 +238,16 @@ impl TraceHandler for TraceSnapshotHandler {
     }
 }
 
-type ConsistencyHost = DefaultHost<MemAdviceProvider, DefaultDebugHandler, TraceSnapshotHandler>;
+type ConsistencyHost = DefaultHost<MemAdviceProvider, TraceSnapshotHandler>;
 
 impl ConsistencyHost {
     fn new(kernel_forest: Arc<MastForest>) -> Self {
-        let mut host = DefaultHost::default().with_trace_handler(TraceSnapshotHandler::default());
+        let mut host = DefaultHost::default().with_debug_handler(TraceSnapshotHandler::default());
         host.load_library(&kernel_forest).unwrap();
         host
     }
 
     fn snapshots(&self) -> &BTreeMap<u32, Vec<ProcessStateSnapshot>> {
-        &self.trace_handler().0
+        &self.debug_handler().0
     }
 }

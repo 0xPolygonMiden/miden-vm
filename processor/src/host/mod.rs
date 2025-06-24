@@ -17,6 +17,9 @@ pub mod default;
 
 pub mod handlers;
 
+#[cfg(feature = "std")]
+mod debug;
+
 // HOST TRAIT
 // ================================================================================================
 

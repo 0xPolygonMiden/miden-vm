@@ -9,51 +9,18 @@ use vm_core::{
 use crate::{
     AdviceProvider, ErrorContext, ExecutionError, Host, HostLibrary, MastForestStore,
     MemAdviceProvider, MemMastForestStore, ProcessState,
-    handlers::{DebugHandler, EventHandler, TraceHandler},
+    handlers::{DebugHandler, DefaultDebugHandler, EventHandler},
 };
-
-mod debug_handler;
-pub use debug_handler::DefaultDebugHandler;
-
-mod trace_handler;
-pub use trace_handler::DefaultTraceHandler;
 
 // DEFAULT HOST IMPLEMENTATION
 // ================================================================================================
 
-/// A default [Host] implementation that provides the essential functionality required by the VM.
-pub struct DefaultHost<A, D = DefaultDebugHandler, T = DefaultTraceHandler> {
+/// A default [`Host`] implementation that provides the essential functionality required by the VM.
+pub struct DefaultHost<A, D = DefaultDebugHandler> {
     adv_provider: A,
     store: MemMastForestStore,
     event_handlers: EventHandlerRegistry,
     debug_handler: D,
-    trace_handler: T,
-}
-
-impl<A: AdviceProvider, T: TraceHandler> DefaultHost<A, DefaultDebugHandler, T> {
-    /// Replace the [`DefaultDebugHandler`] with a custom one, ensuring it cannot be overridden.
-    pub fn with_debug_handler<D: DebugHandler>(self, handler: D) -> DefaultHost<A, D, T> {
-        DefaultHost {
-            adv_provider: self.adv_provider,
-            store: self.store,
-            event_handlers: self.event_handlers,
-            debug_handler: handler,
-            trace_handler: self.trace_handler,
-        }
-    }
-}
-
-impl<A: AdviceProvider, D: DebugHandler> DefaultHost<A, D, DefaultTraceHandler> {
-    /// Replace the [`DefaultTraceHandler`] with a custom one, ensuring it cannot be overridden.
-    pub fn with_trace_handler<T: TraceHandler>(self, handler: T) -> DefaultHost<A, D, T> {
-        DefaultHost {
-            adv_provider: self.adv_provider,
-            store: self.store,
-            event_handlers: self.event_handlers,
-            debug_handler: self.debug_handler,
-            trace_handler: handler,
-        }
-    }
 }
 
 impl<A: AdviceProvider> DefaultHost<A> {
@@ -63,12 +30,11 @@ impl<A: AdviceProvider> DefaultHost<A> {
             store: MemMastForestStore::default(),
             event_handlers: EventHandlerRegistry::new(),
             debug_handler: DefaultDebugHandler,
-            trace_handler: DefaultTraceHandler,
         }
     }
 }
 
-impl<A: AdviceProvider, D: DebugHandler, T: TraceHandler> DefaultHost<A, D, T> {
+impl<A: AdviceProvider, D: DebugHandler> DefaultHost<A, D> {
     pub fn load_library(&mut self, library: &dyn HostLibrary) -> Result<(), ExecutionError> {
         // Load the MAST forest
         self.load_mast_forest(library.mast_forest())?;
@@ -81,6 +47,16 @@ impl<A: AdviceProvider, D: DebugHandler, T: TraceHandler> DefaultHost<A, D, T> {
 
     pub fn load_handler(&mut self, handler: Box<dyn EventHandler>) -> Result<(), ExecutionError> {
         self.event_handlers.register(handler)
+    }
+
+    /// Replace the [`DefaultDebugHandler`] with a custom one, ensuring it cannot be overridden.
+    pub fn with_debug_handler<H: DebugHandler>(self, handler: H) -> DefaultHost<A, H> {
+        DefaultHost {
+            adv_provider: self.adv_provider,
+            store: self.store,
+            event_handlers: self.event_handlers,
+            debug_handler: handler,
+        }
     }
 
     fn load_mast_forest(&mut self, mast_forest: Arc<MastForest>) -> Result<(), ExecutionError> {
@@ -126,19 +102,9 @@ impl<A: AdviceProvider, D: DebugHandler, T: TraceHandler> DefaultHost<A, D, T> {
     pub fn debug_handler_mut(&mut self) -> &mut D {
         &mut self.debug_handler
     }
-
-    #[cfg(any(test, feature = "testing"))]
-    pub fn trace_handler(&self) -> &T {
-        &self.trace_handler
-    }
-
-    #[cfg(any(test, feature = "testing"))]
-    pub fn trace_handler_mut(&mut self) -> &mut T {
-        &mut self.trace_handler
-    }
 }
 
-impl<A: AdviceProvider, D: DebugHandler, T: TraceHandler> Host for DefaultHost<A, D, T> {
+impl<A: AdviceProvider, D: DebugHandler> Host for DefaultHost<A, D> {
     type AdviceProvider = A;
 
     fn advice_provider(&self) -> &Self::AdviceProvider {
@@ -177,7 +143,7 @@ impl<A: AdviceProvider, D: DebugHandler, T: TraceHandler> Host for DefaultHost<A
     }
 
     fn on_trace(&mut self, process: ProcessState, trace_id: u32) -> Result<(), ExecutionError> {
-        self.trace_handler.on_trace(&self.adv_provider, process, trace_id)
+        self.debug_handler.on_trace(&self.adv_provider, process, trace_id)
     }
 }
 
@@ -188,7 +154,6 @@ impl Default for DefaultHost<MemAdviceProvider> {
             store: MemMastForestStore::default(),
             event_handlers: EventHandlerRegistry::default(),
             debug_handler: DefaultDebugHandler,
-            trace_handler: DefaultTraceHandler,
         }
     }
 }

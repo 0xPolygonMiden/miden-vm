@@ -39,21 +39,62 @@ pub trait DebugHandler {
         advice: &dyn AdviceProvider,
         process: ProcessState,
         options: &DebugOptions,
-    ) -> Result<(), ExecutionError>;
-}
+    ) -> Result<(), ExecutionError> {
+        #[cfg(feature = "std")]
+        {
+            use crate::host::debug::Printer;
+            let printer = Printer::new(process.clk(), process.ctx(), process.fmp());
+            match options {
+                DebugOptions::StackAll => {
+                    printer.print_vm_stack(process, None);
+                },
+                DebugOptions::StackTop(n) => {
+                    printer.print_vm_stack(process, Some(*n as usize));
+                },
+                DebugOptions::MemAll => {
+                    printer.print_mem_all(process);
+                },
+                DebugOptions::MemInterval(n, m) => {
+                    printer.print_mem_interval(process, *n, *m);
+                },
+                DebugOptions::LocalInterval(n, m, num_locals) => {
+                    printer.print_local_interval(
+                        process,
+                        (*n as u32, *m as u32),
+                        *num_locals as u32,
+                    );
+                },
+                DebugOptions::AdvStackTop(length) => {
+                    printer.print_vm_adv_stack(advice, *length as usize);
+                },
+            }
+        }
+        let _ = (advice, process, options);
+        Ok(())
+    }
 
-// TRACE HANDLER
-// ================================================================================================
-
-pub trait TraceHandler {
-    /// TODO: What kind of error should we return
     fn on_trace(
         &mut self,
-        advice: &dyn AdviceProvider,
-        process: ProcessState,
-        trace_id: u32,
-    ) -> Result<(), ExecutionError>;
+        _advice: &dyn AdviceProvider,
+        _process: ProcessState,
+        _trace_id: u32,
+    ) -> Result<(), ExecutionError> {
+        #[cfg(feature = "std")]
+        std::println!(
+            "Trace with id {} emitted at step {} in context {}",
+            _trace_id,
+            _process.clk(),
+            _process.ctx()
+        );
+        Ok(())
+    }
 }
+
+/// Concrete [`DebugHandler`] which re-uses the provided `on_debug` and `on_trace` implementations.
+#[derive(Clone, Default)]
+pub struct DefaultDebugHandler;
+
+impl DebugHandler for DefaultDebugHandler {}
 
 // STATELESS HANDLER
 // ================================================================================================
