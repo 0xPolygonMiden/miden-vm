@@ -46,8 +46,7 @@ impl Process {
         let mut word: [Felt; WORD_SIZE] = self
             .chiplets
             .memory
-            .read_word(self.system.ctx(), self.stack.get(0), self.system.clk(), err_ctx)
-            .map_err(ExecutionError::MemoryError)?
+            .read_word(self.system.ctx(), self.stack.get(0), self.system.clk(), err_ctx)?
             .into();
         word.reverse();
 
@@ -72,11 +71,12 @@ impl Process {
         &mut self,
         err_ctx: &ErrorContext<'_, BasicBlockNode>,
     ) -> Result<(), ExecutionError> {
-        let element = self
-            .chiplets
-            .memory
-            .read(self.system.ctx(), self.stack.get(0), self.system.clk(), err_ctx)
-            .map_err(ExecutionError::MemoryError)?;
+        let element = self.chiplets.memory.read(
+            self.system.ctx(),
+            self.stack.get(0),
+            self.system.clk(),
+            err_ctx,
+        )?;
 
         self.stack.set(0, element);
         self.stack.copy_state(1);
@@ -106,10 +106,13 @@ impl Process {
         let word = [self.stack.get(4), self.stack.get(3), self.stack.get(2), self.stack.get(1)];
 
         // write the word to memory and get the previous word
-        self.chiplets
-            .memory
-            .write_word(self.system.ctx(), addr, self.system.clk(), word.into(), err_ctx)
-            .map_err(ExecutionError::MemoryError)?;
+        self.chiplets.memory.write_word(
+            self.system.ctx(),
+            addr,
+            self.system.clk(),
+            word.into(),
+            err_ctx,
+        )?;
 
         // reverse the order of the memory word & update the stack state
         for (i, &value) in word.iter().rev().enumerate() {
@@ -138,10 +141,7 @@ impl Process {
         let value = self.stack.get(1);
 
         // write the value to the memory and get the previous word
-        self.chiplets
-            .memory
-            .write(ctx, addr, self.system.clk(), value, err_ctx)
-            .map_err(ExecutionError::MemoryError)?;
+        self.chiplets.memory.write(ctx, addr, self.system.clk(), value, err_ctx)?;
 
         // update the stack state
         self.stack.shift_left(1);
@@ -175,14 +175,8 @@ impl Process {
 
         // load two words from memory
         let words = [
-            self.chiplets
-                .memory
-                .read_word(ctx, addr_first_word, clk, err_ctx)
-                .map_err(ExecutionError::MemoryError)?,
-            self.chiplets
-                .memory
-                .read_word(ctx, addr_second_word, clk, err_ctx)
-                .map_err(ExecutionError::MemoryError)?,
+            self.chiplets.memory.read_word(ctx, addr_first_word, clk, err_ctx)?,
+            self.chiplets.memory.read_word(ctx, addr_second_word, clk, err_ctx)?,
         ];
 
         // replace the stack elements with the elements from memory (in stack order)
@@ -239,14 +233,8 @@ impl Process {
             .map_err(|err| ExecutionError::advice_error_at_clk(err, self.system.clk(), err_ctx))?;
 
         // write the words memory
-        self.chiplets
-            .memory
-            .write_word(ctx, addr_first_word, clk, words[0], err_ctx)
-            .map_err(ExecutionError::MemoryError)?;
-        self.chiplets
-            .memory
-            .write_word(ctx, addr_second_word, clk, words[1], err_ctx)
-            .map_err(ExecutionError::MemoryError)?;
+        self.chiplets.memory.write_word(ctx, addr_first_word, clk, words[0], err_ctx)?;
+        self.chiplets.memory.write_word(ctx, addr_second_word, clk, words[1], err_ctx)?;
 
         // replace the elements on the stack with the word elements (in stack order)
         for (i, &adv_value) in words.iter().flat_map(|word| word.iter()).rev().enumerate() {

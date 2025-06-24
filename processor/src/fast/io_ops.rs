@@ -37,10 +37,7 @@ impl FastProcessor {
         let addr = self.stack_get(0);
         self.decrement_stack_size();
 
-        let word = *self
-            .memory
-            .read_word(self.ctx, addr, self.clk + op_idx)
-            .map_err(ExecutionError::MemoryError)?;
+        let word = *self.memory.read_word(self.ctx, addr, self.clk + op_idx)?;
         self.stack_write_word(0, &word);
 
         Ok(())
@@ -52,9 +49,7 @@ impl FastProcessor {
         let word = self.stack_get_word(1);
         self.decrement_stack_size();
 
-        self.memory
-            .write_word(self.ctx, addr, self.clk + op_idx, word)
-            .map_err(ExecutionError::MemoryError)?;
+        self.memory.write_word(self.ctx, addr, self.clk + op_idx, word)?;
         Ok(())
     }
 
@@ -62,7 +57,7 @@ impl FastProcessor {
     pub fn op_mload(&mut self) -> Result<(), ExecutionError> {
         let element = {
             let addr = self.stack_get(0);
-            self.memory.read_element(self.ctx, addr).map_err(ExecutionError::MemoryError)?
+            self.memory.read_element(self.ctx, addr)?
         };
 
         self.stack_write(0, element);
@@ -76,9 +71,7 @@ impl FastProcessor {
         let value = self.stack_get(1);
         self.decrement_stack_size();
 
-        self.memory
-            .write_element(self.ctx, addr, value)
-            .map_err(ExecutionError::MemoryError)?;
+        self.memory.write_element(self.ctx, addr, value)?;
 
         Ok(())
     }
@@ -92,14 +85,8 @@ impl FastProcessor {
         let addr_first_word = self.stack_get(MEM_ADDR_STACK_IDX);
         let addr_second_word = addr_first_word + WORD_SIZE_FELT;
         let words = [
-            *self
-                .memory
-                .read_word(self.ctx, addr_first_word, self.clk + op_idx)
-                .map_err(ExecutionError::MemoryError)?,
-            *self
-                .memory
-                .read_word(self.ctx, addr_second_word, self.clk + op_idx)
-                .map_err(ExecutionError::MemoryError)?,
+            *self.memory.read_word(self.ctx, addr_first_word, self.clk + op_idx)?,
+            *self.memory.read_word(self.ctx, addr_second_word, self.clk + op_idx)?,
         ];
 
         // Replace the stack elements with the elements from memory (in stack order). The word at
@@ -127,12 +114,9 @@ impl FastProcessor {
         })?;
 
         // write the words to memory
+        self.memory.write_word(self.ctx, addr_first_word, self.clk + op_idx, words[0])?;
         self.memory
-            .write_word(self.ctx, addr_first_word, self.clk + op_idx, words[0])
-            .map_err(ExecutionError::MemoryError)?;
-        self.memory
-            .write_word(self.ctx, addr_second_word, self.clk + op_idx, words[1])
-            .map_err(ExecutionError::MemoryError)?;
+            .write_word(self.ctx, addr_second_word, self.clk + op_idx, words[1])?;
 
         // replace the elements on the stack with the word elements (in stack order)
         self.stack_write_word(0, &words[1]);

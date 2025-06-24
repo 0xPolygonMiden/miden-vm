@@ -63,7 +63,7 @@ pub fn falcon_sig_to_stack_handler(
 /// 5. The nonce represented as 8 field elements.
 #[cfg(feature = "std")]
 pub fn falcon_sign(sk_felt: &[Felt], msg: Word) -> Option<Vec<Felt>> {
-    use alloc::{vec, vec::Vec};
+    use alloc::vec;
 
     use vm_core::{
         crypto::{

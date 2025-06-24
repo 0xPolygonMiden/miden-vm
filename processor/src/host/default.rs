@@ -2,7 +2,6 @@ use alloc::{
     boxed::Box,
     collections::{BTreeMap, btree_map::Entry},
     sync::Arc,
-    vec::Vec,
 };
 
 use vm_core::{
@@ -60,7 +59,9 @@ impl<A: AdviceProvider, D: DebugHandler> DefaultHost<A, D> {
         self.store.insert(mast_forest);
 
         // Register event handlers
-        self.event_handlers.register_many(library.event_handlers())?;
+        for handler in library.event_handlers() {
+            self.event_handlers.register(handler)?;
+        }
 
         Ok(())
     }
@@ -115,13 +116,14 @@ impl<A: AdviceProvider, D: DebugHandler> Host for DefaultHost<A, D> {
         event_id: u32,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<(), ExecutionError> {
-        if let Some(handler) = self.event_handlers.get(event_id) {
-            handler
-                .on_event(&mut self.adv_provider, process)
-                .map_err(|err| ExecutionError::event_error(event_id, err, err_ctx))
-        } else {
-            Err(ExecutionError::invalid_event_id_error(event_id, err_ctx))
-        }
+        let handler = self
+            .event_handlers
+            .get(event_id)
+            .ok_or_else(|| ExecutionError::invalid_event_id_error(event_id, err_ctx))?;
+
+        handler
+            .on_event(&mut self.adv_provider, process)
+            .map_err(|err| ExecutionError::event_error(event_id, err, err_ctx))
     }
 
     fn on_debug(
@@ -168,16 +170,6 @@ impl EventHandlerRegistry {
             Entry::Vacant(e) => e.insert(handler),
             Entry::Occupied(_) => return Err(ExecutionError::DuplicateEventHandler { id }),
         };
-        Ok(())
-    }
-
-    pub fn register_many(
-        &mut self,
-        handlers: Vec<Box<dyn EventHandler>>,
-    ) -> Result<(), ExecutionError> {
-        for handler in handlers {
-            self.register(handler)?;
-        }
         Ok(())
     }
 
