@@ -69,10 +69,6 @@ pub fn generate_advice_inputs(
     advice_stack.extend_from_slice(&[0, 0, 0, 0]);
     advice_stack.push(num_kernel_procedures_digests as u64);
 
-    // add a placeholder for the auxiliary randomness
-    let aux_rand_insertion_index = advice_stack.len();
-    advice_stack.extend_from_slice(&[0, 0, 0, 0]);
-
     // create AIR instance for the computation specified in the proof
     let air = ProcessorAir::new(proof.trace_info().to_owned(), pub_inputs, proof.options().clone());
     let seed_digest = Rpo256::hash_elements(&public_coin_seed);

@@ -1,6 +1,7 @@
 use alloc::{sync::Arc, vec::Vec};
 use core::fmt;
 
+use math::FieldElement;
 use miden_crypto::{Felt, WORD_SIZE, Word};
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 

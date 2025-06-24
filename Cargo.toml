@@ -37,14 +37,3 @@ overflow-checks = true
 
 [workspace.dependencies]
 thiserror = { version = "2.0", default-features = false }
-
-[patch.crates-io]
-winter-air = {git = "https://github.com/Al-Kindi-0/winterfell/", branch = "al-merge-ood-evals", package = "winter-air" }
-winter-crypto = {git = "https://github.com/Al-Kindi-0/winterfell/", branch = "al-merge-ood-evals", package = "winter-crypto" }
-winter-prover = {git = "https://github.com/Al-Kindi-0/winterfell/", branch = "al-merge-ood-evals", package = "winter-prover" }
-winter-verifier = {git = "https://github.com/Al-Kindi-0/winterfell/", branch = "al-merge-ood-evals", package = "winter-verifier" }
-winter-math = {git = "https://github.com/Al-Kindi-0/winterfell/", branch = "al-merge-ood-evals", package = "winter-math" }
-winter-fri = {git = "https://github.com/Al-Kindi-0/winterfell/", branch = "al-merge-ood-evals", package = "winter-fri" }
-winter-maybe-async = {git = "https://github.com/Al-Kindi-0/winterfell/", branch = "al-merge-ood-evals", package = "winter-maybe-async" }
-winter-utils = {git = "https://github.com/Al-Kindi-0/winterfell/", branch = "al-merge-ood-evals", package = "winter-utils" }
-winter-rand-utils = {git = "https://github.com/Al-Kindi-0/winterfell/", branch = "al-merge-ood-evals", package = "winter-rand-utils" }
