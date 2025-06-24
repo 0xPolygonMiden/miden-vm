@@ -41,6 +41,11 @@ impl<A: AdviceProvider> Host for TestHost<A> {
         &mut self.adv_provider
     }
 
+    fn get_mast_forest(&self, _node_digest: &Word) -> Option<Arc<MastForest>> {
+        // Empty MAST forest store
+        None
+    }
+
     fn on_event(
         &mut self,
         _process: ProcessState,
@@ -48,11 +53,6 @@ impl<A: AdviceProvider> Host for TestHost<A> {
         _err_ctx: &ErrorContext<impl MastNodeExt>,
     ) -> Result<(), ExecutionError> {
         self.event_handler.push(event_id);
-        Ok(())
-    }
-
-    fn on_trace(&mut self, _process: ProcessState, trace_id: u32) -> Result<(), ExecutionError> {
-        self.trace_handler.push(trace_id);
         Ok(())
     }
 
@@ -65,8 +65,8 @@ impl<A: AdviceProvider> Host for TestHost<A> {
         Ok(())
     }
 
-    fn get_mast_forest(&self, _node_digest: &Word) -> Option<Arc<MastForest>> {
-        // Empty MAST forest store
-        None
+    fn on_trace(&mut self, _process: ProcessState, trace_id: u32) -> Result<(), ExecutionError> {
+        self.trace_handler.push(trace_id);
+        Ok(())
     }
 }

@@ -18,6 +18,7 @@
 - Uniform chiplet bus message flag encoding (#1887).
 - [BREAKING] Updated dependencies Winterfell to v0.13 and Crypto to v0.15 (#1896).
 - Fixed instructions with errors print without quotes (#1882).
+- [BREAKING] Implement custom Event handlers (#1584).
 
 #### Enhancements
 

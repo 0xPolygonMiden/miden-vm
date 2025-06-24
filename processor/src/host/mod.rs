@@ -1,21 +1,24 @@
-use alloc::sync::Arc;
+use alloc::{boxed::Box, sync::Arc, vec::Vec};
 
 use vm_core::{
-    DebugOptions, Word,
+    DebugOptions, Felt, Word,
     mast::{MastForest, MastNodeExt},
 };
 
-use super::{ExecutionError, ProcessState};
-use crate::{Felt, KvMap, MemAdviceProvider, errors::ErrorContext};
+use crate::{ErrorContext, ExecutionError, ProcessState, handlers::EventHandler};
 
-pub(super) mod advice;
+pub mod advice;
 use advice::AdviceProvider;
-
-#[cfg(feature = "std")]
-mod debug;
 
 mod mast_forest_store;
 pub use mast_forest_store::{MastForestStore, MemMastForestStore};
+
+pub mod default;
+
+pub mod handlers;
+
+#[cfg(feature = "std")]
+mod debug;
 
 // HOST TRAIT
 // ================================================================================================
@@ -27,6 +30,7 @@ pub use mast_forest_store::{MastForestStore, MemMastForestStore};
 /// 2. getting a library's MAST forest,
 /// 3. handling advice events (which internally mutates the advice provider), and
 /// 4. handling debug and trace events.
+/// 5. handling custom events.
 pub trait Host {
     type AdviceProvider: AdviceProvider;
 
@@ -43,54 +47,50 @@ pub trait Host {
     /// this digest could not be found in this [Host].
     fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>>;
 
-    // PROVIDED METHODS
-    // --------------------------------------------------------------------------------------------
-
     /// Handles the event emitted from the VM.
     fn on_event(
         &mut self,
-        _process: ProcessState,
-        _event_id: u32,
-        _err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Result<(), ExecutionError> {
-        #[cfg(feature = "std")]
-        std::println!(
-            "Event with id {} emitted at step {} in context {}",
-            _event_id,
-            _process.clk(),
-            _process.ctx()
-        );
-        Ok(())
-    }
+        process: ProcessState,
+        event_id: u32,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError>;
 
     /// Handles the debug request from the VM.
     fn on_debug(
         &mut self,
-        _process: ProcessState,
-        _options: &DebugOptions,
-    ) -> Result<(), ExecutionError>
-    where
-        Self: Sized,
-    {
-        #[cfg(feature = "std")]
-        debug::print_debug_info(self, _process, _options);
-        Ok(())
-    }
+        process: ProcessState,
+        options: &DebugOptions,
+    ) -> Result<(), ExecutionError>;
 
     /// Handles the trace emitted from the VM.
-    fn on_trace(&mut self, _process: ProcessState, _trace_id: u32) -> Result<(), ExecutionError> {
-        #[cfg(feature = "std")]
-        std::println!(
-            "Trace with id {} emitted at step {} in context {}",
-            _trace_id,
-            _process.clk(),
-            _process.ctx()
-        );
-        Ok(())
-    }
+    fn on_trace(&mut self, _process: ProcessState, _trace_id: u32) -> Result<(), ExecutionError>;
+
+    // PROVIDED METHODS
+    // --------------------------------------------------------------------------------------------
 
     /// Handles the failure of the assertion instruction.
     fn on_assert_failed(&mut self, _process: ProcessState, _err_code: Felt) {}
+}
+
+// HOST LIBRARY
+// ================================================================================================
+
+/// Trait for libraries that want to provide event handlers to a (Default) Host
+pub trait HostLibrary {
+    /// Returns all event handlers defined by this library
+    fn event_handlers(&self) -> Vec<Box<dyn EventHandler>> {
+        Vec::default()
+    }
+
+    /// Returns the MAST forest for this library
+    fn mast_forest(&self) -> Arc<MastForest>;
+}
+
+/// Default implementation for loading a MastForest without handlers.
+impl HostLibrary for Arc<MastForest> {
+    fn mast_forest(&self) -> Arc<MastForest> {
+        (*self).clone()
+    }
 }
 
 impl<H> Host for &mut H
@@ -111,14 +111,6 @@ where
         H::get_mast_forest(self, node_digest)
     }
 
-    fn on_debug(
-        &mut self,
-        process: ProcessState,
-        options: &DebugOptions,
-    ) -> Result<(), ExecutionError> {
-        H::on_debug(self, process, options)
-    }
-
     fn on_event(
         &mut self,
         process: ProcessState,
@@ -128,114 +120,19 @@ where
         H::on_event(self, process, event_id, err_ctx)
     }
 
+    fn on_debug(
+        &mut self,
+        process: ProcessState,
+        options: &DebugOptions,
+    ) -> Result<(), ExecutionError> {
+        H::on_debug(self, process, options)
+    }
+
     fn on_trace(&mut self, process: ProcessState, trace_id: u32) -> Result<(), ExecutionError> {
         H::on_trace(self, process, trace_id)
     }
 
     fn on_assert_failed(&mut self, process: ProcessState, err_code: Felt) {
         H::on_assert_failed(self, process, err_code)
-    }
-}
-
-// DEFAULT HOST IMPLEMENTATION
-// ================================================================================================
-
-/// A default [Host] implementation that provides the essential functionality required by the VM.
-pub struct DefaultHost<A> {
-    adv_provider: A,
-    store: MemMastForestStore,
-}
-
-impl<A: Clone> Clone for DefaultHost<A> {
-    fn clone(&self) -> Self {
-        Self {
-            adv_provider: self.adv_provider.clone(),
-            store: self.store.clone(),
-        }
-    }
-}
-
-impl Default for DefaultHost<MemAdviceProvider> {
-    fn default() -> Self {
-        Self {
-            adv_provider: MemAdviceProvider::default(),
-            store: MemMastForestStore::default(),
-        }
-    }
-}
-
-impl<A: AdviceProvider> DefaultHost<A> {
-    pub fn new(adv_provider: A) -> Self {
-        Self {
-            adv_provider,
-            store: MemMastForestStore::default(),
-        }
-    }
-
-    pub fn load_mast_forest(&mut self, mast_forest: Arc<MastForest>) -> Result<(), ExecutionError> {
-        // Load the MAST's advice data into the advice provider.
-
-        for (digest, values) in mast_forest.advice_map().iter() {
-            if let Some(stored_values) = self.advice_provider().get_mapped_values(digest) {
-                if stored_values != values {
-                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent {
-                        key: *digest,
-                        prev_values: stored_values.to_vec(),
-                        new_values: values.clone(),
-                    });
-                }
-            } else {
-                self.advice_provider_mut().insert_into_map(*digest, values.clone());
-            }
-        }
-
-        self.store.insert(mast_forest);
-        Ok(())
-    }
-
-    #[cfg(any(test, feature = "testing"))]
-    pub fn advice_provider(&self) -> &A {
-        &self.adv_provider
-    }
-
-    #[cfg(any(test, feature = "testing"))]
-    pub fn advice_provider_mut(&mut self) -> &mut A {
-        &mut self.adv_provider
-    }
-
-    pub fn into_inner(self) -> A {
-        self.adv_provider
-    }
-}
-
-impl<A: AdviceProvider> Host for DefaultHost<A> {
-    type AdviceProvider = A;
-
-    fn advice_provider(&self) -> &Self::AdviceProvider {
-        &self.adv_provider
-    }
-
-    fn advice_provider_mut(&mut self) -> &mut Self::AdviceProvider {
-        &mut self.adv_provider
-    }
-
-    fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>> {
-        self.store.get(node_digest)
-    }
-
-    fn on_event(
-        &mut self,
-        _process: ProcessState,
-        _event_id: u32,
-        _err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Result<(), ExecutionError> {
-        #[cfg(feature = "std")]
-        std::println!(
-            "Event with id {} emitted at step {} in context {}",
-            _event_id,
-            _process.clk(),
-            _process.ctx()
-        );
-        Ok(())
     }
 }

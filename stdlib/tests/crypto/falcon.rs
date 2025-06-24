@@ -1,31 +1,40 @@
 use std::{sync::Arc, vec};
 
 use assembly::{Assembler, DefaultSourceManager, utils::Serializable};
-use miden_air::{Felt, ProvingOptions, RowIndex};
-use miden_stdlib::{EVENT_FALCON_SIG_TO_STACK, StdLibrary, falcon_sign};
+use miden_air::{ProvingOptions, RowIndex};
+use miden_stdlib::{
+    StdLibrary,
+    crypto::dsa::rpo_falcon512::{falcon_sig_to_stack_handler, falcon_sign},
+};
 use processor::{
-    AdviceInputs, ExecutionError, MemAdviceProvider, Program, ProgramInfo, StackInputs,
-    crypto::RpoRandomCoin,
+    AdviceInputs, ExecutionError, MemAdviceProvider, Program, ProgramInfo, crypto::RpoRandomCoin,
+    handlers::new_handler,
 };
 use rand::{Rng, rng};
 use test_utils::{
-    Word,
+    TestHost, Word,
     crypto::{
         MerkleStore, Rpo256,
         rpo_falcon512::{Polynomial, SecretKey},
     },
     expect_exec_error_matches,
-    host::TestHost,
     proptest::proptest,
     rand::rand_value,
 };
-use vm_core::{StarkField, ZERO};
+use vm_core::{Felt, StackInputs, StarkField, ZERO};
 
 /// Modulus used for rpo falcon 512.
 const M: u64 = 12289;
 const Q: u64 = (M - 1) / 2;
 const N: usize = 512;
 const J: u64 = (N * M as usize * M as usize) as u64;
+
+/// Event ID for pushing a Falcon signature to the advice stack.
+/// This event is used for testing purposes only.
+///
+/// # TODO:
+/// This event was generated pseudo-randomly in order to avoid collisions.
+pub const EVENT_FALCON_SIG_TO_STACK: u32 = 3419226139;
 
 const PROBABILISTIC_PRODUCT_SOURCE: &str = "
     use.std::crypto::dsa::rpo_falcon512
@@ -206,7 +215,8 @@ fn test_move_sig_to_adv_stack() {
     let adv_stack = vec![];
     let store = MerkleStore::new();
 
-    let test = build_test!(source, &op_stack, &adv_stack, store, advice_map.into_iter());
+    let mut test = build_test!(source, &op_stack, &adv_stack, store, advice_map.into_iter());
+    test.add_handler(EVENT_FALCON_SIG_TO_STACK, falcon_sig_to_stack_handler);
     test.expect_stack(&[])
 }
 
@@ -218,7 +228,8 @@ fn falcon_execution() {
     let message = rand_value::<Word>();
     let (source, op_stack, adv_stack, store, advice_map) = generate_test(sk, message);
 
-    let test = build_test!(&source, &op_stack, &adv_stack, store, advice_map.into_iter());
+    let mut test = build_test!(&source, &op_stack, &adv_stack, store, advice_map.into_iter());
+    test.add_handler(EVENT_FALCON_SIG_TO_STACK, falcon_sig_to_stack_handler);
     test.expect_stack(&[])
 }
 
@@ -238,8 +249,9 @@ fn falcon_prove_verify() {
     let advice_inputs = AdviceInputs::default().with_map(advice_map);
     let advice_provider = MemAdviceProvider::from(advice_inputs);
     let mut host = TestHost::new(advice_provider);
-    host.load_mast_forest(StdLibrary::default().mast_forest().clone())
-        .expect("failed to load mast forest");
+    host.load_library(&StdLibrary::default()).expect("failed to load mast forest");
+    host.load_handler(new_handler(EVENT_FALCON_SIG_TO_STACK, falcon_sig_to_stack_handler))
+        .expect("failed to load Falcon handler");
 
     let options = ProvingOptions::with_96_bit_security(false);
     let (stack_outputs, proof) = test_utils::prove(
