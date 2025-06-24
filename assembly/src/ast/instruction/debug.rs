@@ -1,6 +1,10 @@
 use core::fmt;
 
-use crate::ast::{ImmU8, ImmU16, ImmU32};
+use crate::{
+    assembler::ProcedureContext,
+    ast::{ImmU8, ImmU16, ImmU32},
+    diagnostics::Report,
+};
 
 // DEBUG OPTIONS
 // ================================================================================================
@@ -15,32 +19,50 @@ pub enum DebugOptions {
     LocalInterval(ImmU16, ImmU16),
     LocalRangeFrom(ImmU16),
     LocalAll,
+    AdvStackTop(ImmU16),
+}
+
+impl DebugOptions {
+    /// Compiles the AST representation of a `debug` instruction into its VM representation.
+    ///
+    /// This function does not currently return any errors, but may in the future.
+    ///
+    /// See [crate::Assembler] for an overview of AST compilation.
+    pub fn compile(&self, proc_ctx: &ProcedureContext) -> Result<vm_core::DebugOptions, Report> {
+        type Ast = DebugOptions;
+        type Vm = vm_core::DebugOptions;
+
+        // NOTE: these `ast::Immediate::expect_value()` calls *should* be safe, because by the time
+        // we're compiling debug options all immediate-constant arguments should be resolved.
+        let compiled = match self {
+            Ast::StackAll => Vm::StackAll,
+            Ast::StackTop(n) => Vm::StackTop(n.expect_value()),
+            Ast::MemAll => Vm::MemAll,
+            Ast::MemInterval(start, end) => {
+                Vm::MemInterval(start.expect_value(), end.expect_value())
+            },
+            Ast::LocalInterval(start, end) => {
+                let (start, end) = (start.expect_value(), end.expect_value());
+                Vm::LocalInterval(start, end, proc_ctx.num_locals())
+            },
+            Ast::LocalRangeFrom(index) => {
+                let index = index.expect_value();
+                Vm::LocalInterval(index, index, proc_ctx.num_locals())
+            },
+            Ast::LocalAll => {
+                let end_exclusive = Ord::min(1, proc_ctx.num_locals());
+                Vm::LocalInterval(0, end_exclusive - 1, proc_ctx.num_locals())
+            },
+            Ast::AdvStackTop(n) => Vm::AdvStackTop(n.expect_value()),
+        };
+
+        Ok(compiled)
+    }
 }
 
 impl crate::prettier::PrettyPrint for DebugOptions {
     fn render(&self) -> crate::prettier::Document {
         crate::prettier::display(self)
-    }
-}
-
-impl TryFrom<DebugOptions> for vm_core::DebugOptions {
-    type Error = ();
-
-    fn try_from(options: DebugOptions) -> Result<Self, Self::Error> {
-        match options {
-            DebugOptions::StackAll => Ok(Self::StackAll),
-            DebugOptions::StackTop(ImmU8::Value(n)) => Ok(Self::StackTop(n.into_inner())),
-            DebugOptions::MemAll => Ok(Self::MemAll),
-            DebugOptions::MemInterval(ImmU32::Value(start), ImmU32::Value(end)) => {
-                Ok(Self::MemInterval(start.into_inner(), end.into_inner()))
-            },
-            DebugOptions::LocalInterval(ImmU16::Value(start), ImmU16::Value(end)) => {
-                let start = start.into_inner();
-                let end = end.into_inner();
-                Ok(Self::LocalInterval(start, end, end - start))
-            },
-            _ => Err(()),
-        }
     }
 }
 
@@ -56,6 +78,7 @@ impl fmt::Display for DebugOptions {
             Self::LocalInterval(start, end) => {
                 write!(f, "local.{start}.{end}")
             },
+            Self::AdvStackTop(n) => write!(f, "adv_stack.{n}"),
         }
     }
 }

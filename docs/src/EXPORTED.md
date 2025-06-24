@@ -46,6 +46,7 @@
       - [Hash Chiplet](./design/chiplets/hasher.md)
       - [Bitwise Chiplet](./design/chiplets/bitwise.md)
       - [Memory Chiplet](./design/chiplets/memory.md)
+      - [ACE Chiplet](./design/chiplets/ace.md)
       - [Kernel ROM Chiplet](./design/chiplets/kernel_rom.md)
     - [Lookup arguments](./design/lookups/main.md)
       - [Multiset checks](./design/lookups/multiset.md)

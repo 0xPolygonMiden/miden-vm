@@ -1,6 +1,11 @@
 use alloc::{string::String, sync::Arc};
 
-use crate::{Felt, SourceSpan, Span, Spanned, ast::Ident, parser::HexEncodedValue, prettier};
+use crate::{
+    Felt, SourceSpan, Span, Spanned,
+    ast::Ident,
+    parser::{IntValue, WordValue},
+    prettier,
+};
 
 /// Represents a metadata expression of an [crate::ast::Attribute]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -8,7 +13,7 @@ pub enum MetaExpr {
     /// An identifier/keyword, e.g. `inline`
     Ident(Ident),
     /// A decimal or hexadecimal integer value
-    Int(Span<HexEncodedValue>),
+    Int(Span<IntValue>),
     /// A quoted string or identifier
     String(Ident),
 }
@@ -48,31 +53,31 @@ impl From<String> for MetaExpr {
 
 impl From<u8> for MetaExpr {
     fn from(value: u8) -> Self {
-        Self::Int(Span::new(SourceSpan::UNKNOWN, HexEncodedValue::U8(value)))
+        Self::Int(Span::new(SourceSpan::UNKNOWN, IntValue::U8(value)))
     }
 }
 
 impl From<u16> for MetaExpr {
     fn from(value: u16) -> Self {
-        Self::Int(Span::new(SourceSpan::UNKNOWN, HexEncodedValue::U16(value)))
+        Self::Int(Span::new(SourceSpan::UNKNOWN, IntValue::U16(value)))
     }
 }
 
 impl From<u32> for MetaExpr {
     fn from(value: u32) -> Self {
-        Self::Int(Span::new(SourceSpan::UNKNOWN, HexEncodedValue::U32(value)))
+        Self::Int(Span::new(SourceSpan::UNKNOWN, IntValue::U32(value)))
     }
 }
 
 impl From<Felt> for MetaExpr {
     fn from(value: Felt) -> Self {
-        Self::Int(Span::new(SourceSpan::UNKNOWN, HexEncodedValue::Felt(value)))
+        Self::Int(Span::new(SourceSpan::UNKNOWN, IntValue::Felt(value)))
     }
 }
 
-impl From<[Felt; 4]> for MetaExpr {
-    fn from(value: [Felt; 4]) -> Self {
-        Self::Int(Span::new(SourceSpan::UNKNOWN, HexEncodedValue::Word(value)))
+impl From<WordValue> for MetaExpr {
+    fn from(value: WordValue) -> Self {
+        Self::Int(Span::new(SourceSpan::UNKNOWN, IntValue::Word(value)))
     }
 }
 

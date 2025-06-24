@@ -6,8 +6,9 @@ use alloc::vec::Vec;
 
 pub use self::{advice::SystemEventNode, debug::DebugOptions};
 use crate::{
-    Felt, Word,
+    Felt,
     ast::{InvocationTarget, immediate::*},
+    parser::{IntValue, WordValue},
 };
 
 // INSTRUCTION
@@ -204,12 +205,12 @@ pub enum Instruction {
     CDropW,
 
     // ----- input / output operations -----------------------------------------------------------
-    Push(ImmFelt),
+    Push(Immediate<IntValue>),
     PushU8(u8),
     PushU16(u16),
     PushU32(u32),
     PushFelt(Felt),
-    PushWord(Word),
+    PushWord(WordValue),
     PushU8List(Vec<u8>),
     PushU16List(Vec<u16>),
     PushU32List(Vec<u32>),

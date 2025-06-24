@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 use core::fmt;
 
-use miden_crypto::{Felt, hash::rpo::RpoDigest};
+use miden_crypto::{Felt, Word};
 use miden_formatting::prettier::PrettyPrint;
 
 use super::MastNodeExt;
@@ -23,7 +23,7 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoopNode {
     body: MastNodeId,
-    digest: RpoDigest,
+    digest: Word,
     before_enter: Vec<DecoratorId>,
     after_exit: Vec<DecoratorId>,
 }
@@ -44,7 +44,7 @@ impl LoopNode {
         let digest = {
             let body_hash = mast_forest[body].digest();
 
-            hasher::merge_in_domain(&[body_hash, RpoDigest::default()], Self::DOMAIN)
+            hasher::merge_in_domain(&[body_hash, Word::default()], Self::DOMAIN)
         };
 
         Ok(Self {
@@ -57,7 +57,7 @@ impl LoopNode {
 
     /// Returns a new [`LoopNode`] from values that are assumed to be correct.
     /// Should only be used when the source of the inputs is trusted (e.g. deserialization).
-    pub fn new_unsafe(body: MastNodeId, digest: RpoDigest) -> Self {
+    pub fn new_unsafe(body: MastNodeId, digest: Word) -> Self {
         Self {
             body,
             digest,
@@ -74,11 +74,11 @@ impl LoopNode {
     /// the domain defined by [Self::DOMAIN] - i..e,:
     /// ```
     /// # use miden_core::mast::LoopNode;
-    /// # use miden_crypto::{hash::rpo::{RpoDigest as Digest, Rpo256 as Hasher}};
-    /// # let body_digest = Digest::default();
-    /// Hasher::merge_in_domain(&[body_digest, Digest::default()], LoopNode::DOMAIN);
+    /// # use miden_crypto::{Word, hash::rpo::Rpo256 as Hasher};
+    /// # let body_digest = Word::default();
+    /// Hasher::merge_in_domain(&[body_digest, Word::default()], LoopNode::DOMAIN);
     /// ```
-    pub fn digest(&self) -> RpoDigest {
+    pub fn digest(&self) -> Word {
         self.digest
     }
 

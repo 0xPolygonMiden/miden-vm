@@ -10,6 +10,8 @@ To support basic debugging capabilities, Miden assembly provides a `debug` instr
 - `debug.local` prints out the whole local memory of the currently executing procedure.
 - `debug.local.<n>` prints out contents of the local memory at index $n$ for the currently executing procedure. $n$ must be greater or equal to $0$ and smaller than $65536$.
 - `debug.local.<n>.<m>` prints out contents of the local memory starting at index $n$ and ending at index $m$ (both inclusive). $m$ must be greater or equal to $n$. $n$ and $m$ must be greater or equal to $0$ and smaller than $65536$.
+- `debug.adv_stack` prints out the entire contents of the advice stack.
+- `debug.adv_stack.<n>` prints out the top $n$ items of the advice stack.
 
 Debug instructions do not affect the VM state and do not change the program hash.
 

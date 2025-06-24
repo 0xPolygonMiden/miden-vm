@@ -26,17 +26,25 @@ pub const MEMORY_ACCESS_WORD: Felt = ONE;
 // read/write and element/word columns. We also include the chiplet selector as a unique identifier
 // for memory chiplet labels (to ensure they don't collide with labels from other chiplets).
 
-/// Unique label when r/w=0 and e/w=0.
-pub const MEMORY_WRITE_ELEMENT_LABEL: u8 = 0b11000;
+/// Unique label when r/w=0 and e/w=0, computed as the full chiplet selector with the bits reversed,
+/// plus one.
+/// `selector = [1, 1, 0 | 0, 0]`, `flag = rev(selector) + 1 = [0, 0 | 0, 1, 1] + 1 = 4`
+pub const MEMORY_WRITE_ELEMENT_LABEL: u8 = 0b00011 + 1;
 
-/// Unique label when r/w=0 and e/w=1.
-pub const MEMORY_WRITE_WORD_LABEL: u8 = 0b11001;
+/// Unique label when r/w=0 and e/w=1, computed as the full chiplet selector with the bits reversed,
+/// plus one.
+/// `selector = [1, 1, 0 | 0, 1]`, `flag = rev(selector) + 1 = [1, 0 | 0, 1, 1] + 1 = 20`
+pub const MEMORY_WRITE_WORD_LABEL: u8 = 0b10011 + 1;
 
-/// Unique label when r/w=1 and e/w=0.
-pub const MEMORY_READ_ELEMENT_LABEL: u8 = 0b11010;
+/// Unique label when r/w=1 and e/w=0, computed as the full chiplet selector with the bits reversed,
+/// plus one.
+/// `selector = [1, 1, 0 | 1, 0]`, `flag = rev(selector) + 1 = [0, 1 | 0, 1, 1] + 1 = 12`
+pub const MEMORY_READ_ELEMENT_LABEL: u8 = 0b01011 + 1;
 
-/// Unique label when r/w=1 and e/w=1.
-pub const MEMORY_READ_WORD_LABEL: u8 = 0b11011;
+/// Unique label when r/w=1 and e/w=1, computed as the full chiplet selector with the bits reversed,
+/// plus one.
+/// `selector = [1, 1, 0 | 1, 1]`, `flag = rev(selector) + 1 = [1, 1 | 0, 1, 1] + 1 = 28`
+pub const MEMORY_READ_WORD_LABEL: u8 = 0b11011 + 1;
 
 // --- COLUMN ACCESSOR INDICES WITHIN THE CHIPLET -------------------------------------------------
 

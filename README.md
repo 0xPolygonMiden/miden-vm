@@ -92,7 +92,7 @@ A few general notes on performance:
 
 ### Single-core prover performance
 
-When executed on a single CPU core, the current version of Miden VM operates at around 20 - 25 KHz. In the benchmarks below, the VM executes a [Fibonacci calculator](miden/README.md#fibonacci-calculator) program on Apple M1 Pro CPU in a single thread. The generated proofs have a target security level of 96 bits.
+When executed on a single CPU core, the current version of Miden VM operates at around 20 - 25 KHz. In the benchmarks below, the VM executes a [Fibonacci calculator](miden-vm/README.md#fibonacci-calculator) program on Apple M1 Pro CPU in a single thread. The generated proofs have a target security level of 96 bits.
 
 |   VM cycles    | Execution time | Proving time | RAM consumed | Proof size |
 | :------------: | :------------: | :----------: | :----------: | :--------: |
@@ -179,6 +179,5 @@ StarkWare's STARK tutorial:
 
 - [STARK 101](https://starkware.co/stark-101/)
 
-## License
-
-This project is [MIT licensed](./LICENSE).
+## Licensing
+Any contribution intentionally submitted for inclusion in this repository, as defined in the Apache-2.0 license, shall be dual licensed under the [MIT](./LICENSE-MIT) and [Apache 2.0](./LICENSE-APACHE) licenses, without any additional terms or conditions.

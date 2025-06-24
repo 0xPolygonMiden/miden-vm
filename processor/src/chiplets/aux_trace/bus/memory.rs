@@ -1,4 +1,3 @@
-use alloc::boxed::Box;
 use core::fmt::{Display, Formatter, Result as FmtResult};
 
 use miden_air::{
@@ -59,7 +58,7 @@ pub fn build_ace_memory_read_word_request<E: FieldElement<BaseField = Felt>>(
     let value = message.value(alphas);
 
     #[cfg(any(test, feature = "bus-debugger"))]
-    _debugger.add_request(Box::new(message), alphas);
+    _debugger.add_request(alloc::boxed::Box::new(message), alphas);
 
     value
 }
@@ -93,7 +92,7 @@ pub fn build_ace_memory_read_element_request<E: FieldElement<BaseField = Felt>>(
     let value = message.value(alphas);
 
     #[cfg(any(test, feature = "bus-debugger"))]
-    _debugger.add_request(Box::new(message), alphas);
+    _debugger.add_request(alloc::boxed::Box::new(message), alphas);
 
     value
 }
@@ -134,7 +133,7 @@ pub(super) fn build_mem_mloadw_mstorew_request<E: FieldElement<BaseField = Felt>
     let value = message.value(alphas);
 
     #[cfg(any(test, feature = "bus-debugger"))]
-    _debugger.add_request(Box::new(message), alphas);
+    _debugger.add_request(alloc::boxed::Box::new(message), alphas);
 
     value
 }
@@ -166,7 +165,7 @@ pub(super) fn build_mem_mload_mstore_request<E: FieldElement<BaseField = Felt>>(
     let value = message.value(alphas);
 
     #[cfg(any(test, feature = "bus-debugger"))]
-    _debugger.add_request(Box::new(message), alphas);
+    _debugger.add_request(alloc::boxed::Box::new(message), alphas);
 
     value
 }
@@ -214,8 +213,8 @@ pub(super) fn build_mstream_request<E: FieldElement<BaseField = Felt>>(
 
     #[cfg(any(test, feature = "bus-debugger"))]
     {
-        _debugger.add_request(Box::new(mem_req_1), alphas);
-        _debugger.add_request(Box::new(mem_req_2), alphas);
+        _debugger.add_request(alloc::boxed::Box::new(mem_req_1), alphas);
+        _debugger.add_request(alloc::boxed::Box::new(mem_req_2), alphas);
     }
 
     combined_value
@@ -264,8 +263,8 @@ pub(super) fn build_pipe_request<E: FieldElement<BaseField = Felt>>(
 
     #[cfg(any(test, feature = "bus-debugger"))]
     {
-        _debugger.add_request(Box::new(mem_req_1), alphas);
-        _debugger.add_request(Box::new(mem_req_2), alphas);
+        _debugger.add_request(alloc::boxed::Box::new(mem_req_1), alphas);
+        _debugger.add_request(alloc::boxed::Box::new(mem_req_2), alphas);
     }
 
     combined_value
@@ -335,7 +334,7 @@ where
         word + idx1.mul_small(2) + idx0
     };
 
-    let message: Box<dyn BusMessage<E>> = if access_type == MEMORY_ACCESS_ELEMENT {
+    if access_type == MEMORY_ACCESS_ELEMENT {
         let idx0 = main_trace.chiplet_memory_idx0(row);
         let idx1 = main_trace.chiplet_memory_idx1(row);
 
@@ -353,7 +352,12 @@ where
 
         let message = MemoryElementMessage { op_label, ctx, addr, clk, element };
 
-        Box::new(message)
+        let value = message.value(alphas);
+
+        #[cfg(any(test, feature = "bus-debugger"))]
+        _debugger.add_response(alloc::boxed::Box::new(message), alphas);
+
+        value
     } else if access_type == MEMORY_ACCESS_WORD {
         let value0 = main_trace.chiplet_memory_value_0(row);
         let value1 = main_trace.chiplet_memory_value_1(row);
@@ -369,17 +373,15 @@ where
             source: "memory chiplet",
         };
 
-        Box::new(message)
+        let value = message.value(alphas);
+
+        #[cfg(any(test, feature = "bus-debugger"))]
+        _debugger.add_response(alloc::boxed::Box::new(message), alphas);
+
+        value
     } else {
         panic!("Invalid memory element/word column value: {access_type}");
-    };
-
-    let value = message.value(alphas);
-
-    #[cfg(any(test, feature = "bus-debugger"))]
-    _debugger.add_response(message, alphas);
-
-    value
+    }
 }
 
 // HELPER FUNCTIONS
@@ -387,15 +389,19 @@ where
 
 /// Returns the operation unique label for memory operations.
 ///
-/// The memory operation label is currently the only label that is built differently (or *simpler*)
-/// from the other chiplets. We should refactor the other chiplets to use a similar (simpler)
-/// approach.
+/// The memory selector flags are `[1, 1, 0, is_read, is_word_access]`.
+/// The flag is derived as the big-endian representation of these flags, plus one.
+/// They are also defined in [`chiplets::memory`](miden_air::trace::chiplets::memory).
 fn get_memory_op_label(is_read: Felt, is_word_access: Felt) -> Felt {
-    const MEMORY_SELECTOR: u8 = 0b110;
-    // Equivalent to `is_read << 1`
-    let is_read_left_shift_1 = is_read + is_read;
+    let is_read = (is_read == ONE) as u8;
+    let is_word_access = (is_word_access == ONE) as u8;
 
-    Felt::from(MEMORY_SELECTOR << 2) + is_read_left_shift_1 + is_word_access
+    const MEMORY_SELECTOR_FLAG_BASE: u8 = 0b011 + 1;
+    const OP_FLAG_SHIFT: u8 = 3;
+
+    let op_flag = is_read + 2 * is_word_access;
+
+    Felt::from(MEMORY_SELECTOR_FLAG_BASE + (op_flag << OP_FLAG_SHIFT))
 }
 
 // MESSAGES

@@ -1,7 +1,12 @@
 use vm_core::{Decorator, ONE, WORD_SIZE, ZERO, debuginfo::Spanned, mast::MastNodeId};
 
 use super::{Assembler, BasicBlockBuilder, Felt, Operation, ProcedureContext, ast::InvokeKind};
-use crate::{AssemblyError, Span, ast::Instruction};
+use crate::{
+    Span,
+    ast::Instruction,
+    diagnostics::{RelatedLabel, Report},
+    parser::IntValue,
+};
 
 mod adv_ops;
 mod crypto_ops;
@@ -21,7 +26,7 @@ impl Assembler {
         instruction: &Span<Instruction>,
         block_builder: &mut BasicBlockBuilder,
         proc_ctx: &mut ProcedureContext,
-    ) -> Result<Option<MastNodeId>, AssemblyError> {
+    ) -> Result<Option<MastNodeId>, Report> {
         // if the assembler is in debug mode, start tracking the instruction about to be executed;
         // this will allow us to map the instruction to the sequence of operations which were
         // executed as a part of this instruction.
@@ -70,9 +75,10 @@ impl Assembler {
         instruction: &Span<Instruction>,
         block_builder: &mut BasicBlockBuilder,
         proc_ctx: &mut ProcedureContext,
-    ) -> Result<Option<MastNodeId>, AssemblyError> {
+    ) -> Result<Option<MastNodeId>, Report> {
         use Operation::*;
 
+        let span = instruction.span();
         match &**instruction {
             Instruction::Nop => block_builder.push_op(Noop),
             Instruction::Assert => block_builder.push_op(Assert(ZERO)),
@@ -111,13 +117,13 @@ impl Assembler {
             Instruction::Incr => block_builder.push_op(Incr),
 
             Instruction::Pow2 => field_ops::pow2(block_builder),
-            Instruction::Exp => field_ops::exp(block_builder, proc_ctx, 64_u8)?,
+            Instruction::Exp => field_ops::exp(block_builder, proc_ctx, 64_u8, span)?,
 
             Instruction::ExpImm(pow) => {
-                field_ops::exp_imm(block_builder, proc_ctx, pow.expect_value())?
+                field_ops::exp_imm(block_builder, proc_ctx, pow.expect_value(), pow.span())?
             },
             Instruction::ExpBitLength(num_pow_bits) => {
-                field_ops::exp(block_builder, proc_ctx, *num_pow_bits)?
+                field_ops::exp(block_builder, proc_ctx, *num_pow_bits, span)?
             },
             Instruction::ILog2 => field_ops::ilog2(block_builder),
 
@@ -214,21 +220,21 @@ impl Assembler {
             Instruction::U32Or => block_builder.push_ops([Dup1, Dup1, U32and, Neg, Add, Add]),
             Instruction::U32Xor => block_builder.push_op(U32xor),
             Instruction::U32Not => u32_ops::u32not(block_builder),
-            Instruction::U32Shl => u32_ops::u32shl(block_builder, proc_ctx, None)?,
+            Instruction::U32Shl => u32_ops::u32shl(block_builder, proc_ctx, None, span)?,
             Instruction::U32ShlImm(v) => {
-                u32_ops::u32shl(block_builder, proc_ctx, Some(v.expect_value()))?
+                u32_ops::u32shl(block_builder, proc_ctx, Some(v.expect_value()), span)?
             },
-            Instruction::U32Shr => u32_ops::u32shr(block_builder, proc_ctx, None)?,
+            Instruction::U32Shr => u32_ops::u32shr(block_builder, proc_ctx, None, span)?,
             Instruction::U32ShrImm(v) => {
-                u32_ops::u32shr(block_builder, proc_ctx, Some(v.expect_value()))?
+                u32_ops::u32shr(block_builder, proc_ctx, Some(v.expect_value()), v.span())?
             },
-            Instruction::U32Rotl => u32_ops::u32rotl(block_builder, proc_ctx, None)?,
+            Instruction::U32Rotl => u32_ops::u32rotl(block_builder, proc_ctx, None, span)?,
             Instruction::U32RotlImm(v) => {
-                u32_ops::u32rotl(block_builder, proc_ctx, Some(v.expect_value()))?
+                u32_ops::u32rotl(block_builder, proc_ctx, Some(v.expect_value()), v.span())?
             },
-            Instruction::U32Rotr => u32_ops::u32rotr(block_builder, proc_ctx, None)?,
+            Instruction::U32Rotr => u32_ops::u32rotr(block_builder, proc_ctx, None, span)?,
             Instruction::U32RotrImm(v) => {
-                u32_ops::u32rotr(block_builder, proc_ctx, Some(v.expect_value()))?
+                u32_ops::u32rotr(block_builder, proc_ctx, Some(v.expect_value()), v.span())?
             },
             Instruction::U32Popcnt => u32_ops::u32popcnt(block_builder),
             Instruction::U32Clz => u32_ops::u32clz(block_builder),
@@ -336,12 +342,18 @@ impl Assembler {
             Instruction::CDropW => block_builder.push_ops([CSwapW, Drop, Drop, Drop, Drop]),
 
             // ----- input / output instructions --------------------------------------------------
-            Instruction::Push(imm) => env_ops::push_one(imm.expect_value(), block_builder),
+            Instruction::Push(imm) => match (*imm).expect_value() {
+                IntValue::U8(v) => env_ops::push_one(v, block_builder),
+                IntValue::U16(v) => env_ops::push_one(v, block_builder),
+                IntValue::U32(v) => env_ops::push_one(v, block_builder),
+                IntValue::Felt(v) => env_ops::push_one(v, block_builder),
+                IntValue::Word(v) => env_ops::push_many(&v.0, block_builder),
+            },
             Instruction::PushU8(imm) => env_ops::push_one(*imm, block_builder),
             Instruction::PushU16(imm) => env_ops::push_one(*imm, block_builder),
             Instruction::PushU32(imm) => env_ops::push_one(*imm, block_builder),
             Instruction::PushFelt(imm) => env_ops::push_one(*imm, block_builder),
-            Instruction::PushWord(imms) => env_ops::push_many(imms, block_builder),
+            Instruction::PushWord(imms) => env_ops::push_many(&imms.0, block_builder),
             Instruction::PushU8List(imms) => env_ops::push_many(imms, block_builder),
             Instruction::PushU16List(imms) => env_ops::push_many(imms, block_builder),
             Instruction::PushU32List(imms) => env_ops::push_many(imms, block_builder),
@@ -351,73 +363,111 @@ impl Assembler {
             Instruction::Clk => block_builder.push_op(Clk),
             Instruction::AdvPipe => block_builder.push_op(Pipe),
             Instruction::AdvPush(n) => {
-                adv_ops::adv_push(block_builder, proc_ctx, n.expect_value())?
+                adv_ops::adv_push(block_builder, proc_ctx, n.expect_value(), n.span())?
             },
             Instruction::AdvLoadW => block_builder.push_op(AdvPopW),
 
             Instruction::MemStream => block_builder.push_op(MStream),
-            Instruction::Locaddr(v) => env_ops::locaddr(block_builder, v.expect_value(), proc_ctx)?,
-            Instruction::MemLoad => mem_ops::mem_read(block_builder, proc_ctx, None, false, true)?,
-            Instruction::MemLoadImm(v) => {
-                mem_ops::mem_read(block_builder, proc_ctx, Some(v.expect_value()), false, true)?
+            Instruction::Locaddr(v) => {
+                env_ops::locaddr(block_builder, v.expect_value(), proc_ctx, span)?
             },
+            Instruction::MemLoad => {
+                mem_ops::mem_read(block_builder, proc_ctx, None, false, true, span)?
+            },
+            Instruction::MemLoadImm(v) => mem_ops::mem_read(
+                block_builder,
+                proc_ctx,
+                Some(v.expect_value()),
+                false,
+                true,
+                span,
+            )?,
             Instruction::MemLoadW => {
-                mem_ops::mem_read(block_builder, proc_ctx, None, false, false)?
+                mem_ops::mem_read(block_builder, proc_ctx, None, false, false, span)?
             },
-            Instruction::MemLoadWImm(v) => {
-                mem_ops::mem_read(block_builder, proc_ctx, Some(v.expect_value()), false, false)?
-            },
+            Instruction::MemLoadWImm(v) => mem_ops::mem_read(
+                block_builder,
+                proc_ctx,
+                Some(v.expect_value()),
+                false,
+                false,
+                span,
+            )?,
             Instruction::LocLoad(v) => mem_ops::mem_read(
                 block_builder,
                 proc_ctx,
                 Some(v.expect_value() as u32),
                 true,
                 true,
+                span,
             )?,
             Instruction::LocLoadW(v) => {
                 let local_addr = v.expect_value();
                 if local_addr % WORD_SIZE as u16 != 0 {
-                    return Err(AssemblyError::InvalidLocalWordIndex {
-                        span: instruction.span(),
-                        source_file: proc_ctx
-                            .source_manager()
-                            .get(proc_ctx.span().source_id())
-                            .ok(),
-                        local_addr,
-                    });
+                    return Err(RelatedLabel::error("invalid local word index")
+                        .with_help("the index to a local word must be a multiple of 4")
+                        .with_labeled_span(v.span(), "this index is not word-aligned")
+                        .with_source_file(
+                            proc_ctx.source_manager().get(proc_ctx.span().source_id()).ok(),
+                        )
+                        .into());
                 }
 
-                mem_ops::mem_read(block_builder, proc_ctx, Some(local_addr as u32), true, false)?
+                mem_ops::mem_read(
+                    block_builder,
+                    proc_ctx,
+                    Some(local_addr as u32),
+                    true,
+                    false,
+                    instruction.span(),
+                )?
             },
             Instruction::MemStore => block_builder.push_ops([MStore, Drop]),
             Instruction::MemStoreW => block_builder.push_ops([MStoreW]),
-            Instruction::MemStoreImm(v) => {
-                mem_ops::mem_write_imm(block_builder, proc_ctx, v.expect_value(), false, true)?
-            },
-            Instruction::MemStoreWImm(v) => {
-                mem_ops::mem_write_imm(block_builder, proc_ctx, v.expect_value(), false, false)?
-            },
+            Instruction::MemStoreImm(v) => mem_ops::mem_write_imm(
+                block_builder,
+                proc_ctx,
+                v.expect_value(),
+                false,
+                true,
+                span,
+            )?,
+            Instruction::MemStoreWImm(v) => mem_ops::mem_write_imm(
+                block_builder,
+                proc_ctx,
+                v.expect_value(),
+                false,
+                false,
+                span,
+            )?,
             Instruction::LocStore(v) => mem_ops::mem_write_imm(
                 block_builder,
                 proc_ctx,
                 v.expect_value() as u32,
                 true,
                 true,
+                span,
             )?,
             Instruction::LocStoreW(v) => {
                 let local_addr = v.expect_value();
                 if local_addr % WORD_SIZE as u16 != 0 {
-                    return Err(AssemblyError::InvalidLocalWordIndex {
-                        span: instruction.span(),
-                        source_file: proc_ctx
-                            .source_manager()
-                            .get(proc_ctx.span().source_id())
-                            .ok(),
-                        local_addr,
-                    });
+                    return Err(RelatedLabel::error("invalid local word index")
+                        .with_help("the index to a local word must be a multiple of 4")
+                        .with_labeled_span(v.span(), "this index is not word-aligned")
+                        .with_source_file(
+                            proc_ctx.source_manager().get(proc_ctx.span().source_id()).ok(),
+                        )
+                        .into());
                 }
 
-                mem_ops::mem_write_imm(block_builder, proc_ctx, local_addr as u32, true, false)?
+                mem_ops::mem_write_imm(
+                    block_builder,
+                    proc_ctx,
+                    local_addr as u32,
+                    true,
+                    false,
+                    span,
+                )?
             },
             Instruction::SysEvent(system_event) => {
                 block_builder.push_system_event(system_event.into())
@@ -489,9 +539,7 @@ impl Assembler {
 
             Instruction::Debug(options) => {
                 if self.in_debug_mode() {
-                    block_builder.push_decorator(Decorator::Debug(
-                        options.clone().try_into().expect("unresolved constant"),
-                    ))?;
+                    block_builder.push_decorator(Decorator::Debug(options.compile(proc_ctx)?))?;
                 }
             },
 

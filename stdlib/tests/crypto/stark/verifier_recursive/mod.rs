@@ -4,10 +4,10 @@ use miden_air::ProcessorAir;
 use processor::crypto::RpoRandomCoin;
 use test_utils::{
     MIN_STACK_DEPTH, VerifierError,
-    crypto::{MerkleStore, RandomCoin, Rpo256, RpoDigest},
+    crypto::{MerkleStore, RandomCoin, Rpo256},
     math::{FieldElement, QuadExtension, ToElements},
 };
-use vm_core::{Felt, WORD_SIZE};
+use vm_core::{Felt, WORD_SIZE, Word};
 use winter_air::{
     Air,
     proof::{Proof, merge_ood_evaluations},
@@ -24,7 +24,7 @@ pub struct VerifierData {
     pub initial_stack: Vec<u64>,
     pub advice_stack: Vec<u64>,
     pub store: MerkleStore,
-    pub advice_map: Vec<(RpoDigest, Vec<Felt>)>,
+    pub advice_map: Vec<(Word, Vec<Felt>)>,
 }
 
 pub fn generate_advice_inputs(
@@ -69,10 +69,14 @@ pub fn generate_advice_inputs(
     advice_stack.extend_from_slice(&[0, 0, 0, 0]);
     advice_stack.push(num_kernel_procedures_digests as u64);
 
+    // add a placeholder for the auxiliary randomness
+    let aux_rand_insertion_index = advice_stack.len();
+    advice_stack.extend_from_slice(&[0, 0, 0, 0]);
+
     // create AIR instance for the computation specified in the proof
     let air = ProcessorAir::new(proof.trace_info().to_owned(), pub_inputs, proof.options().clone());
     let seed_digest = Rpo256::hash_elements(&public_coin_seed);
-    let mut public_coin: RpoRandomCoin = RpoRandomCoin::new(seed_digest.into());
+    let mut public_coin: RpoRandomCoin = RpoRandomCoin::new(seed_digest);
     let mut channel = VerifierChannel::new(&air, proof)?;
 
     // 1 ----- main segment trace -----------------------------------------------------------------
@@ -216,7 +220,7 @@ pub fn generate_advice_inputs(
 // HELPER FUNCTIONS
 // ================================================================================================
 
-pub fn digest_to_int_vec(digest: &[RpoDigest]) -> Vec<u64> {
+pub fn digest_to_int_vec(digest: &[Word]) -> Vec<u64> {
     digest
         .iter()
         .flat_map(|digest| digest.as_elements().iter().map(|e| e.as_int()))

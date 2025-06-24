@@ -234,7 +234,7 @@ impl LibraryPath {
     }
 
     /// Returns an iterator over all components of the path.
-    pub fn components(&self) -> impl Iterator<Item = LibraryPathComponent> + '_ {
+    pub fn components(&self) -> impl Iterator<Item = LibraryPathComponent<'_>> + '_ {
         core::iter::once(LibraryPathComponent::Namespace(&self.inner.ns))
             .chain(self.inner.components.iter().map(LibraryPathComponent::Normal))
     }

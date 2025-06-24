@@ -78,9 +78,8 @@ impl AnalysisContext {
     fn const_eval(&self, value: &ConstantExpr) -> Result<ConstantExpr, SemanticAnalysisError> {
         match value {
             ConstantExpr::Literal(_) | ConstantExpr::String(_) => Ok((*value).clone()),
-            ConstantExpr::Var(name) => {
-                Ok(ConstantExpr::Literal(Span::unknown(self.get_constant(name)?)))
-            },
+            ConstantExpr::Word(_) => Ok((*value).clone()),
+            ConstantExpr::Var(name) => self.get_constant(name).cloned(),
             ConstantExpr::BinaryOp { op, lhs, rhs, .. } => {
                 let rhs = self.const_eval(rhs)?.expect_literal();
                 let lhs = self.const_eval(lhs)?.expect_literal();
@@ -99,10 +98,10 @@ impl AnalysisContext {
     /// Get the constant value bound to `name`
     ///
     /// Returns `Err` if the symbol is undefined
-    pub fn get_constant(&self, name: &Ident) -> Result<Felt, SemanticAnalysisError> {
+    pub fn get_constant(&self, name: &Ident) -> Result<&ConstantExpr, SemanticAnalysisError> {
         let span = name.span();
         if let Some(expr) = self.constants.get(name) {
-            Ok(expr.value.expect_literal())
+            Ok(&expr.value)
         } else {
             Err(SemanticAnalysisError::SymbolUndefined { span })
         }

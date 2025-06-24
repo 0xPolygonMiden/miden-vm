@@ -32,13 +32,68 @@ impl core::ops::Deref for DocumentationType {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct WordValue(pub [Felt; 4]);
+
+impl fmt::Display for WordValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{:#08x}{:08x}{:08x}{:08x}",
+            &self.0[0].as_int(),
+            &self.0[1].as_int(),
+            &self.0[2].as_int(),
+            &self.0[3].as_int(),
+        )
+    }
+}
+
+impl crate::prettier::PrettyPrint for WordValue {
+    fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
+
+        const_text("[")
+            + self
+                .0
+                .iter()
+                .copied()
+                .map(display)
+                .reduce(|acc, doc| acc + const_text(",") + doc)
+                .unwrap_or_default()
+            + const_text("]")
+    }
+}
+
+impl PartialOrd for WordValue {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Ord for WordValue {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        let (WordValue([l0, l1, l2, l3]), WordValue([r0, r1, r2, r3])) = (self, other);
+        l0.as_int()
+            .cmp(&r0.as_int())
+            .then_with(|| l1.as_int().cmp(&r1.as_int()))
+            .then_with(|| l2.as_int().cmp(&r2.as_int()))
+            .then_with(|| l3.as_int().cmp(&r3.as_int()))
+    }
+}
+
+impl core::hash::Hash for WordValue {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        let WordValue([a, b, c, d]) = self;
+        [a.as_int(), b.as_int(), c.as_int(), d.as_int()].hash(state)
+    }
+}
+
 // HEX ENCODED VALUE
 // ================================================================================================
 
 /// Represents one of the various types of values that have a hex-encoded representation in Miden
 /// Assembly source files.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum HexEncodedValue {
+pub enum IntValue {
     /// A tiny value
     U8(u8),
     /// A small value
@@ -48,32 +103,38 @@ pub enum HexEncodedValue {
     /// A single field element, 8 bytes, encoded as 16 hex digits
     Felt(Felt),
     /// A set of 4 field elements, 32 bytes, encoded as a contiguous string of 64 hex digits
-    Word([Felt; 4]),
+    Word(WordValue),
 }
-impl fmt::Display for HexEncodedValue {
+impl fmt::Display for IntValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::U8(value) => write!(f, "{value}"),
             Self::U16(value) => write!(f, "{value}"),
             Self::U32(value) => write!(f, "{value:#04x}"),
             Self::Felt(value) => write!(f, "{:#08x}", &value.as_int().to_be()),
-            Self::Word(value) => write!(
-                f,
-                "{:#08x}{:08x}{:08x}{:08x}",
-                &value[0].as_int(),
-                &value[1].as_int(),
-                &value[2].as_int(),
-                &value[3].as_int(),
-            ),
+            Self::Word(value) => write!(f, "{value}"),
         }
     }
 }
-impl PartialOrd for HexEncodedValue {
+
+impl crate::prettier::PrettyPrint for IntValue {
+    fn render(&self) -> crate::prettier::Document {
+        match self {
+            Self::U8(v) => v.render(),
+            Self::U16(v) => v.render(),
+            Self::U32(v) => v.render(),
+            Self::Felt(v) => u64::from(*v).render(),
+            Self::Word(v) => v.render(),
+        }
+    }
+}
+
+impl PartialOrd for IntValue {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
-impl Ord for HexEncodedValue {
+impl Ord for IntValue {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         use core::cmp::Ordering;
         match (self, other) {
@@ -88,18 +149,13 @@ impl Ord for HexEncodedValue {
             (Self::Felt(_), Self::U8(_) | Self::U16(_) | Self::U32(_)) => Ordering::Greater,
             (Self::Felt(l), Self::Felt(r)) => l.as_int().cmp(&r.as_int()),
             (Self::Felt(_), _) => Ordering::Less,
-            (Self::Word([l0, l1, l2, l3]), Self::Word([r0, r1, r2, r3])) => l0
-                .as_int()
-                .cmp(&r0.as_int())
-                .then_with(|| l1.as_int().cmp(&r1.as_int()))
-                .then_with(|| l2.as_int().cmp(&r2.as_int()))
-                .then_with(|| l3.as_int().cmp(&r3.as_int())),
+            (Self::Word(l), Self::Word(r)) => l.cmp(r),
             (Self::Word(_), _) => Ordering::Greater,
         }
     }
 }
 
-impl core::hash::Hash for HexEncodedValue {
+impl core::hash::Hash for IntValue {
     fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
         core::mem::discriminant(self).hash(state);
         match self {
@@ -107,9 +163,7 @@ impl core::hash::Hash for HexEncodedValue {
             Self::U16(value) => value.hash(state),
             Self::U32(value) => value.hash(state),
             Self::Felt(value) => value.as_int().hash(state),
-            Self::Word([a, b, c, d]) => {
-                [a.as_int(), b.as_int(), c.as_int(), d.as_int()].hash(state)
-            },
+            Self::Word(value) => value.hash(state),
         }
     }
 }
@@ -137,6 +191,7 @@ pub enum BinEncodedValue {
 pub enum Token<'input> {
     Add,
     Adv,
+    AdvMap,
     InsertHdword,
     InsertHdwordWithDomain,
     InsertHperm,
@@ -144,6 +199,7 @@ pub enum Token<'input> {
     AdvLoadw,
     AdvPipe,
     AdvPush,
+    AdvStack,
     PushExt2intt,
     PushMapval,
     PushMapvaln,
@@ -160,6 +216,7 @@ pub enum Token<'input> {
     AssertEqw,
     ArithmeticCircuitEval,
     Begin,
+    Breakpoint,
     Caller,
     Call,
     Cdrop,
@@ -239,7 +296,6 @@ pub enum Token<'input> {
     Procref,
     Push,
     Repeat,
-    RpoFalcon512,
     Sdepth,
     Stack,
     Sub,
@@ -308,7 +364,7 @@ pub enum Token<'input> {
     Rbracket,
     Rstab,
     DocComment(DocumentationType),
-    HexValue(HexEncodedValue),
+    HexValue(IntValue),
     BinValue(BinEncodedValue),
     Int(u64),
     Ident(&'input str),
@@ -324,6 +380,8 @@ impl fmt::Display for Token<'_> {
         match self {
             Token::Add => write!(f, "add"),
             Token::Adv => write!(f, "adv"),
+            Token::AdvMap => write!(f, "adv_map"),
+            Token::AdvStack => write!(f, "adv_stack"),
             Token::InsertHdword => write!(f, "insert_hdword"),
             Token::InsertHdwordWithDomain => write!(f, "insert_hdword_d"),
             Token::InsertHperm => write!(f, "insert_hperm"),
@@ -347,6 +405,7 @@ impl fmt::Display for Token<'_> {
             Token::AssertEqw => write!(f, "assert_eqw"),
             Token::ArithmeticCircuitEval => write!(f, "arithmetic_circuit_eval"),
             Token::Begin => write!(f, "begin"),
+            Token::Breakpoint => write!(f, "breakpoint"),
             Token::Caller => write!(f, "caller"),
             Token::Call => write!(f, "call"),
             Token::Cdrop => write!(f, "cdrop"),
@@ -426,7 +485,6 @@ impl fmt::Display for Token<'_> {
             Token::HornerBase => write!(f, "horner_eval_base"),
             Token::HornerExt => write!(f, "horner_eval_ext"),
             Token::Repeat => write!(f, "repeat"),
-            Token::RpoFalcon512 => write!(f, "rpo_falcon512"),
             Token::Sdepth => write!(f, "sdepth"),
             Token::Stack => write!(f, "stack"),
             Token::Sub => write!(f, "sub"),
@@ -526,6 +584,7 @@ impl<'input> Token<'input> {
                 | Token::AdvLoadw
                 | Token::AdvPipe
                 | Token::AdvPush
+                | Token::AdvStack
                 | Token::PushExt2intt
                 | Token::PushMapval
                 | Token::PushMapvaln
@@ -541,6 +600,7 @@ impl<'input> Token<'input> {
                 | Token::AssertEq
                 | Token::AssertEqw
                 | Token::ArithmeticCircuitEval
+                | Token::Breakpoint
                 | Token::Caller
                 | Token::Call
                 | Token::Cdrop
@@ -666,6 +726,7 @@ impl<'input> Token<'input> {
     const KEYWORDS: &'static [(&'static str, Token<'static>)] = &[
         ("add", Token::Add),
         ("adv", Token::Adv),
+        ("adv_map", Token::AdvMap),
         ("arithmetic_circuit_eval", Token::ArithmeticCircuitEval),
         ("insert_hdword", Token::InsertHdword),
         ("insert_hdword_d", Token::InsertHdwordWithDomain),
@@ -674,6 +735,7 @@ impl<'input> Token<'input> {
         ("adv_loadw", Token::AdvLoadw),
         ("adv_pipe", Token::AdvPipe),
         ("adv_push", Token::AdvPush),
+        ("adv_stack", Token::AdvStack),
         ("push_ext2intt", Token::PushExt2intt),
         ("push_mapval", Token::PushMapval),
         ("push_mapvaln", Token::PushMapvaln),
@@ -689,6 +751,7 @@ impl<'input> Token<'input> {
         ("assert_eq", Token::AssertEq),
         ("assert_eqw", Token::AssertEqw),
         ("begin", Token::Begin),
+        ("breakpoint", Token::Breakpoint),
         ("caller", Token::Caller),
         ("call", Token::Call),
         ("cdrop", Token::Cdrop),
@@ -768,7 +831,6 @@ impl<'input> Token<'input> {
         ("horner_eval_base", Token::HornerBase),
         ("horner_eval_ext", Token::HornerExt),
         ("repeat", Token::Repeat),
-        ("rpo_falcon512", Token::RpoFalcon512),
         ("sdepth", Token::Sdepth),
         ("stack", Token::Stack),
         ("sub", Token::Sub),
@@ -909,7 +971,7 @@ impl<'input> Token<'input> {
                     "module doc" => Ok(Token::DocComment(DocumentationType::Module(String::new()))),
                     "doc comment" => Ok(Token::DocComment(DocumentationType::Form(String::new()))),
                     "comment" => Ok(Token::Comment),
-                    "hex-encoded value" => Ok(Token::HexValue(HexEncodedValue::U8(0))),
+                    "hex-encoded value" => Ok(Token::HexValue(IntValue::U8(0))),
                     "bin-encoded value" => Ok(Token::BinValue(BinEncodedValue::U8(0))),
                     "integer" => Ok(Token::Int(0)),
                     "identifier" => Ok(Token::Ident("")),

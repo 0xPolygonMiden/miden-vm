@@ -6,6 +6,7 @@ use crate::{
     Felt, LibraryNamespace, LibraryPath, Span, assert_diagnostic, assert_diagnostic_lines,
     ast::*,
     diagnostics::{Report, reporting::PrintDiagnostic},
+    parser::WordValue,
     regex, source_file,
     testing::{Pattern, TestContext},
 };
@@ -359,7 +360,7 @@ fn test_ast_parsing_program_push() -> Result<(), Report> {
         inst!(PushU32(90000)),
         inst!(PushFelt(Felt::new(5000000000_u64))),
         inst!(PushFelt(Felt::new(7000000000_u64))),
-        inst!(PushWord([Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)]))
+        inst!(PushWord(WordValue([Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)])))
     ));
 
     assert_eq!(context.parse_forms(source)?, forms);
@@ -1163,7 +1164,7 @@ fn assert_parsing_line_unexpected_token() {
         "  :     ^|^",
         "  :      `-- found a mul here",
         "  `----",
-        r#" help: expected "@", or "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
+        r#" help: expected "@", or "adv_map", or "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
     );
 }
 
@@ -1287,4 +1288,86 @@ end
 ";
 
     assert_eq!(&formatted, expected);
+}
+
+#[test]
+fn test_words_roundtrip_formatting() {
+    let source = "\
+const.A=0x0200000000000000030000000000000004000000000000000500000000000000
+const.B=[2,3,4,5]
+begin
+    push.0x0200000000000000030000000000000004000000000000000500000000000000.6
+    push.A.6
+    push.B.6
+    push.2.3.4.5
+    push.A.B
+end
+";
+
+    let context = TestContext::default();
+    let source = source_file!(&context, source);
+
+    let module = Module::parse(
+        LibraryPath::new_from_components(LibraryNamespace::Exec, []),
+        ModuleKind::Executable,
+        source,
+    )
+    .unwrap_or_else(|err| panic!("{err}"));
+
+    let formatted = module.to_string();
+    let expected = "\
+begin
+    push.[2,3,4,5]
+    push.6
+    push.[2,3,4,5]
+    push.6
+    push.[2,3,4,5]
+    push.6
+    push.2
+    push.3
+    push.4
+    push.5
+    push.[2,3,4,5]
+    push.[2,3,4,5]
+end
+";
+
+    assert_eq!(&formatted, expected);
+}
+
+#[test]
+fn cannot_mem_store_word() {
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        r#"
+const.A=[2,3,4,5]
+begin
+    mem_store.A
+end"#
+    );
+
+    // Instead of the usual macro that does only parsing we need to use this
+    // parse function that also performs the semantic analysis to realize that
+    // the constant is of the wrong type.
+    let error = Module::parse(
+        LibraryPath::new_from_components(LibraryNamespace::Exec, []),
+        ModuleKind::Executable,
+        source,
+    )
+    .expect_err("expected diagnostic to be raised, but parsing succeeded");
+
+    assert_diagnostic_lines!(
+        error,
+        "syntax error",
+        "help: see emitted diagnostics for details",
+        "invalid constant",
+        regex!(r#",-\[test[\d]+:4:15\]"#),
+        "3 | begin",
+        "4 |     mem_store.A",
+        "  :               ^",
+        "5 | end",
+        "  `----",
+        r#" help: this constant does not resolve to a value of the right type"#
+    );
 }

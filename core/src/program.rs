@@ -1,8 +1,7 @@
 use alloc::{sync::Arc, vec::Vec};
 use core::fmt;
 
-use math::FieldElement;
-use miden_crypto::{Felt, WORD_SIZE, hash::rpo::RpoDigest};
+use miden_crypto::{Felt, WORD_SIZE, Word};
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 use super::Kernel;
@@ -74,7 +73,7 @@ impl Program {
     /// Returns the hash of the program's entrypoint.
     ///
     /// Equivalently, returns the hash of the root of the entrypoint procedure.
-    pub fn hash(&self) -> RpoDigest {
+    pub fn hash(&self) -> Word {
         self.mast_forest[self.entrypoint].digest()
     }
 
@@ -104,7 +103,7 @@ impl Program {
 
     /// Returns the [`MastNodeId`] of the procedure root associated with a given digest, if any.
     #[inline(always)]
-    pub fn find_procedure_root(&self, digest: RpoDigest) -> Option<MastNodeId> {
+    pub fn find_procedure_root(&self, digest: Word) -> Option<MastNodeId> {
         self.mast_forest.find_procedure_root(digest)
     }
 
@@ -206,18 +205,18 @@ impl fmt::Display for Program {
 /// zero-knowledge properties.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ProgramInfo {
-    program_hash: RpoDigest,
+    program_hash: Word,
     kernel: Kernel,
 }
 
 impl ProgramInfo {
     /// Creates a new instance of a program info.
-    pub const fn new(program_hash: RpoDigest, kernel: Kernel) -> Self {
+    pub const fn new(program_hash: Word, kernel: Kernel) -> Self {
         Self { program_hash, kernel }
     }
 
     /// Returns the program hash computed from its code block root.
-    pub const fn program_hash(&self) -> &RpoDigest {
+    pub const fn program_hash(&self) -> &Word {
         &self.program_hash
     }
 
@@ -227,7 +226,7 @@ impl ProgramInfo {
     }
 
     /// Returns the list of procedures of the kernel used during the compilation.
-    pub fn kernel_procedures(&self) -> &[RpoDigest] {
+    pub fn kernel_procedures(&self) -> &[Word] {
         self.kernel.proc_hashes()
     }
 }

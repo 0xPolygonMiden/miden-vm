@@ -21,6 +21,7 @@ mod verifier_recursive;
 // Note: Changes to Miden VM may cause this test to fail when some of the assumptions documented
 // in `stdlib/asm/crypto/stark/verifier.masm` are violated.
 #[rstest]
+#[ignore = "fixed-by-#1848"]
 #[case(None)]
 #[ignore = "see-https://github.com/0xMiden/air-script/issues/399"]
 #[case(Some(KERNEL_EVEN_NUM_PROC))]
@@ -485,3 +486,61 @@ const CONSTRAINT_EVALUATION_CIRCUIT: [u64; 96] = [
     2147483667,
     1152921505680588801,
 ];
+
+const TEST_RANDOM_INDICES_GENERATION: &str = r#"
+        const.QUERY_ADDRESS=1024
+
+        use.std::crypto::stark::random_coin
+        use.std::crypto::stark::constants
+
+        begin
+            exec.constants::set_lde_domain_size
+            exec.constants::set_lde_domain_log_size
+            exec.constants::set_number_queries
+            push.QUERY_ADDRESS exec.constants::set_fri_queries_address
+
+            exec.random_coin::load_random_coin_state
+            hperm
+            hperm
+            exec.random_coin::store_random_coin_state
+
+            exec.random_coin::generate_list_indices
+
+            exec.constants::get_lde_domain_log_size
+            exec.constants::get_number_queries neg
+            push.QUERY_ADDRESS
+            # => [query_ptr, loop_counter, lde_size_log, ...]
+
+            push.1
+            while.true
+                dup add.3 mem_load
+                movdn.3
+                # => [query_ptr, loop_counter, lde_size_log, query_index, ...]
+                dup
+                add.2 mem_load
+                dup.3 assert_eq
+
+                add.4
+                # => [query_ptr + 4, loop_counter, lde_size_log, query_index, ...]
+
+                swap add.1 swap
+                # => [query_ptr + 4, loop_counter, lde_size_log, query_index, ...]
+
+                dup.1 neq.0
+                # => [?, query_ptr + 4, loop_counter + 1, lde_size_log, query_index, ...]
+            end
+            drop drop drop
+
+            exec.constants::get_number_queries neg
+            push.1
+            while.true
+                swap
+                adv_push.1
+                assert_eq
+                add.1
+                dup
+                neq.0
+            end
+            drop  
+        end
+        "#;

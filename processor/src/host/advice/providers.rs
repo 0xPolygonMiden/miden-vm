@@ -5,9 +5,7 @@ use vm_core::{
     mast::MastNodeExt,
 };
 
-use super::{
-    AdviceInputs, AdviceProvider, AdviceSource, ExecutionError, Felt, MerklePath, RpoDigest, Word,
-};
+use super::{AdviceInputs, AdviceProvider, AdviceSource, ExecutionError, Felt, MerklePath, Word};
 use crate::{
     ErrorContext, ProcessState,
     utils::collections::{KvMap, RecordingMap},
@@ -16,11 +14,11 @@ use crate::{
 // TYPE ALIASES
 // ================================================================================================
 
-type SimpleMerkleMap = BTreeMap<RpoDigest, StoreNode>;
-type RecordingMerkleMap = RecordingMap<RpoDigest, StoreNode>;
+type SimpleMerkleMap = BTreeMap<Word, StoreNode>;
+type RecordingMerkleMap = RecordingMap<Word, StoreNode>;
 
-type SimpleAdviceMap = BTreeMap<RpoDigest, Vec<Felt>>;
-type RecordingAdviceMap = RecordingMap<RpoDigest, Vec<Felt>>;
+type SimpleAdviceMap = BTreeMap<Word, Vec<Felt>>;
+type RecordingAdviceMap = RecordingMap<Word, Vec<Felt>>;
 
 // BASE ADVICE PROVIDER
 // ================================================================================================
@@ -30,8 +28,8 @@ type RecordingAdviceMap = RecordingMap<RpoDigest, Vec<Felt>>;
 #[derive(Debug, Clone, Default)]
 pub struct BaseAdviceProvider<M, S>
 where
-    M: KvMap<RpoDigest, Vec<Felt>>,
-    S: KvMap<RpoDigest, StoreNode>,
+    M: KvMap<Word, Vec<Felt>>,
+    S: KvMap<Word, StoreNode>,
 {
     stack: Vec<Felt>,
     map: M,
@@ -40,8 +38,8 @@ where
 
 impl<M, S> From<AdviceInputs> for BaseAdviceProvider<M, S>
 where
-    M: KvMap<RpoDigest, Vec<Felt>>,
-    S: KvMap<RpoDigest, StoreNode>,
+    M: KvMap<Word, Vec<Felt>>,
+    S: KvMap<Word, StoreNode>,
 {
     fn from(inputs: AdviceInputs) -> Self {
         let (mut stack, map, store) = inputs.into_parts();
@@ -56,8 +54,8 @@ where
 
 impl<M, S> AdviceProvider for BaseAdviceProvider<M, S>
 where
-    M: KvMap<RpoDigest, Vec<Felt>>,
-    S: KvMap<RpoDigest, StoreNode>,
+    M: KvMap<Word, Vec<Felt>>,
+    S: KvMap<Word, StoreNode>,
 {
     // ADVICE STACK
     // --------------------------------------------------------------------------------------------
@@ -87,7 +85,7 @@ where
 
         self.stack.truncate(idx);
 
-        Ok(result)
+        Ok(result.into())
     }
 
     fn pop_stack_dword(
@@ -116,7 +114,7 @@ where
             AdviceSource::Map { key, include_len } => {
                 let values = self
                     .map
-                    .get(&key.into())
+                    .get(&key)
                     .ok_or(ExecutionError::advice_map_key_not_found(key, err_ctx))?;
 
                 self.stack.extend(values.iter().rev());
@@ -130,15 +128,23 @@ where
         Ok(())
     }
 
+    fn peek_stack(&self, length: usize) -> &[Felt] {
+        if length == 0 {
+            &self.stack
+        } else {
+            &self.stack[0..length]
+        }
+    }
+
     // ADVICE MAP
     // --------------------------------------------------------------------------------------------
 
-    fn get_mapped_values(&self, key: &RpoDigest) -> Option<&[Felt]> {
+    fn get_mapped_values(&self, key: &Word) -> Option<&[Felt]> {
         self.map.get(key).map(|v| v.as_slice())
     }
 
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) {
-        self.map.insert(key.into(), values);
+        self.map.insert(key, values);
     }
 
     // MERKLE STORE
@@ -154,8 +160,7 @@ where
         let index = NodeIndex::from_elements(depth, index)
             .map_err(|_| ExecutionError::invalid_merkle_tree_node_index(*depth, *index, err_ctx))?;
         self.store
-            .get_node(root.into(), index)
-            .map(|v| v.into())
+            .get_node(root, index)
             .map_err(|err| ExecutionError::merkle_store_lookup_failed(err, err_ctx))
     }
 
@@ -169,7 +174,7 @@ where
         let index = NodeIndex::from_elements(depth, index)
             .map_err(|_| ExecutionError::invalid_merkle_tree_node_index(*depth, *index, err_ctx))?;
         self.store
-            .get_path(root.into(), index)
+            .get_path(root, index)
             .map(|value| value.path)
             .map_err(|err| ExecutionError::merkle_store_lookup_failed(err, err_ctx))
     }
@@ -184,7 +189,7 @@ where
         let tree_depth = u8::try_from(tree_depth.as_int())
             .map_err(|_| ExecutionError::invalid_merkle_tree_depth(*tree_depth, err_ctx))?;
         self.store
-            .get_leaf_depth(root.into(), tree_depth, index.as_int())
+            .get_leaf_depth(root, tree_depth, index.as_int())
             .map_err(|err| ExecutionError::merkle_store_lookup_failed(err, err_ctx))
     }
 
@@ -199,8 +204,8 @@ where
         let node_index = NodeIndex::from_elements(depth, index)
             .map_err(|_| ExecutionError::invalid_merkle_tree_node_index(*depth, *index, err_ctx))?;
         self.store
-            .set_node(root.into(), node_index, value.into())
-            .map(|root| (root.path, root.root.into()))
+            .set_node(root, node_index, value)
+            .map(|root| (root.path, root.root))
             .map_err(|err| ExecutionError::merkle_store_update_failed(err, err_ctx))
     }
 
@@ -211,8 +216,7 @@ where
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<Word, ExecutionError> {
         self.store
-            .merge_roots(lhs.into(), rhs.into())
-            .map(|v| v.into())
+            .merge_roots(lhs, rhs)
             .map_err(|err| ExecutionError::merkle_store_merge_failed(err, err_ctx))
     }
 }
@@ -252,7 +256,7 @@ impl MemAdviceProvider {
     }
 
     /// Returns true if the Merkle root exists for the advice provider Merkle store.
-    pub fn has_merkle_root(&self, root: crate::crypto::RpoDigest) -> bool {
+    pub fn has_merkle_root(&self, root: Word) -> bool {
         self.provider.store.get_node(root, NodeIndex::root()).is_ok()
     }
 }
@@ -284,11 +288,16 @@ impl AdviceProvider for MemAdviceProvider {
         self.provider.push_stack(source, err_ctx)
     }
 
+    fn peek_stack(&self, length: usize,
+    )-> &[Felt] {
+        self.provider.peek_stack(length)
+    }
+
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>)  {
         self.provider.insert_into_map(key, values)
     }
 
-    fn get_mapped_values(&self, key: &RpoDigest) -> Option<&[Felt]> {
+    fn get_mapped_values(&self, key: &Word) -> Option<&[Felt]> {
         self.provider.get_mapped_values(key)
     }
 
@@ -374,7 +383,7 @@ impl RecAdviceProvider {
     }
 
     /// Returns true if the Merkle root exists for the advice provider Merkle store.
-    pub fn has_merkle_root(&self, root: crate::crypto::RpoDigest) -> bool {
+    pub fn has_merkle_root(&self, root: Word) -> bool {
         self.provider.store.get_node(root, NodeIndex::root()).is_ok()
     }
 }
@@ -406,11 +415,15 @@ impl AdviceProvider for RecAdviceProvider {
         self.provider.push_stack(source, err_ctx)
     }
 
+    fn peek_stack(&self, length: usize) -> &[Felt] {
+        self.provider.peek_stack(length)
+    }
+
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>)  {
         self.provider.insert_into_map(key, values)
     }
 
-    fn get_mapped_values(&self, key: &RpoDigest) -> Option<&[Felt]> {
+    fn get_mapped_values(&self, key: &Word) -> Option<&[Felt]> {
         self.provider.get_mapped_values(key)
     }
 

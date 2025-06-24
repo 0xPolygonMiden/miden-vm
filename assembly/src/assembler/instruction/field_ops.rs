@@ -1,10 +1,10 @@
-use vm_core::{FieldElement, Operation::*, debuginfo::Spanned, sys_events::SystemEvent};
+use vm_core::{FieldElement, Operation::*, sys_events::SystemEvent};
 
 use super::BasicBlockBuilder;
 use crate::{
-    AssemblyError, Felt, MAX_EXP_BITS, ONE, Span, ZERO,
+    Felt, MAX_EXP_BITS, ONE, Span, ZERO,
     assembler::ProcedureContext,
-    diagnostics::{RelatedError, Report},
+    diagnostics::{RelatedError, RelatedLabel, Report, SourceSpan},
 };
 
 /// Field element representing TWO in the base field of the VM.
@@ -92,15 +92,15 @@ pub fn div_imm(
     span_builder: &mut BasicBlockBuilder,
     proc_ctx: &mut ProcedureContext,
     imm: Span<Felt>,
-) -> Result<(), AssemblyError> {
+) -> Result<(), Report> {
     if imm == ZERO {
         let source_span = imm.span();
         let source_file = proc_ctx.source_manager().get(source_span.source_id()).ok();
         let error = Report::new(crate::parser::ParsingError::DivisionByZero { span: source_span });
         return Err(if let Some(source_file) = source_file {
-            AssemblyError::Other(RelatedError::new(error.with_source_code(source_file)))
+            RelatedError::new(error.with_source_code(source_file)).into()
         } else {
-            AssemblyError::Other(RelatedError::new(error))
+            RelatedError::new(error).into()
         });
     } else if imm == ONE {
         span_builder.push_op(Noop);
@@ -156,16 +156,14 @@ pub fn exp(
     span_builder: &mut BasicBlockBuilder,
     proc_ctx: &ProcedureContext,
     num_pow_bits: u8,
-) -> Result<(), AssemblyError> {
+    span: SourceSpan,
+) -> Result<(), Report> {
     if num_pow_bits > MAX_EXP_BITS {
-        let span = proc_ctx.span();
-        return Err(AssemblyError::InvalidU8Param {
-            span,
-            source_file: proc_ctx.source_manager().get(span.source_id()).ok(),
-            param: num_pow_bits,
-            min: 0,
-            max: MAX_EXP_BITS,
-        });
+        return Err(RelatedLabel::error("invalid argument")
+            .with_labeled_span(span, "this instruction argument is out of range")
+            .with_help(format!("value must be in the range 0..={MAX_EXP_BITS}"))
+            .with_source_file(proc_ctx.source_manager().get(span.source_id()).ok())
+            .into());
     }
 
     // arranging the stack to prepare it for expacc instruction.
@@ -198,19 +196,19 @@ pub fn exp_imm(
     span_builder: &mut BasicBlockBuilder,
     proc_ctx: &ProcedureContext,
     pow: Felt,
-) -> Result<(), AssemblyError> {
+    span: SourceSpan,
+) -> Result<(), Report> {
     if pow.as_int() <= 7 {
         perform_exp_for_small_power(span_builder, pow.as_int());
         Ok(())
     } else {
         // compute the bits length of the exponent
         let num_pow_bits = (64 - pow.as_int().leading_zeros()) as u8;
-        let _span = proc_ctx.span();
 
         // pushing the exponent onto the stack.
         span_builder.push_op(Push(pow));
 
-        exp(span_builder, proc_ctx, num_pow_bits)
+        exp(span_builder, proc_ctx, num_pow_bits, span)
     }
 }
 

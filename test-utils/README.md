@@ -6,4 +6,4 @@ This crate contains utilities for testing program execution on Miden VM. This in
 * Re-exports of various VM modules and 3-rd party crates which may be useful for writing tests.
 
 ## License
-This project is [MIT licensed](../LICENSE).
+This project is dual-licensed under the [MIT](http://opensource.org/licenses/MIT) and [Apache 2.0](https://opensource.org/license/apache-2-0) licenses.

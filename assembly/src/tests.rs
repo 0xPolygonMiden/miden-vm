@@ -732,7 +732,7 @@ fn constant_must_be_valid_felt() -> TestResult {
         "  :                    ^^^|^^^",
         "  :                       `-- found a constant identifier here",
         "  `----",
-        " help: expected \"*\", or \"+\", or \"-\", or \"/\", or \"//\", or \"@\", or \"begin\", or \"const\", \
+        " help: expected \"*\", or \"+\", or \"-\", or \"/\", or \"//\", or \"@\", or \"adv_map\", or \"begin\", or \"const\", \
 or \"export\", or \"proc\", or \"use\", or end of file, or doc comment"
     );
     Ok(())
@@ -1188,7 +1188,7 @@ begin
     trace(1)
 end";
     let program = Assembler::new(context.source_manager())
-        .with_library(lib)?
+        .with_dynamic_library(lib)?
         .assemble_program(program_source)?;
     assert_str_eq!(expected, format!("{program}"));
 
@@ -1910,21 +1910,33 @@ fn program_with_proc_locals_fail() -> TestResult {
     let source = source_file!(
         &context,
         "\
-        proc.foo \
-            loc_store.0 \
-            add \
-            loc_load.0 \
-            mul \
-        end \
-        begin \
-            push.4 push.3 push.2 \
-            exec.foo \
-        end"
+proc.foo
+    loc_store.0
+    add
+    loc_load.0
+    mul
+end
+begin
+    push.4 push.3 push.2
+    exec.foo
+end"
     );
     assert_assembler_diagnostic!(
         context,
         source,
-        "number of procedure locals was not set (or set to 0), but local values were used"
+        "invalid procedure local reference",
+        regex!(r#",-\[test[\d]+:1:1\]"#),
+        "1 | ,-> proc.foo",
+        "2 | |       loc_store.0",
+        "  : |       ^^^^^|^^^^^",
+        "  : |            `-- the procedure local index referenced here is invalid",
+        "3 | |       add",
+        "4 | |       loc_load.0",
+        "5 | |       mul",
+        "6 | |-> end",
+        "  : `---- this procedure definition does not allocate any locals",
+        "7 |     begin",
+        "  `----"
     );
 
     Ok(())
@@ -2246,6 +2258,81 @@ end";
 }
 
 #[test]
+fn program_with_reexported_custom_alias_in_same_library() -> TestResult {
+    // exprted proc is in same library
+    const REF_MODULE: &str = "dummy1::math::u64";
+    const REF_MODULE_BODY: &str = r#"
+        export.checked_eqz
+            u32assert2
+            eq.0
+            swap
+            eq.0
+            and
+        end
+        export.unchecked_eqz
+            eq.0
+            swap
+            eq.0
+            and
+        end
+    "#;
+
+    const MODULE: &str = "dummy1::math::u256";
+    const MODULE_BODY: &str = r#"
+        use.dummy1::math::u64->myu64
+
+        #! checked_eqz checks if the value is u32 and zero and returns 1 if it is, 0 otherwise
+        export.myu64::checked_eqz # re-export
+
+        #! unchecked_eqz checks if the value is zero and returns 1 if it is, 0 otherwise
+        export.myu64::unchecked_eqz->notchecked_eqz # re-export with alias
+    "#;
+
+    let mut context = TestContext::new();
+    let mut parser = Module::parser(ModuleKind::Library);
+    let ast = parser
+        .parse_str(MODULE.parse().unwrap(), MODULE_BODY, &context.source_manager())
+        .unwrap();
+
+    let mut parser = Module::parser(ModuleKind::Library);
+    let ref_ast = parser
+        .parse_str(REF_MODULE.parse().unwrap(), REF_MODULE_BODY, &context.source_manager())
+        .unwrap();
+
+    let library = Assembler::new(context.source_manager())
+        .assemble_library([ast, ref_ast])
+        .unwrap();
+
+    context.add_library(&library)?;
+
+    let source = source_file!(
+        &context,
+        format!(
+            r#"
+        use.{MODULE}->myu256
+        begin
+            push.4 push.3
+            exec.myu256::checked_eqz
+            exec.myu256::notchecked_eqz
+        end"#
+        )
+    );
+    let program = context.assemble(source)?;
+    let expected = "\
+begin
+    join
+        join
+            basic_block push(4) push(3) end
+            external.0xb9691da1d9b4b364aca0a0990e9f04c446a2faa622c8dd0d8831527dbec61393
+        end
+        external.0xcb08c107c81c582788cbf63c99f6b455e11b33bb98ca05fe1cfa17c087dfa8f1
+    end
+end";
+    assert_str_eq!(format!("{program}"), expected);
+    Ok(())
+}
+
+#[test]
 fn program_with_reexported_proc_in_another_library() -> TestResult {
     // when re-exported proc is part of a different library
     const REF_MODULE: &str = "dummy2::math::u64";
@@ -2281,8 +2368,11 @@ fn program_with_reexported_proc_in_another_library() -> TestResult {
     // But only exports from this module are exposed by the library
     let ast = parser.parse_str(MODULE.parse().unwrap(), MODULE_BODY, &source_manager)?;
 
-    let dummy_library =
-        Assembler::new(source_manager).with_module(ref_ast)?.assemble_library([ast])?;
+    let dummy_library = {
+        let mut assembler = Assembler::new(source_manager);
+        assembler.compile_and_statically_link(ref_ast)?;
+        assembler.assemble_library([ast])?
+    };
 
     // Now we want to use the the library we've compiled
     context.add_library(&dummy_library)?;
@@ -2413,7 +2503,7 @@ end";
         "  :                                      `-- found a -> here",
         "3 |",
         "  `----",
-        r#" help: expected "@", or "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
+        r#" help: expected "@", or "adv_map", or "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
     );
 
     // --- duplicate module import --------------------------------------------
@@ -2608,6 +2698,71 @@ end";
     Ok(())
 }
 
+#[test]
+fn can_push_constant_word() -> TestResult {
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+const.A=0x0200000000000000030000000000000004000000000000000500000000000000
+begin
+    push.A
+end"
+    );
+    let program = context.assemble(source)?;
+    let expected = "\
+begin
+    basic_block push(2) push(3) push(4) push(5) end
+end";
+    assert_str_eq!(format!("{program}"), expected);
+    Ok(())
+}
+
+#[test]
+fn test_advmap_push() -> TestResult {
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+adv_map.A(0x0200000000000000020000000000000002000000000000000200000000000000)=[0x01]
+begin push.A adv.push_mapval assert end"
+    );
+
+    let program = context.assemble(source)?;
+    let expected = "\
+begin
+    basic_block push(2) push(2) push(2) push(2) emit(574478993) assert(0) end
+end";
+    assert_str_eq!(format!("{program}"), expected);
+    Ok(())
+}
+
+#[test]
+fn test_advmap_push_nokey() -> TestResult {
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+adv_map.A=[0x01]
+begin push.A adv.push_mapval assert end"
+    );
+
+    let program = context.assemble(source)?;
+    let expected = "\
+begin
+    basic_block
+        push(3846236276142386450)
+        push(5034591595140902852)
+        push(4565868838168209231)
+        push(6740431856120851931)
+        emit(574478993)
+        assert(0)
+    end
+end";
+    assert_str_eq!(format!("{program}"), expected);
+    Ok(())
+}
+
 // ERRORS
 // ================================================================================================
 
@@ -2620,7 +2775,7 @@ fn invalid_empty_program() {
         "unexpected end of file",
         regex!(r#",-\[test[\d]+:1:1\]"#),
         "`----",
-        r#" help: expected "@", or "begin", or "const", or "export", or "proc", or "use", or doc comment"#
+        r#" help: expected "@", or "adv_map", or "begin", or "const", or "export", or "proc", or "use", or doc comment"#
     );
 
     assert_assembler_diagnostic!(
@@ -2629,7 +2784,7 @@ fn invalid_empty_program() {
         "unexpected end of file",
         regex!(r#",-\[test[\d]+:1:1\]"#),
         "  `----",
-        r#" help: expected "@", or "begin", or "const", or "export", or "proc", or "use", or doc comment"#
+        r#" help: expected "@", or "adv_map", or "begin", or "const", or "export", or "proc", or "use", or doc comment"#
     );
 }
 
@@ -2645,7 +2800,7 @@ fn invalid_program_unrecognized_token() {
         "  : ^^|^",
         "  :   `-- found a identifier here",
         "  `----",
-        r#" help: expected "@", or "begin", or "const", or "export", or "proc", or "use", or doc comment"#
+        r#" help: expected "@", or "adv_map", or "begin", or "const", or "export", or "proc", or "use", or doc comment"#
     );
 }
 
@@ -2675,7 +2830,7 @@ fn invalid_program_invalid_top_level_token() {
         "  :               ^|^",
         "  :                `-- found a mul here",
         "  `----",
-        r#" help: expected "@", or "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
+        r#" help: expected "@", or "adv_map", or "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
     );
 }
 
@@ -2744,8 +2899,8 @@ fn invalid_proc_invalid_numeric_name() {
         "  :      ^|^",
         "  :       `-- found a integer here",
         "  `----",
-        " help: expected",
-        "identifier, or quoted identifier"
+        " help: expected primitive opcode",
+        "      identifier"
     );
 }
 
@@ -2979,7 +3134,7 @@ fn test_compiled_library() {
     // Compile program that uses compiled library
     let mut assembler = Assembler::new(context.source_manager());
 
-    assembler.add_library(&compiled_library).unwrap();
+    assembler.link_dynamic_library(&compiled_library).unwrap();
 
     let program_source = "
     use.mylib::mod1
@@ -3040,7 +3195,7 @@ fn test_reexported_proc_with_same_name_as_local_proc_diff_locals() {
     // Compile program that uses compiled library
     let mut assembler = Assembler::new(context.source_manager());
 
-    assembler.add_library(&compiled_library).unwrap();
+    assembler.link_dynamic_library(&compiled_library).unwrap();
 
     let program_source = "
     use.test::mod1
@@ -3129,7 +3284,7 @@ fn vendoring() -> TestResult {
         let mod2 = mod_parser.parse(LibraryPath::new("test::mod2").unwrap(), source).unwrap();
 
         let mut assembler = Assembler::default();
-        assembler.add_vendored_library(vendor_lib)?;
+        assembler.link_static_library(vendor_lib)?;
         assembler.assemble_library([mod2]).unwrap()
     };
 

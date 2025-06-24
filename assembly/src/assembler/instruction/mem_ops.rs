@@ -1,9 +1,10 @@
-use alloc::string::ToString;
-
-use vm_core::{Felt, Operation::*, debuginfo::Spanned};
+use vm_core::{Felt, Operation::*, debuginfo::SourceSpan};
 
 use super::{BasicBlockBuilder, push_felt, push_u32_value};
-use crate::{AssemblyError, assembler::ProcedureContext, diagnostics::Report};
+use crate::{
+    assembler::ProcedureContext,
+    diagnostics::{RelatedLabel, Report, Spanned},
+};
 
 // INSTRUCTION PARSERS
 // ================================================================================================
@@ -28,12 +29,20 @@ pub fn mem_read(
     addr: Option<u32>,
     is_local: bool,
     is_single: bool,
-) -> Result<(), AssemblyError> {
+    instr_span: SourceSpan,
+) -> Result<(), Report> {
     // if the address was provided as an immediate value, put it onto the stack
     if let Some(addr) = addr {
         if is_local {
             let num_locals = proc_ctx.num_locals();
-            local_to_absolute_addr(block_builder, proc_ctx, addr as u16, num_locals, is_single)?;
+            local_to_absolute_addr(
+                block_builder,
+                proc_ctx,
+                addr as u16,
+                num_locals,
+                is_single,
+                instr_span,
+            )?;
         } else {
             push_u32_value(block_builder, addr);
         }
@@ -79,7 +88,8 @@ pub fn mem_write_imm(
     addr: u32,
     is_local: bool,
     is_single: bool,
-) -> Result<(), AssemblyError> {
+    instr_span: SourceSpan,
+) -> Result<(), Report> {
     if is_local {
         local_to_absolute_addr(
             block_builder,
@@ -87,6 +97,7 @@ pub fn mem_write_imm(
             addr as u16,
             proc_ctx.num_locals(),
             is_single,
+            instr_span,
         )?;
     } else {
         push_u32_value(block_builder, addr);
@@ -121,15 +132,17 @@ pub fn local_to_absolute_addr(
     index_of_local: u16,
     num_proc_locals: u16,
     is_single: bool,
-) -> Result<(), AssemblyError> {
+    instr_span: SourceSpan,
+) -> Result<(), Report> {
     if num_proc_locals == 0 {
-        return Err(AssemblyError::Other(
-            Report::msg(
-                "number of procedure locals was not set (or set to 0), but local values were used"
-                    .to_string(),
+        return Err(RelatedLabel::error("invalid procedure local reference")
+            .with_labeled_span(
+                proc_ctx.span(),
+                "this procedure definition does not allocate any locals",
             )
-            .into(),
-        ));
+            .with_labeled_span(instr_span, "the procedure local index referenced here is invalid")
+            .with_source_file(proc_ctx.source_manager().get(instr_span.source_id()).ok())
+            .into());
     }
 
     // If a single local value is being accessed, then the index can take the full range
@@ -138,21 +151,35 @@ pub fn local_to_absolute_addr(
     let max = if is_single {
         num_proc_locals - 1
     } else {
-        num_proc_locals - 4
+        // If a word local value is used, then the procedure needs at least 4 local values.
+        num_proc_locals.checked_sub(4).ok_or_else(|| {
+            RelatedLabel::error("invalid procedure local reference")
+                .with_labeled_span(
+                    proc_ctx.span(),
+                    format!("this procedure only allocates {num_proc_locals} locals"),
+                )
+                .with_labeled_span(instr_span, "but this instruction expects at least 4")
+                .with_source_file(proc_ctx.source_manager().get(instr_span.source_id()).ok())
+        })?
     };
 
     // Local values are placed under the frame pointer, so we need to calculate the offset of the
     // local value from the frame pointer.
     // The offset is in the range [1, num_proc_locals], which is then subtracted from `fmp`.
-    let span = proc_ctx.span();
     if index_of_local > max {
-        return Err(AssemblyError::InvalidU8Param {
-            span,
-            source_file: proc_ctx.source_manager().get(span.source_id()).ok(),
-            param: index_of_local as u8,
-            min: 0,
-            max: max as u8,
-        });
+        return Err(RelatedLabel::error("invalid procedure local index")
+            .with_help(
+                if is_single {
+                    "the index is greater than the number of allocated locals"
+                } else {
+                    "this instruction expects a word-sized value, so at least 4 locals must be addressable at the given index"
+                }
+            )
+            .with_labeled_span(proc_ctx.span(),  format!("this procedure only allocates {num_proc_locals} locals"))
+            .with_labeled_span(instr_span, "but this local index would reach out of bounds")
+            .with_source_file(proc_ctx.source_manager().get(instr_span.source_id()).ok())
+            .into()
+        );
     }
 
     let fmp_offset_of_local = num_proc_locals - index_of_local;

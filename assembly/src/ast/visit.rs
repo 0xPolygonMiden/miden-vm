@@ -53,7 +53,7 @@ use core::ops::ControlFlow;
 
 use immediate::ErrorMsg;
 
-use crate::{Felt, Span, ast::*};
+use crate::{Felt, Span, ast::*, parser::IntValue};
 
 /// Represents an immutable AST visitor, whose "early return" type is `T` (by default `()`).
 ///
@@ -135,6 +135,9 @@ pub trait Visit<T = ()> {
     }
     fn visit_immediate_felt(&mut self, imm: &Immediate<Felt>) -> ControlFlow<T> {
         visit_immediate_felt(self, imm)
+    }
+    fn visit_immediate_int_value(&mut self, code: &Immediate<IntValue>) -> ControlFlow<T> {
+        visit_immediate_int_value(self, code)
     }
     fn visit_immediate_error_message(&mut self, code: &ErrorMsg) -> ControlFlow<T> {
         visit_immediate_error_message(self, code)
@@ -303,7 +306,8 @@ where
         | U32AssertWWithError(code)
         | MTreeVerifyWithError(code) => visitor.visit_immediate_error_message(code),
         AddImm(imm) | SubImm(imm) | MulImm(imm) | DivImm(imm) | ExpImm(imm) | EqImm(imm)
-        | NeqImm(imm) | Push(imm) => visitor.visit_immediate_felt(imm),
+        | NeqImm(imm) => visitor.visit_immediate_felt(imm),
+        Push(imm) => visitor.visit_immediate_int_value(imm),
         U32WrappingAddImm(imm)
         | U32OverflowingAddImm(imm)
         | U32WrappingSubImm(imm)
@@ -525,6 +529,7 @@ where
 {
     match options.into_inner() {
         DebugOptions::StackTop(imm) => visitor.visit_immediate_u8(imm),
+        DebugOptions::AdvStackTop(imm) => visitor.visit_immediate_u16(imm),
         DebugOptions::LocalRangeFrom(imm) => visitor.visit_immediate_u16(imm),
         DebugOptions::MemInterval(imm1, imm2) => {
             visitor.visit_immediate_u32(imm1)?;
@@ -614,6 +619,16 @@ where
 
 #[inline(always)]
 pub fn visit_immediate_felt<V, T>(_visitor: &mut V, _imm: &Immediate<Felt>) -> ControlFlow<T>
+where
+    V: ?Sized + Visit<T>,
+{
+    ControlFlow::Continue(())
+}
+
+pub fn visit_immediate_int_value<V, T>(
+    _visitor: &mut V,
+    _imm: &Immediate<IntValue>,
+) -> ControlFlow<T>
 where
     V: ?Sized + Visit<T>,
 {
@@ -711,6 +726,9 @@ pub trait VisitMut<T = ()> {
     }
     fn visit_mut_immediate_felt(&mut self, imm: &mut Immediate<Felt>) -> ControlFlow<T> {
         visit_mut_immediate_felt(self, imm)
+    }
+    fn visit_mut_immediate_hex(&mut self, imm: &mut Immediate<IntValue>) -> ControlFlow<T> {
+        visit_mut_immediate_hex(self, imm)
     }
     fn visit_mut_immediate_error_message(&mut self, code: &mut ErrorMsg) -> ControlFlow<T> {
         visit_mut_immediate_error_message(self, code)
@@ -882,7 +900,8 @@ where
         | U32AssertWWithError(code)
         | MTreeVerifyWithError(code) => visitor.visit_mut_immediate_error_message(code),
         AddImm(imm) | SubImm(imm) | MulImm(imm) | DivImm(imm) | ExpImm(imm) | EqImm(imm)
-        | NeqImm(imm) | Push(imm) => visitor.visit_mut_immediate_felt(imm),
+        | NeqImm(imm) => visitor.visit_mut_immediate_felt(imm),
+        Push(imm) => visitor.visit_mut_immediate_hex(imm),
         U32WrappingAddImm(imm)
         | U32OverflowingAddImm(imm)
         | U32WrappingSubImm(imm)
@@ -1110,6 +1129,7 @@ where
 {
     match options.into_inner() {
         DebugOptions::StackTop(imm) => visitor.visit_mut_immediate_u8(imm),
+        DebugOptions::AdvStackTop(imm) => visitor.visit_mut_immediate_u16(imm),
         DebugOptions::LocalRangeFrom(imm) => visitor.visit_mut_immediate_u16(imm),
         DebugOptions::MemInterval(imm1, imm2) => {
             visitor.visit_mut_immediate_u32(imm1)?;
@@ -1204,6 +1224,17 @@ where
 pub fn visit_mut_immediate_felt<V, T>(
     _visitor: &mut V,
     _imm: &mut Immediate<Felt>,
+) -> ControlFlow<T>
+where
+    V: ?Sized + VisitMut<T>,
+{
+    ControlFlow::Continue(())
+}
+
+#[inline(always)]
+pub fn visit_mut_immediate_hex<V, T>(
+    _visitor: &mut V,
+    _imm: &mut Immediate<IntValue>,
 ) -> ControlFlow<T>
 where
     V: ?Sized + VisitMut<T>,

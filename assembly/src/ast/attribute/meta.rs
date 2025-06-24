@@ -6,7 +6,11 @@ use alloc::{collections::BTreeMap, string::String, sync::Arc, vec::Vec};
 use core::fmt;
 
 pub use self::{expr::MetaExpr, kv::MetaKeyValue, list::MetaList};
-use crate::{Felt, SourceSpan, Span, ast::Ident, parser::HexEncodedValue};
+use crate::{
+    Felt, SourceSpan, Span,
+    ast::Ident,
+    parser::{IntValue, WordValue},
+};
 
 /// Represents the metadata provided as arguments to an attribute.
 #[derive(Clone, PartialEq, Eq)]
@@ -191,31 +195,31 @@ impl From<String> for MetaItem {
 
 impl From<u8> for MetaItem {
     fn from(value: u8) -> Self {
-        Self::Expr(MetaExpr::Int(Span::new(SourceSpan::UNKNOWN, HexEncodedValue::U8(value))))
+        Self::Expr(MetaExpr::Int(Span::new(SourceSpan::UNKNOWN, IntValue::U8(value))))
     }
 }
 
 impl From<u16> for MetaItem {
     fn from(value: u16) -> Self {
-        Self::Expr(MetaExpr::Int(Span::new(SourceSpan::UNKNOWN, HexEncodedValue::U16(value))))
+        Self::Expr(MetaExpr::Int(Span::new(SourceSpan::UNKNOWN, IntValue::U16(value))))
     }
 }
 
 impl From<u32> for MetaItem {
     fn from(value: u32) -> Self {
-        Self::Expr(MetaExpr::Int(Span::new(SourceSpan::UNKNOWN, HexEncodedValue::U32(value))))
+        Self::Expr(MetaExpr::Int(Span::new(SourceSpan::UNKNOWN, IntValue::U32(value))))
     }
 }
 
 impl From<Felt> for MetaItem {
     fn from(value: Felt) -> Self {
-        Self::Expr(MetaExpr::Int(Span::new(SourceSpan::UNKNOWN, HexEncodedValue::Felt(value))))
+        Self::Expr(MetaExpr::Int(Span::new(SourceSpan::UNKNOWN, IntValue::Felt(value))))
     }
 }
 
-impl From<[Felt; 4]> for MetaItem {
-    fn from(value: [Felt; 4]) -> Self {
-        Self::Expr(MetaExpr::Int(Span::new(SourceSpan::UNKNOWN, HexEncodedValue::Word(value))))
+impl From<WordValue> for MetaItem {
+    fn from(value: WordValue) -> Self {
+        Self::Expr(MetaExpr::Int(Span::new(SourceSpan::UNKNOWN, IntValue::Word(value))))
     }
 }
 

@@ -8,11 +8,11 @@ use alloc::{
 use core::{marker::PhantomData, num::NonZeroU32};
 
 use smallvec::smallvec;
-use vm_core::{Felt, FieldElement, StarkField, crypto::hash::RpoDigest};
+use vm_core::{Felt, FieldElement, StarkField, Word};
 
 use crate::{LibraryPath, LibraryNamespace, ast::*, diagnostics::SourceFile, SourceSpan};
 use super::{
-    BinEncodedValue, HexEncodedValue, Token, ParseError, ParsingError,
+    BinEncodedValue, IntValue, Token, WordValue, ParseError, ParsingError,
     LiteralErrorKind, HexErrorKind, Span, Spanned,
     DocumentationType
 };
@@ -31,17 +31,25 @@ extern {
     type Location = u32;
 
     enum Token<'input> {
-        bare_ident => Token::Ident(<&'input str>),
-        const_ident => Token::ConstantIdent(<&'input str>),
-        quoted_ident => Token::QuotedIdent(<&'input str>),
-        quoted_string => Token::QuotedString(<&'input str>),
-        hex_value => Token::HexValue(<HexEncodedValue>),
-        bin_value => Token::BinValue(<BinEncodedValue>),
-        doc_comment => Token::DocComment(<DocumentationType>),
-        comment => Token::Comment,
-        uint => Token::Int(<u64>),
+        "!" => Token::Bang,
+        "(" => Token::Lparen,
+        ")" => Token::Rparen,
+        "*" => Token::Star,
+        "+" => Token::Plus,
+        "," => Token::Comma,
+        "-" => Token::Minus,
+        "->" => Token::Rstab,
+        "/" => Token::Slash,
+        "//" => Token::SlashSlash,
+        "::" => Token::ColonColon,
+        "=" => Token::Equal,
+        "." => Token::Dot,
+        "@" => Token::At,
+        "[" => Token::Lbracket,
+        "]" => Token::Rbracket,
         "add" => Token::Add,
         "adv" => Token::Adv,
+        "adv_map" => Token::AdvMap,
         "insert_hdword" => Token::InsertHdword,
         "insert_hdword_d" => Token::InsertHdwordWithDomain,
         "insert_hperm" => Token::InsertHperm,
@@ -49,6 +57,7 @@ extern {
         "adv_loadw" => Token::AdvLoadw,
         "adv_pipe" => Token::AdvPipe,
         "adv_push" => Token::AdvPush,
+        "adv_stack" => Token::AdvStack,
         "push_ext2intt" => Token::PushExt2intt,
         "push_mapval" => Token::PushMapval,
         "push_mapvaln" => Token::PushMapvaln,
@@ -72,6 +81,7 @@ extern {
         "cswap" => Token::Cswap,
         "cswapw" => Token::Cswapw,
         "debug" => Token::Debug,
+        "breakpoint" => Token::Breakpoint,
         "div" => Token::Div,
         "drop" => Token::Drop,
         "dropw" => Token::Dropw,
@@ -142,7 +152,6 @@ extern {
         "horner_eval_base" => Token::HornerBase,
         "horner_eval_ext" => Token::HornerExt,
         "repeat" => Token::Repeat,
-        "rpo_falcon512" => Token::RpoFalcon512,
         "sdepth" => Token::Sdepth,
         "stack" => Token::Stack,
         "sub" => Token::Sub,
@@ -194,23 +203,16 @@ extern {
         "u32xor" => Token::U32Xor,
         "while" => Token::While,
         "xor" => Token::Xor,
-        "@" => Token::At,
-        "!" => Token::Bang,
-        "::" => Token::ColonColon,
-        "." => Token::Dot,
-        "," => Token::Comma,
-        "=" => Token::Equal,
-        "(" => Token::Lparen,
-        "[" => Token::Lbracket,
-        "-" => Token::Minus,
-        "+" => Token::Plus,
-        "//" => Token::SlashSlash,
-        "/" => Token::Slash,
-        "*" => Token::Star,
-        ")" => Token::Rparen,
-        "]" => Token::Rbracket,
-        "->" => Token::Rstab,
         EOF => Token::Eof,
+        bare_ident => Token::Ident(<&'input str>),
+        bin_value => Token::BinValue(<BinEncodedValue>),
+        comment => Token::Comment,
+        const_ident => Token::ConstantIdent(<&'input str>),
+        doc_comment => Token::DocComment(<DocumentationType>),
+        hex_value => Token::HexValue(<IntValue>),
+        quoted_ident => Token::QuotedIdent(<&'input str>),
+        quoted_string => Token::QuotedString(<&'input str>),
+        uint => Token::Int(<u64>),
     }
 }
 
@@ -254,6 +256,7 @@ Form: Form = {
     Doc,
     Import,
     Const,
+    AdvMap,
     Begin,
     Proc,
 }
@@ -294,6 +297,29 @@ Const: Form = {
         Form::Constant(Constant::new(
             span!(source_file.id(), l, r),
             name,
+            value,
+        ))
+    }
+}
+
+MaybeAdvMapKey: Option<Span<WordValue>> = {
+    <l:@L> "(" <value:IntValue> ")" <r:@R> =>? {
+        match value {
+            IntValue::Word(word) => Ok(Some(Span::new(span!(source_file.id(), l, r), word))),
+            _ => {
+                Err(ParseError::User { error: ParsingError::InvalidAdvMapKey { span: span!(source_file.id(), l, r) } })
+            }
+        }
+    },
+    => None
+}
+
+AdvMap: Form = {
+    <l:@L> "adv_map" "." <name:ConstantName> <key:MaybeAdvMapKey> "=" "[" <value:CommaDelimited<Felt>> "]" <r:@R> => {
+        Form::AdviceMapEntry(AdviceMapEntry::new(
+            span!(source_file.id(), l, r),
+            name,
+            key,
             value,
         ))
     }
@@ -477,7 +503,7 @@ MetaKeyValue: Span<(Ident, MetaExpr)> = {
 MetaExpr: MetaExpr = {
     BareIdent => MetaExpr::Ident(<>),
     QuotedString => MetaExpr::String(<>),
-    <l:@L> <value:IntOrHex> <r:@R> => MetaExpr::Int(Span::new(span!(source_file.id(), l, r), value)),
+    <l:@L> <value:IntValue> <r:@R> => MetaExpr::Int(Span::new(span!(source_file.id(), l, r), value)),
 }
 
 #[inline]
@@ -723,6 +749,7 @@ Call: Instruction = {
 
 #[inline]
 Debug: Instruction = {
+    "breakpoint" => Instruction::Breakpoint,
     "debug" "." "stack" <n:MaybeImm<U8>> => {
         match n {
             Some(n) => Instruction::Debug(DebugOptions::StackTop(n.map(|spanned| spanned.into_inner()))),
@@ -739,8 +766,15 @@ Debug: Instruction = {
     "debug" "." "local" <n:Imm<U16>> <m:Imm<U16>> => Instruction::Debug(DebugOptions::LocalInterval(n, m)),
     "debug" "." "local" <n:MaybeImm<U16>> => {
         match n {
-            Some(n) => Instruction::Debug(DebugOptions::LocalInterval(n.clone(), n)),
+            Some(n) => Instruction::Debug(DebugOptions::LocalRangeFrom(n)),
             None => Instruction::Debug(DebugOptions::LocalAll),
+        }
+    },
+    "debug" "." "adv_stack" <n:MaybeImm<U16>> => {
+        match n {
+            Some(n) => Instruction::Debug(DebugOptions::AdvStackTop(n)),
+            None => // length 0 means print the whole stack
+            Instruction::Debug(DebugOptions::AdvStackTop(0.into())),
         }
     },
     "emit" <id:Imm<U32>> => Instruction::Emit(id),
@@ -1243,11 +1277,11 @@ Push: SmallOpsVec = {
                 Immediate::Constant(name) => Instruction::Push(Immediate::Constant(name)),
                 Immediate::Value(value) => {
                     match value.into_inner() {
-                        HexEncodedValue::U8(v) => Instruction::PushU8(v),
-                        HexEncodedValue::U16(v) => Instruction::PushU16(v),
-                        HexEncodedValue::U32(v) => Instruction::PushU32(v),
-                        HexEncodedValue::Felt(v) => Instruction::PushFelt(v),
-                        HexEncodedValue::Word(v) => Instruction::PushWord(v),
+                        IntValue::U8(v) => Instruction::PushU8(v),
+                        IntValue::U16(v) => Instruction::PushU16(v),
+                        IntValue::U32(v) => Instruction::PushU32(v),
+                        IntValue::Felt(v) => Instruction::PushFelt(v),
+                        IntValue::Word(v) => Instruction::PushWord(v),
                     }
                 }
             }))
@@ -1332,9 +1366,9 @@ U32: u32 = {
 
     <l:@L> <value:hex_value> <r:@R> =>? {
         match value {
-            HexEncodedValue::U8(v) => Ok(v as u32),
-            HexEncodedValue::U16(v) => Ok(v as u32),
-            HexEncodedValue::U32(v) => Ok(v),
+            IntValue::U8(v) => Ok(v as u32),
+            IntValue::U16(v) => Ok(v as u32),
+            IntValue::U32(v) => Ok(v),
             _ =>  Err(ParseError::User { error: ParsingError::InvalidLiteral { span: span!(source_file.id(), l, r), kind: LiteralErrorKind::U32Overflow } }),
         }
     },
@@ -1348,10 +1382,10 @@ U32: u32 = {
     }
 }
 
-MastRoot: Span<RpoDigest> = {
+MastRoot: Span<Word> = {
     <l:@L> <value:hex_value> <r:@R> =>? {
         match value {
-            HexEncodedValue::Word(word) => Ok(Span::new(span!(source_file.id(), l, r), RpoDigest::from(word))),
+            IntValue::Word(word) => Ok(Span::new(span!(source_file.id(), l, r), Word::from(word.0))),
             _ => {
                 Err(ParseError::User { error: ParsingError::InvalidMastRoot { span: span!(source_file.id(), l, r) } })
             }
@@ -1409,45 +1443,42 @@ BitSize: u8 = {
     }
 }
 
-IntOrHexImm: Immediate<HexEncodedValue> = {
-    <l:@L> <value:IntOrHex> <r:@R> => Immediate::Value(Span::new(span!(source_file.id(), l, r), value)),
+IntOrHexImm: Immediate<IntValue> = {
+    <l:@L> <value:IntValue> <r:@R> => Immediate::Value(Span::new(span!(source_file.id(), l, r), value)),
     <name:ConstantName> => Immediate::Constant(<>),
 }
 
-IntOrHex: HexEncodedValue = {
+IntValue: IntValue = {
     <l:@L> <n:uint> <r:@R> =>? {
         if n > Felt::MODULUS {
             return Err(ParseError::User { error: ParsingError::InvalidLiteral { span: span!(source_file.id(), l, r), kind: LiteralErrorKind::FeltOverflow } });
         }
         if n <= (u8::MAX as u64) {
-            Ok(HexEncodedValue::U8(n as u8))
+            Ok(IntValue::U8(n as u8))
         } else if n <= (u16::MAX as u64) {
-            Ok(HexEncodedValue::U16(n as u16))
+            Ok(IntValue::U16(n as u16))
         } else if n <= (u32::MAX as u64) {
-            Ok(HexEncodedValue::U32(n as u32))
+            Ok(IntValue::U32(n as u32))
         } else {
-            Ok(HexEncodedValue::Felt(Felt::new(n)))
+            Ok(IntValue::Felt(Felt::new(n)))
         }
     },
 
-    hex_value,
+    <l:@L> "[" <v0:Felt> "," <v1:Felt> ","<v2:Felt> ","<v3:Felt> "]" <r:@R> =>? {
+        Ok(IntValue::Word(WordValue([v0,v1,v2,v3])))
+    },
+
+    hex_value
 }
 
 Felt: Felt = {
-    <l:@L> <n:uint> <r:@R> =>? {
-        if n > Felt::MODULUS {
-            return Err(ParseError::User { error: ParsingError::InvalidLiteral { span: span!(source_file.id(), l, r), kind: LiteralErrorKind::FeltOverflow } });
-        }
-        Ok(Felt::new(n))
-    },
-
-    <l:@L> <value:hex_value> <r:@R> =>? {
+    <l:@L> <value:IntValue> <r:@R> =>? {
         Ok(match value {
-            HexEncodedValue::U8(v) => Felt::new(v as u64),
-            HexEncodedValue::U16(v) => Felt::new(v as u64),
-            HexEncodedValue::U32(v) => Felt::new(v as u64),
-            HexEncodedValue::Felt(v) => v,
-            HexEncodedValue::Word(_) => return Err(ParseError::User {
+            IntValue::U8(v) => Felt::new(v as u64),
+            IntValue::U16(v) => Felt::new(v as u64),
+            IntValue::U32(v) => Felt::new(v as u64),
+            IntValue::Felt(v) => v,
+            IntValue::Word(_) => return Err(ParseError::User {
                 error: ParsingError::InvalidHexLiteral { span: span!(source_file.id(), l, r), kind: HexErrorKind::Overflow },
             }),
         })
@@ -1614,10 +1645,6 @@ QualifiedName: (Ident, LibraryPath) = {
     }
 }
 
-SignatureKind: SignatureKind = {
-    "rpo_falcon512" => SignatureKind::RpoFalcon512,
-}
-
 OpcodeName: Ident = {
     <l:@L> <name:Opcode> <r:@R> => {
         let name = interned.get(name).cloned().unwrap_or_else(|| {
@@ -1632,9 +1659,11 @@ OpcodeName: Ident = {
 Opcode: &'static str = {
     "add" => "add",
     "adv" => "adv",
+    "adv_map" => "adv_map",
     "adv_loadw" => "adv_loadw",
     "adv_pipe" => "adv_pipe",
     "adv_push" => "adv_push",
+    "adv_stack" => "adv_stack",
     "and" => "and",
     "arithmetic_circuit_eval" => "arithmetic_circuit_eval",
     "assert" => "assert",
@@ -1713,7 +1742,6 @@ Opcode: &'static str = {
     "procref" => "procref",
     "push" => "push",
     "repeat" => "repeat",
-    "rpo_falcon512" => "rpo_falcon512",
     "sdepth" => "sdepth",
     "stack" => "stack",
     "sub" => "sub",
@@ -1821,7 +1849,15 @@ ConstantName: Ident = {
 Term: ConstantExpr = {
     "(" <ConstantExpr> ")",
 
-    <l:@L> <t:Felt> <r:@R> => ConstantExpr::Literal(Span::new(span!(source_file.id(), l, r), t)),
+    <l:@L> <value:IntValue> <r:@R> =>? {
+        Ok(match value {
+            IntValue::U8(v) => ConstantExpr::Literal(Span::new(span!(source_file.id(), l, r), Felt::new(v as u64))),
+            IntValue::U16(v) => ConstantExpr::Literal(Span::new(span!(source_file.id(), l, r), Felt::new(v as u64))),
+            IntValue::U32(v) => ConstantExpr::Literal(Span::new(span!(source_file.id(), l, r), Felt::new(v as u64))),
+            IntValue::Felt(v) => ConstantExpr::Literal(Span::new(span!(source_file.id(), l, r), v)),
+            IntValue::Word(t) => ConstantExpr::Word(Span::new(span!(source_file.id(), l, r),t))
+        })
+    },
 
     <l:@L> <t:QuotedString> <r:@R> => ConstantExpr::String(t),
 

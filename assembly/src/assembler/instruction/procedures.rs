@@ -3,9 +3,10 @@ use vm_core::mast::MastNodeId;
 
 use super::{Assembler, BasicBlockBuilder, Operation};
 use crate::{
-    AssemblyError, RpoDigest,
+    Word,
     assembler::{ProcedureContext, mast_forest_builder::MastForestBuilder},
     ast::{InvocationTarget, InvokeKind},
+    diagnostics::Report,
 };
 
 /// Procedure Invocation
@@ -21,7 +22,7 @@ impl Assembler {
         callee: &InvocationTarget,
         proc_ctx: &ProcedureContext,
         mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<MastNodeId, AssemblyError> {
+    ) -> Result<MastNodeId, Report> {
         let invoked_proc_node_id =
             self.resolve_target(kind, callee, proc_ctx, mast_forest_builder)?;
 
@@ -36,7 +37,7 @@ impl Assembler {
     pub(super) fn dynexec(
         &self,
         mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<Option<MastNodeId>, AssemblyError> {
+    ) -> Result<Option<MastNodeId>, Report> {
         let dyn_node_id = mast_forest_builder.ensure_dyn()?;
 
         Ok(Some(dyn_node_id))
@@ -46,7 +47,7 @@ impl Assembler {
     pub(super) fn dyncall(
         &self,
         mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<Option<MastNodeId>, AssemblyError> {
+    ) -> Result<Option<MastNodeId>, Report> {
         let dyn_call_node_id = mast_forest_builder.ensure_dyncall()?;
 
         Ok(Some(dyn_call_node_id))
@@ -57,7 +58,7 @@ impl Assembler {
         callee: &InvocationTarget,
         proc_ctx: &mut ProcedureContext,
         block_builder: &mut BasicBlockBuilder,
-    ) -> Result<(), AssemblyError> {
+    ) -> Result<(), Report> {
         let mast_root = {
             let proc_body_id = self.resolve_target(
                 InvokeKind::ProcRef,
@@ -79,9 +80,9 @@ impl Assembler {
 
     fn procref_mast_root(
         &self,
-        mast_root: RpoDigest,
+        mast_root: Word,
         block_builder: &mut BasicBlockBuilder,
-    ) -> Result<(), AssemblyError> {
+    ) -> Result<(), Report> {
         // Create an array with `Push` operations containing root elements
         let ops = mast_root
             .iter()

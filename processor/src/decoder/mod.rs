@@ -64,13 +64,11 @@ impl Process {
         let child1_hash = program
             .get_node_by_id(node.first())
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id: node.first() })?
-            .digest()
-            .into();
+            .digest();
         let child2_hash = program
             .get_node_by_id(node.second())
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id: node.second() })?
-            .digest()
-            .into();
+            .digest();
 
         let (addr, hashed_block) = self.chiplets.hasher.hash_control_block(
             child1_hash,
@@ -79,7 +77,7 @@ impl Process {
             node.digest(),
         );
 
-        debug_assert_eq!(node.digest(), hashed_block.into());
+        debug_assert_eq!(node.digest(), hashed_block);
 
         // start decoding the JOIN block; this appends a row with JOIN operation to the decoder
         // trace. when JOIN operation is executed, the rest of the VM state does not change
@@ -96,7 +94,7 @@ impl Process {
     ) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace. when END operation is
         // executed the rest of the VM state does not change
-        self.decoder.end_control_block(node.digest().into());
+        self.decoder.end_control_block(node.digest());
 
         self.execute_op(Operation::Noop, program, host)
     }
@@ -120,13 +118,11 @@ impl Process {
         let child1_hash = program
             .get_node_by_id(node.on_true())
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id: node.on_true() })?
-            .digest()
-            .into();
+            .digest();
         let child2_hash = program
             .get_node_by_id(node.on_false())
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id: node.on_false() })?
-            .digest()
-            .into();
+            .digest();
         let (addr, hashed_block) = self.chiplets.hasher.hash_control_block(
             child1_hash,
             child2_hash,
@@ -134,7 +130,7 @@ impl Process {
             node.digest(),
         );
 
-        debug_assert_eq!(node.digest(), hashed_block.into());
+        debug_assert_eq!(node.digest(), hashed_block);
 
         // start decoding the SPLIT block. this appends a row with SPLIT operation to the decoder
         // trace. we also pop the value off the top of the stack and return it.
@@ -152,7 +148,7 @@ impl Process {
     ) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace. when END operation is
         // executed the rest of the VM state does not change
-        self.decoder.end_control_block(block.digest().into());
+        self.decoder.end_control_block(block.digest());
 
         self.execute_op(Operation::Noop, program, host)
     }
@@ -177,8 +173,7 @@ impl Process {
         let body_hash = program
             .get_node_by_id(node.body())
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id: node.body() })?
-            .digest()
-            .into();
+            .digest();
 
         let (addr, hashed_block) = self.chiplets.hasher.hash_control_block(
             body_hash,
@@ -187,7 +182,7 @@ impl Process {
             node.digest(),
         );
 
-        debug_assert_eq!(node.digest(), hashed_block.into());
+        debug_assert_eq!(node.digest(), hashed_block);
 
         // start decoding the LOOP block; this appends a row with LOOP operation to the decoder
         // trace, but if the value on the top of the stack is not ONE, the block is not marked
@@ -209,7 +204,7 @@ impl Process {
         host: &mut H,
     ) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace.
-        self.decoder.end_control_block(node.digest().into());
+        self.decoder.end_control_block(node.digest());
 
         // if we are exiting a loop, we also need to pop the top value off the stack (and this
         // value must be ZERO - otherwise, we should have stayed in the loop). but, if we never
@@ -242,8 +237,7 @@ impl Process {
         let callee_hash = program
             .get_node_by_id(node.callee())
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id: node.callee() })?
-            .digest()
-            .into();
+            .digest();
 
         let (addr, hashed_block) = self.chiplets.hasher.hash_control_block(
             callee_hash,
@@ -252,7 +246,7 @@ impl Process {
             node.digest(),
         );
 
-        debug_assert_eq!(node.digest(), hashed_block.into());
+        debug_assert_eq!(node.digest(), hashed_block);
 
         // start new execution context for the operand stack. this has the effect of resetting
         // stack depth to 16.
@@ -299,10 +293,7 @@ impl Process {
 
         // this appends a row with END operation to the decoder trace; the returned value contains
         // information about the execution context prior to execution of the CALL block
-        let ctx_info = self
-            .decoder
-            .end_control_block(node.digest().into())
-            .expect("no execution context");
+        let ctx_info = self.decoder.end_control_block(node.digest()).expect("no execution context");
 
         // when returning from a function call or a syscall, restore the context of the system
         // registers and the operand stack to what it was prior to the call.
@@ -349,7 +340,7 @@ impl Process {
             dyn_node.digest(),
         );
 
-        debug_assert_eq!(dyn_node.digest(), hashed_block.into());
+        debug_assert_eq!(dyn_node.digest(), hashed_block);
 
         self.decoder.start_dyn(addr, callee_hash);
 
@@ -397,7 +388,7 @@ impl Process {
             dyn_node.digest(),
         );
 
-        debug_assert_eq!(dyn_node.digest(), hashed_block.into());
+        debug_assert_eq!(dyn_node.digest(), hashed_block);
 
         let (stack_depth, next_overflow_addr) = self.stack.shift_left_and_start_context();
         debug_assert!(stack_depth <= u32::MAX as usize, "stack depth too big");
@@ -427,7 +418,7 @@ impl Process {
     ) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace. when the END operation is
         // executed the rest of the VM state does not change
-        self.decoder.end_control_block(dyn_node.digest().into());
+        self.decoder.end_control_block(dyn_node.digest());
 
         self.execute_op(Operation::Noop, program, host)
     }
@@ -448,10 +439,8 @@ impl Process {
 
         // this appends a row with END operation to the decoder trace. when the END operation is
         // executed the rest of the VM state does not change
-        let ctx_info = self
-            .decoder
-            .end_control_block(dyn_node.digest().into())
-            .expect("no execution context");
+        let ctx_info =
+            self.decoder.end_control_block(dyn_node.digest()).expect("no execution context");
 
         // when returning from a function call, restore the context of the system
         // registers and the operand stack to what it was prior to the call.
@@ -483,7 +472,7 @@ impl Process {
         let (addr, hashed_block) =
             self.chiplets.hasher.hash_basic_block(op_batches, basic_block.digest());
 
-        debug_assert_eq!(basic_block.digest(), hashed_block.into());
+        debug_assert_eq!(basic_block.digest(), hashed_block);
 
         // start decoding the first operation batch; this also appends a row with SPAN operation
         // to the decoder trace. we also need the total number of operation groups so that we can
@@ -503,7 +492,7 @@ impl Process {
     ) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace. when END operation is
         // executed the rest of the VM state does not change
-        self.decoder.end_basic_block(block.digest().into());
+        self.decoder.end_basic_block(block.digest());
 
         self.execute_op(Operation::Noop, program, host)
     }
@@ -704,7 +693,7 @@ impl Decoder {
         // push DYN block info onto the block stack and append a DYN row to the execution trace
         let parent_addr = self.block_stack.push(addr, BlockType::Dyn, None);
         self.trace
-            .append_block_start(parent_addr, Operation::Dyn, callee_hash, [ZERO; 4]);
+            .append_block_start(parent_addr, Operation::Dyn, callee_hash, [ZERO; 4].into());
 
         self.debug_info.append_operation(Operation::Dyn);
     }
@@ -729,7 +718,7 @@ impl Decoder {
             parent_addr,
             Operation::Dyncall,
             callee_hash,
-            [parent_stack_depth, parent_next_overflow_addr, ZERO, ZERO],
+            [parent_stack_depth, parent_next_overflow_addr, ZERO, ZERO].into(),
         );
 
         self.debug_info.append_operation(Operation::Dyncall);

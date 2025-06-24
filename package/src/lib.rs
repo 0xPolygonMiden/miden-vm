@@ -15,7 +15,7 @@ pub use assembly::{
     Library, LibraryPath,
     ast::{ProcedureName, QualifiedProcedureName},
 };
-pub use vm_core::{Program, chiplets::hasher::Digest, mast::MastForest};
+pub use vm_core::{Program, Word as Digest, mast::MastForest};
 
 pub use self::{
     dep::{
