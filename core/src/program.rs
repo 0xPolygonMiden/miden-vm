@@ -267,7 +267,9 @@ impl ToElements for ProgramInfo {
         let num_kernel_proc_elements = self.kernel.proc_hashes().len() * WORD_SIZE;
         let mut result = Vec::with_capacity(2 * WORD_SIZE + num_kernel_proc_elements);
 
-        // append program hash elements
+        // append program hash elements where we pad with zero so as to make the fixed length
+        // public inputs section of the public inputs of length a multiple of 8 i.e., double-word
+        // aligned
         result.extend_from_slice(self.program_hash.as_elements());
         result.extend_from_slice(&[Felt::ZERO; 4]);
 
