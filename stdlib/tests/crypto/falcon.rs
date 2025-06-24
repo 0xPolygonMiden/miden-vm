@@ -8,7 +8,7 @@ use miden_stdlib::{
 };
 use processor::{
     AdviceInputs, ExecutionError, MemAdviceProvider, Program, ProgramInfo, crypto::RpoRandomCoin,
-    handlers::StatelessHandler,
+    handlers::new_handler,
 };
 use rand::{Rng, rng};
 use test_utils::{
@@ -250,11 +250,8 @@ fn falcon_prove_verify() {
     let advice_provider = MemAdviceProvider::from(advice_inputs);
     let mut host = TestHost::new(advice_provider);
     host.load_library(&StdLibrary::default()).expect("failed to load mast forest");
-    host.load_handler(Box::new(StatelessHandler::new(
-        EVENT_FALCON_SIG_TO_STACK,
-        falcon_sig_to_stack_handler,
-    )))
-    .expect("failed to load Falcon handler");
+    host.load_handler(new_handler(EVENT_FALCON_SIG_TO_STACK, falcon_sig_to_stack_handler))
+        .expect("failed to load Falcon handler");
 
     let options = ProvingOptions::with_96_bit_security(false);
     let (stack_outputs, proof) = test_utils::prove(

@@ -206,7 +206,7 @@ mod tests {
 
     use super::{
         super::{Felt, Operation},
-        Process,
+        Host, Process,
     };
     use crate::{AdviceInputs, DefaultHost, StackInputs, Word, ZERO};
 

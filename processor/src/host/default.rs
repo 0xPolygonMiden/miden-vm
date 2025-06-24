@@ -35,32 +35,10 @@ impl<A: AdviceProvider> DefaultHost<A> {
 }
 
 impl<A: AdviceProvider, D: DebugHandler> DefaultHost<A, D> {
+    /// Loads a [`HostLibrary`]'s [`MastForest`] and all of its associated [`EventHandler`]s.
     pub fn load_library(&mut self, library: &dyn HostLibrary) -> Result<(), ExecutionError> {
-        // Load the MAST forest
-        self.load_mast_forest(library.mast_forest())?;
-
-        // Register event handlers
-        self.event_handlers.register_many(library.event_handlers())?;
-
-        Ok(())
-    }
-
-    pub fn load_handler(&mut self, handler: Box<dyn EventHandler>) -> Result<(), ExecutionError> {
-        self.event_handlers.register(handler)
-    }
-
-    /// Replace the [`DefaultDebugHandler`] with a custom one, ensuring it cannot be overridden.
-    pub fn with_debug_handler<H: DebugHandler>(self, handler: H) -> DefaultHost<A, H> {
-        DefaultHost {
-            adv_provider: self.adv_provider,
-            store: self.store,
-            event_handlers: self.event_handlers,
-            debug_handler: handler,
-        }
-    }
-
-    fn load_mast_forest(&mut self, mast_forest: Arc<MastForest>) -> Result<(), ExecutionError> {
         // Load the MAST's advice data into the advice provider.
+        let mast_forest = library.mast_forest();
         for (digest, values) in mast_forest.advice_map().iter() {
             if let Some(stored_values) = self.advice_provider().get_mapped_values(digest) {
                 if stored_values != values {
@@ -74,23 +52,30 @@ impl<A: AdviceProvider, D: DebugHandler> DefaultHost<A, D> {
                 self.advice_provider_mut().insert_into_map(*digest, values.clone());
             }
         }
-
         self.store.insert(mast_forest);
+
+        // Register event handlers
+        self.event_handlers.register_many(library.event_handlers())?;
+
         Ok(())
     }
 
-    pub fn into_inner(self) -> A {
-        self.adv_provider
+    /// Loads a single [`EventHandler`] into this [`Host`].
+    ///
+    /// It is particularly useful for adding stateless handlers, which are obtained with the
+    /// [`new_handler(id, handler_func)`](crate::host::handlers::new_handler) constructor.
+    pub fn load_handler(&mut self, handler: Box<dyn EventHandler>) -> Result<(), ExecutionError> {
+        self.event_handlers.register(handler)
     }
 
-    #[cfg(any(test, feature = "testing"))]
-    pub fn advice_provider(&self) -> &A {
-        &self.adv_provider
-    }
-
-    #[cfg(any(test, feature = "testing"))]
-    pub fn advice_provider_mut(&mut self) -> &mut A {
-        &mut self.adv_provider
+    /// Replace the [`DefaultDebugHandler`] with a custom one.
+    pub fn with_debug_handler<H: DebugHandler>(self, handler: H) -> DefaultHost<A, H> {
+        DefaultHost {
+            adv_provider: self.adv_provider,
+            store: self.store,
+            event_handlers: self.event_handlers,
+            debug_handler: handler,
+        }
     }
 
     #[cfg(any(test, feature = "testing"))]

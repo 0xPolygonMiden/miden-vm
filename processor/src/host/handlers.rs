@@ -17,9 +17,9 @@ pub trait EventHandler {
 
     /// Handles the event when triggered.
     ///
-    /// While this function *may* modify it's own state, it is recommended to use the
-    /// `AdviceProvider` instead, and define the handler as a free function wrapped in a
-    /// [`StatelessHandler`].
+    /// While this function *may* modify it's own state, the same can usually be acheived using
+    /// a "stateless" handler which stores it's state in the `AdviceProvider` instead.
+    /// Such handlers can be instantiated using [`new_handler`].
     fn on_event(
         &mut self,
         advice_provider: &mut dyn AdviceProvider,
@@ -31,9 +31,8 @@ pub trait EventHandler {
 // ================================================================================================
 
 /// Handler for debug and trace operations
-/// TODO: Should we merge into a single handler?
 pub trait DebugHandler {
-    /// TODO: What kind of error should we return
+    /// This function is invoked when the `Debug` decorator is executed.
     fn on_debug(
         &mut self,
         advice: &dyn AdviceProvider,
@@ -73,24 +72,28 @@ pub trait DebugHandler {
         Ok(())
     }
 
+    /// This function is invoked when the `Trace` decorator is executed.
     fn on_trace(
         &mut self,
-        _advice: &dyn AdviceProvider,
-        _process: ProcessState,
-        _trace_id: u32,
+        advice: &dyn AdviceProvider,
+        process: ProcessState,
+        trace_id: u32,
     ) -> Result<(), ExecutionError> {
         #[cfg(feature = "std")]
-        std::println!(
-            "Trace with id {} emitted at step {} in context {}",
-            _trace_id,
-            _process.clk(),
-            _process.ctx()
-        );
+        {
+            std::println!(
+                "Trace with id {} emitted at step {} in context {}",
+                trace_id,
+                process.clk(),
+                process.ctx()
+            );
+        }
+        let _ = (advice, process, trace_id);
         Ok(())
     }
 }
 
-/// Concrete [`DebugHandler`] which re-uses the provided `on_debug` and `on_trace` implementations.
+/// Concrete [`DebugHandler`] which re-uses the default `on_debug` and `on_trace` implementations.
 #[derive(Clone, Default)]
 pub struct DefaultDebugHandler;
 
@@ -99,26 +102,38 @@ impl DebugHandler for DefaultDebugHandler {}
 // STATELESS HANDLER
 // ================================================================================================
 
-#[derive(Clone)]
-pub struct StatelessHandler<F> {
-    id: u32,
-    handler: F,
+/// Returns a new stateless [`EventHandler`] which can be loaded into a [`DefaultHost`].
+/// ```rust, ignore
+/// host.load_handler(new_handler(id, free_handler_func));
+/// host.load_handler(new_handler(id, |advice, process| { ... }));
+/// ```
+pub fn new_handler<F>(id: u32, handler: F) -> Box<dyn EventHandler>
+where
+    F: Fn(&mut dyn AdviceProvider, ProcessState) -> Result<(), EventError> + 'static,
+{
+    Box::new(StatelessHandler { id, handler })
 }
 
-impl<F> StatelessHandler<F> {
-    pub fn new(id: u32, handler: F) -> Self {
-        Self { id, handler }
-    }
-}
-
+/// Trivial event handler which does nothing.
+/// ```rust, ignore
+/// host.load_handler(trivial_handler(id));
+/// ```
 pub fn trivial_handler(id: u32) -> Box<dyn EventHandler> {
-    pub fn trivial_event_handler(
+    fn trivial_handler(
         _advice: &mut dyn AdviceProvider,
         _process: ProcessState,
     ) -> Result<(), EventError> {
         Ok(())
     }
-    Box::new(StatelessHandler::new(id, trivial_event_handler))
+
+    new_handler(id, trivial_handler)
+}
+
+/// Wrapper for a stateless event handler, constructed with [`new_handler`].
+#[derive(Clone)]
+struct StatelessHandler<F> {
+    id: u32,
+    handler: F,
 }
 
 impl<F> EventHandler for StatelessHandler<F>
@@ -141,6 +156,7 @@ where
 // EVENT ERROR
 // ================================================================================================
 
+/// A generic [`Error`] wrapper allowing handlers to return errors to the [`Host`] caller.
 #[derive(Debug, thiserror::Error)]
 #[error(transparent)]
 pub struct EventError(#[from] Box<dyn Error + Send + Sync + 'static>);

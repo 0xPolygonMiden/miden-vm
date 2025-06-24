@@ -8,7 +8,6 @@ extern crate std;
 #[cfg(not(target_family = "wasm"))]
 use alloc::format;
 use alloc::{
-    boxed::Box,
     string::{String, ToString},
     sync::Arc,
     vec::Vec,
@@ -21,7 +20,7 @@ pub use processor::{
     AdviceInputs, AdviceProvider, ContextId, ExecutionError, ExecutionOptions, ExecutionTrace,
     MemAdviceProvider, Process, ProcessState, VmStateIterator, handlers::EventError,
 };
-use processor::{DefaultHost, Program, fast::FastProcessor, handlers::StatelessHandler};
+use processor::{DefaultHost, Program, fast::FastProcessor, handlers::new_handler};
 pub use prover::{MerkleTreeVC, ProvingOptions, prove};
 pub use test_case::test_case;
 pub use verifier::{AcceptableOptions, VerifierError, verify};
@@ -452,8 +451,7 @@ impl Test {
             host.load_library(library.mast_forest()).unwrap();
         }
         for &(id, handler_func) in &self.handlers {
-            let handler = StatelessHandler::new(id, handler_func);
-            host.load_handler(Box::new(handler)).unwrap();
+            host.load_handler(new_handler(id, handler_func)).unwrap();
         }
 
         (program, host)
