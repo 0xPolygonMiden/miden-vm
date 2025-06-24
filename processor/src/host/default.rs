@@ -1,4 +1,9 @@
-use alloc::{boxed::Box, collections::BTreeMap, sync::Arc, vec::Vec};
+use alloc::{
+    boxed::Box,
+    collections::{BTreeMap, btree_map::Entry},
+    sync::Arc,
+    vec::Vec,
+};
 
 use vm_core::{
     DebugOptions, Word,
@@ -159,10 +164,10 @@ impl EventHandlerRegistry {
 
     pub fn register(&mut self, handler: Box<dyn EventHandler>) -> Result<(), ExecutionError> {
         let id = handler.id();
-        if self.handlers.contains_key(&id) {
-            return Err(ExecutionError::DuplicateEventHandler { id });
-        }
-        self.handlers.insert(id, handler);
+        match self.handlers.entry(id) {
+            Entry::Vacant(e) => e.insert(handler),
+            Entry::Occupied(_) => return Err(ExecutionError::DuplicateEventHandler { id }),
+        };
         Ok(())
     }
 
