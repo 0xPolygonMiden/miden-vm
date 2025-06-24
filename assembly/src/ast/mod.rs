@@ -29,7 +29,7 @@ pub use self::{
     docstring::DocString,
     form::Form,
     ident::{CaseKindError, Ident, IdentError},
-    immediate::{ImmFelt, ImmU8, ImmU16, ImmU32, Immediate},
+    immediate::{ErrorMsg, ImmFelt, ImmU8, ImmU16, ImmU32, Immediate},
     imports::Import,
     instruction::{DebugOptions, Instruction, SystemEventNode},
     invocation_target::{InvocationTarget, Invoke, InvokeKind},
