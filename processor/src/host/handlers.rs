@@ -102,7 +102,10 @@ impl DebugHandler for DefaultDebugHandler {}
 // STATELESS HANDLER
 // ================================================================================================
 
-/// Returns a new stateless [`EventHandler`] which can be loaded into a [`DefaultHost`].
+/// Returns a new stateless [`EventHandler`] which can be loaded into a
+/// [`DefaultHost`](crate::DefaultHost).
+///
+/// # Usage
 /// ```rust, ignore
 /// host.load_handler(new_handler(id, free_handler_func));
 /// host.load_handler(new_handler(id, |advice, process| { ... }));
@@ -156,7 +159,8 @@ where
 // EVENT ERROR
 // ================================================================================================
 
-/// A generic [`Error`] wrapper allowing handlers to return errors to the [`Host`] caller.
+/// A generic [`Error`] wrapper allowing handlers to return errors to the [`Host`](crate::Host)
+/// caller.
 #[derive(Debug, thiserror::Error)]
 #[error(transparent)]
 pub struct EventError(#[from] Box<dyn Error + Send + Sync + 'static>);
