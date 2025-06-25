@@ -5,9 +5,8 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-#[cfg(not(target_family = "wasm"))]
-use alloc::format;
 use alloc::{
+    format,
     string::{String, ToString},
     sync::Arc,
     vec::Vec,
