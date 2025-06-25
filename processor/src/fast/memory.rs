@@ -24,6 +24,7 @@ impl Memory {
     ///
     /// # Errors
     /// - Returns an error if the provided address is out-of-bounds.
+    #[inline(always)]
     pub fn read_element(
         &mut self,
         ctx: ContextId,
@@ -38,6 +39,7 @@ impl Memory {
     ///
     /// # Errors
     /// - Returns an error if the provided address is out-of-bounds or not word-aligned.
+    #[inline(always)]
     pub fn read_word(
         &self,
         ctx: ContextId,
@@ -55,6 +57,7 @@ impl Memory {
     ///
     /// # Errors
     /// - Returns an error if the provided address is out-of-bounds.
+    #[inline(always)]
     pub fn write_element(
         &mut self,
         ctx: ContextId,
@@ -85,6 +88,7 @@ impl Memory {
     ///
     /// # Errors
     /// - Returns an error if the provided address is out-of-bounds or not word-aligned.
+    #[inline(always)]
     pub fn write_word(
         &mut self,
         ctx: ContextId,
@@ -138,6 +142,7 @@ impl Memory {
     /// # Returns
     /// - The word starting at the provided address, if it was written previously.
     /// - `None` if the memory was not written previously.
+    #[inline(always)]
     pub(crate) fn read_word_impl(
         &self,
         ctx: ContextId,
@@ -159,6 +164,7 @@ impl Memory {
 ///
 /// # Errors
 /// - Returns an error if the provided address is out-of-bounds.
+#[inline(always)]
 fn clean_addr(addr: Felt, err_ctx: &impl ErrorContext) -> Result<u32, MemoryError> {
     let addr = addr.as_int();
     addr.try_into().map_err(|_| MemoryError::address_out_of_bounds(addr, err_ctx))
@@ -180,6 +186,7 @@ fn split_addr(addr: u32) -> (u32, u32) {
 /// # Errors
 /// - Returns an error if the provided address is not word-aligned.
 /// - Returns an error if the provided address is out-of-bounds.
+#[inline(always)]
 fn enforce_word_aligned_addr(
     ctx: ContextId,
     addr: u32,

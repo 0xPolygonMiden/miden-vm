@@ -16,6 +16,7 @@ use crate::{
 
 impl FastProcessor {
     /// Analogous to `Process::op_assert`.
+    #[inline(always)]
     pub fn op_assert(
         &mut self,
         err_code: Felt,
@@ -88,6 +89,7 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_emit`.
+    #[inline(always)]
     pub fn op_emit(
         &mut self,
         event_id: u32,

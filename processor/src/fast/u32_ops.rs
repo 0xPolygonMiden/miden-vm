@@ -5,6 +5,7 @@ use crate::{ErrorContext, ExecutionError, utils::split_element};
 
 impl FastProcessor {
     /// Analogous to `Process::op_u32split`.
+    #[inline(always)]
     pub fn op_u32split(&mut self) {
         let top = self.stack_get(0);
         let (hi, lo) = split_element(top);
@@ -25,6 +26,7 @@ impl FastProcessor {
     /// values, and pushes these values back onto the stack.
     ///
     /// The size of the stack is decremented by 1.
+    #[inline(always)]
     pub fn op_u32add3(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         let (sum_hi, sum_lo) = {
             let c = self.stack_get(0).as_int();
@@ -53,6 +55,7 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_u32sub`.
+    #[inline(always)]
     pub fn op_u32sub(
         &mut self,
         op_idx: usize,
@@ -82,6 +85,7 @@ impl FastProcessor {
     /// Pops three elements off the stack, multiplies the first two and adds the third element to
     /// the result, splits the result into low and high 32-bit values, and pushes these values
     /// back onto the stack.
+    #[inline(always)]
     pub fn op_u32madd(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         let (result_hi, result_lo) = {
             let b = self.stack_get(0).as_int();
@@ -110,6 +114,7 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_u32div`.
+    #[inline(always)]
     pub fn op_u32div(
         &mut self,
         op_idx: usize,
@@ -135,16 +140,19 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_u32and`.
+    #[inline(always)]
     pub fn op_u32and(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         self.u32_pop2_applyfn_push(|a, b| a & b, err_ctx)
     }
 
     /// Analogous to `Process::op_u32xor`.
+    #[inline(always)]
     pub fn op_u32xor(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         self.u32_pop2_applyfn_push(|a, b| a ^ b, err_ctx)
     }
 
     /// Analogous to `Process::op_u32assert2`.
+    #[inline(always)]
     pub fn op_u32assert2(
         &mut self,
         err_code: Felt,
@@ -157,6 +165,7 @@ impl FastProcessor {
     // ----------------------------------------------------------------------------------------------
 
     /// Equivalent to `pop2_applyfn_push`, but for u32 values.
+    #[inline(always)]
     fn u32_pop2_applyfn_push(
         &mut self,
         f: impl FnOnce(u64, u64) -> u64,

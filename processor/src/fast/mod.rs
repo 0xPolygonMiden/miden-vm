@@ -634,6 +634,7 @@ impl FastProcessor {
     // Note: when executing individual ops, we do not increment the clock by 1 at every iteration
     // for performance reasons (~25% performance drop). Hence, `self.clk` cannot be used directly to
     // determine the number of operations executed in a program.
+    #[inline(always)]
     fn execute_basic_block_node(
         &mut self,
         basic_block_node: &BasicBlockNode,
@@ -794,6 +795,7 @@ impl FastProcessor {
         Ok(())
     }
 
+    #[inline(always)]
     fn execute_op(
         &mut self,
         operation: &Operation,

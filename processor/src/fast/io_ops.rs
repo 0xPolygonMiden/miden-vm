@@ -9,6 +9,7 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_advpop`.
+    #[inline(always)]
     pub fn op_advpop(
         &mut self,
         op_idx: usize,
@@ -24,6 +25,7 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_advpopw`.
+    #[inline(always)]
     pub fn op_advpopw(
         &mut self,
         op_idx: usize,
@@ -39,6 +41,7 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_mloadw`.
+    #[inline(always)]
     pub fn op_mloadw(
         &mut self,
         op_idx: usize,
@@ -57,6 +60,7 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_mstorew`.
+    #[inline(always)]
     pub fn op_mstorew(
         &mut self,
         op_idx: usize,
@@ -73,6 +77,7 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_mload`.
+    #[inline(always)]
     pub fn op_mload(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         let element = {
             let addr = self.stack_get(0);
@@ -87,6 +92,7 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_mstore`.
+    #[inline(always)]
     pub fn op_mstore(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         let addr = self.stack_get(0);
         let value = self.stack_get(1);
@@ -100,6 +106,7 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_mstream`.
+    #[inline(always)]
     pub fn op_mstream(
         &mut self,
         op_idx: usize,
@@ -132,6 +139,7 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_pipe`.
+    #[inline(always)]
     pub fn op_pipe(
         &mut self,
         op_idx: usize,

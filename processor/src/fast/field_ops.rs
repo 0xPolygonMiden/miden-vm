@@ -24,6 +24,7 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_inv`.
+    #[inline(always)]
     pub fn op_inv(
         &mut self,
         op_idx: usize,
@@ -44,6 +45,7 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_and`.
+    #[inline(always)]
     pub fn op_and(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         self.pop2_applyfn_push(|a, b| {
             assert_binary_with_ctx(b, err_ctx)?;
@@ -54,6 +56,7 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_or`.
+    #[inline(always)]
     pub fn op_or(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         self.pop2_applyfn_push(|a, b| {
             assert_binary_with_ctx(b, err_ctx)?;
@@ -64,6 +67,7 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_not`.
+    #[inline(always)]
     pub fn op_not(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         let top = self.stack_get_mut(0);
         if *top == ZERO {

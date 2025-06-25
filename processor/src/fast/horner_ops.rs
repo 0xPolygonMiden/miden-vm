@@ -14,6 +14,7 @@ const ACC_LOW_INDEX: usize = 15;
 
 impl FastProcessor {
     /// Analogous to `Process::op_horner_eval_base`.
+    #[inline(always)]
     pub fn op_horner_eval_base(
         &mut self,
         op_idx: usize,
@@ -46,6 +47,7 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_horner_eval_ext`.
+    #[inline(always)]
     pub fn op_horner_eval_ext(
         &mut self,
         op_idx: usize,
