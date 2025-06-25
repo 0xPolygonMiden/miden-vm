@@ -5,7 +5,7 @@ use vm_core::{
     mast::{MastForest, MastNodeExt},
 };
 
-use crate::{ExecutionError, KvMap, ProcessState, errors::ErrorContext};
+use crate::{AdviceError, ExecutionError, KvMap, ProcessState, errors::ErrorContext};
 
 pub(super) mod advice;
 use advice::AdviceProvider;
@@ -154,17 +154,17 @@ impl DefaultHost {
         // Load the MAST's advice data into the advice provider.
 
         for (digest, values) in mast_forest.advice_map().iter() {
-            if let Some(stored_values) = self.advice_provider().get_mapped_values(digest) {
+            if let Ok(stored_values) = self.advice_provider().get_mapped_values(digest) {
                 if stored_values != values {
-                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent {
+                    return Err(AdviceError::MapKeyAlreadyPresent {
                         key: *digest,
                         prev_values: stored_values.to_vec(),
                         new_values: values.clone(),
-                    });
+                    }
+                    .into_exec_err(&ErrorContext::default()));
                 }
-            } else {
-                self.advice_provider_mut().insert_into_map(*digest, values.clone());
             }
+            self.advice_provider_mut().insert_into_map(*digest, values.clone())
         }
 
         self.store.insert(mast_forest);

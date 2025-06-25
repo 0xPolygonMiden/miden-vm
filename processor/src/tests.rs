@@ -64,7 +64,8 @@ fn test_diagnostic_advice_map_key_already_present() {
 
     assert_diagnostic_lines!(
         err,
-        "x value for key 0x0000000000000000000000000000000000000000000000000000000000000000 already present in the advice map when loading MAST forest",
+        "advice provider error at clock cycle unknown",
+        "x value for key 0x0000000000000000000000000000000000000000000000000000000000000000 already present in the advice map",
         "help: previous values at key were '[0]'. Operation would have replaced them with '[1]'"
     );
 }
@@ -83,6 +84,7 @@ fn test_diagnostic_advice_map_key_not_found_1() {
     let err = build_test.execute().expect_err("expected error");
     assert_diagnostic_lines!(
         err,
+        "advice provider error at clock cycle 3",
         "value for key 0x0000000000000000000000000000000001000000000000000200000000000000 not present in the advice map",
         regex!(r#",-\[test[\d]+:3:31\]"#),
         " 2 |         begin",
@@ -104,6 +106,7 @@ fn test_diagnostic_advice_map_key_not_found_2() {
     let err = build_test.execute().expect_err("expected error");
     assert_diagnostic_lines!(
         err,
+        "advice provider error at clock cycle 3",
         "value for key 0x0000000000000000000000000000000001000000000000000200000000000000 not present in the advice map",
         regex!(r#",-\[test[\d]+:3:31\]"#),
         " 2 |         begin",
@@ -128,7 +131,8 @@ fn test_diagnostic_advice_stack_read_failed() {
     let err = build_test.execute().expect_err("expected error");
     assert_diagnostic_lines!(
         err,
-        "advice stack read failed at clock cycle 2",
+        "advice provider error at clock cycle 2",
+        "stack read failed",
         regex!(r#",-\[test[\d]+:3:18\]"#),
         " 2 |         begin",
         " 3 |             swap adv_push.1 trace.2",
@@ -394,6 +398,7 @@ fn test_diagnostic_invalid_merkle_tree_node_index() {
     let err = build_test.execute().expect_err("expected error");
     assert_diagnostic_lines!(
         err,
+        "advice provider error at clock cycle 1",
         "provided node index 16 is out of bounds for a merkle tree node at depth 4",
         regex!(r#",-\[test[\d]+:3:13\]"#),
         " 2 |         begin",
@@ -661,8 +666,10 @@ fn test_diagnostic_merkle_store_lookup_failed() {
     let err = build_test.execute().expect_err("expected error");
     assert_diagnostic_lines!(
         err,
+        "advice provider error at clock cycle 1",
         "failed to lookup value in Merkle store",
-        "  `-> node Word([1, 0, 0, 0]) with index `depth=10, value=0` not found in the store",
+        "|",
+        "`-> node Word([1, 0, 0, 0]) with index `depth=10, value=0` not found",
         regex!(r#",-\[test[\d]+:3:13\]"#),
         " 2 |         begin",
         " 3 |             mtree_set",

@@ -2,7 +2,7 @@ use alloc::sync::Arc;
 
 use assembly::{Assembler, DefaultSourceManager};
 use miden_vm::DefaultHost;
-use processor::{ExecutionOptions, MastForest};
+use processor::{AdviceError, ExecutionOptions, MastForest};
 use prover::{StackInputs, Word};
 use vm_core::{ONE, Program, assert_matches};
 
@@ -32,7 +32,10 @@ fn advice_map_loaded_before_execution() {
         Err(e) => {
             assert_matches!(
                 e,
-                prover::ExecutionError::AdviceMapKeyNotFound { key: _, label: _, source_file: _ }
+                prover::ExecutionError::AdviceError {
+                    err: AdviceError::MapKeyNotFound { .. },
+                    ..
+                }
             );
         },
     }

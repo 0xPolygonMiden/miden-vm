@@ -1,4 +1,4 @@
-use processor::{ExecutionError, RowIndex};
+use processor::{AdviceError, ExecutionError, RowIndex};
 use test_utils::expect_exec_error_matches;
 use vm_core::{Felt, chiplets::hasher::apply_permutation, utils::ToElements};
 
@@ -34,8 +34,10 @@ fn adv_push_invalid() {
     let test = build_op_test!("adv_push.1");
     expect_exec_error_matches!(
         test,
-        ExecutionError::AdviceStackReadFailed{row: row_idx, label: _, source_file: _ } if row_idx == RowIndex::from(2)
-    );
+        ExecutionError::AdviceError {
+            err: AdviceError::StackReadFailed, clk, ..
+        } if clk == Some(RowIndex::from(2)),
+    )
 }
 
 // OVERWRITING VALUES ON THE STACK (LOAD)
@@ -58,7 +60,9 @@ fn adv_loadw_invalid() {
     let test = build_op_test!("adv_loadw", &[0, 0, 0, 0]);
     expect_exec_error_matches!(
         test,
-        ExecutionError::AdviceStackReadFailed{row: row_idx, label: _, source_file: _ } if row_idx == RowIndex::from(2)
+        ExecutionError::AdviceError {
+            err: AdviceError::StackReadFailed, clk, ..
+        } if clk == Some(RowIndex::from(2)),
     );
 }
 

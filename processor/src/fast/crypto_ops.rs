@@ -37,12 +37,10 @@ impl FastProcessor {
         let root = self.stack_get_word(6);
 
         // get a Merkle path from the advice provider for the specified root and node index
-        let path = host.advice_provider_mut().get_merkle_path(
-            root,
-            &depth,
-            &index,
-            &ErrorContext::default(),
-        )?;
+        let path = host
+            .advice_provider_mut()
+            .get_merkle_path(root, &depth, &index)
+            .map_err(|err| err.into_exec_err_at_clk(self.clk, &ErrorContext::default()))?;
 
         // verify the path
         match path.verify(index.as_int(), node, &root) {
@@ -74,13 +72,10 @@ impl FastProcessor {
         // get a Merkle path to it. The length of the returned path is expected to match the
         // specified depth. If the new node is the root of a tree, this instruction will append the
         // whole sub-tree to this node.
-        let (path, new_root) = host.advice_provider_mut().update_merkle_node(
-            old_root,
-            &depth,
-            &index,
-            new_node,
-            &ErrorContext::default(),
-        )?;
+        let (path, new_root) = host
+            .advice_provider_mut()
+            .update_merkle_node(old_root, &depth, &index, new_node)
+            .map_err(|err| err.into_exec_err_at_clk(self.clk, &ErrorContext::default()))?;
 
         assert_eq!(path.len(), depth.as_int() as usize);
 

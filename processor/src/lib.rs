@@ -55,7 +55,7 @@ use range::RangeChecker;
 mod host;
 pub use host::{
     DefaultHost, Host, MastForestStore, MemMastForestStore,
-    advice::{AdviceInputs, AdviceProvider, AdviceSource},
+    advice::{AdviceError, AdviceInputs, AdviceProvider, AdviceSource},
 };
 
 mod chiplets;
@@ -303,17 +303,17 @@ impl Process {
 
         // Load the program's advice data into the advice provider
         for (digest, values) in program.mast_forest().advice_map().iter() {
-            if let Some(stored_values) = host.advice_provider().get_mapped_values(digest) {
+            if let Ok(stored_values) = host.advice_provider().get_mapped_values(digest) {
                 if stored_values != values {
-                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent {
+                    return Err(AdviceError::MapKeyAlreadyPresent {
                         key: *digest,
                         prev_values: stored_values.to_vec(),
                         new_values: values.clone(),
-                    });
+                    }
+                    .into_exec_err(&ErrorContext::default()));
                 }
-            } else {
-                host.advice_provider_mut().insert_into_map(*digest, values.clone());
             }
+            host.advice_provider_mut().insert_into_map(*digest, values.clone())
         }
 
         self.execute_mast_node(program.entrypoint(), &program.mast_forest().clone(), host)?;
