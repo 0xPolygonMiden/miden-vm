@@ -1,5 +1,4 @@
-use alloc::vec::Vec;
-use std::collections::BTreeMap;
+use alloc::{collections::BTreeMap, vec::Vec};
 
 use vm_core::{
     Felt,
