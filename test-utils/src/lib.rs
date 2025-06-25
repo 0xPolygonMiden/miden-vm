@@ -13,7 +13,7 @@ use alloc::{
     vec::Vec,
 };
 
-use assembly::{KernelLibrary, Library, Parse};
+use assembly::{KernelLibrary, Library, Parse, diagnostics::reporting::PrintDiagnostic};
 pub use assembly::{LibraryPath, SourceFile, SourceManager, diagnostics::Report};
 pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
 pub use processor::{
@@ -465,6 +465,36 @@ impl Test {
             slow_stack_outputs, fast_stack_outputs,
             "stack outputs do not match between slow and fast processors"
         );
+    }
+
+    fn assert_result_with_fast_processor(&self, result: Result<StackOutputs, ExecutionError>) {
+        let (program, mut host) = self.get_program_and_host();
+        let stack_inputs: Vec<Felt> = self.stack_inputs.clone().into_iter().rev().collect();
+        let fast_process = FastProcessor::new(&stack_inputs);
+        let fast_result = fast_process.execute(&program, &mut host);
+
+        match result {
+            Ok(slow_stack_outputs) => {
+                let fast_stack_outputs = fast_result.unwrap();
+                assert_eq!(
+                    slow_stack_outputs, fast_stack_outputs,
+                    "stack outputs do not match between slow and fast processors"
+                );
+            },
+            Err(slow_err) => {
+                assert!(fast_result.is_err(), "expected error, but got success");
+                let fast_err = fast_result.unwrap_err();
+
+                // assert that diagnostics match
+                let slow_diagnostic = format!("{}", PrintDiagnostic::new_without_color(slow_err));
+                let fast_diagnostic = format!("{}", PrintDiagnostic::new_without_color(fast_err));
+                assert_eq!(
+                    slow_diagnostic, fast_diagnostic,
+                    "diagnostics do not match between slow and fast processors:\nSlow: {}\nFast: {}",
+                    slow_diagnostic, fast_diagnostic
+                );
+            },
+        }
     }
 }
 
