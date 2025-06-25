@@ -153,12 +153,14 @@ impl DefaultHost {
         for (digest, values) in mast_forest.advice_map().iter() {
             if let Ok(stored_values) = self.advice_provider().get_mapped_values(digest) {
                 if stored_values != values {
-                    return Err(AdviceError::MapKeyAlreadyPresent {
-                        key: *digest,
-                        prev_values: stored_values.to_vec(),
-                        new_values: values.clone(),
-                    }
-                    .into_exec_err(&()));
+                    return Err(ExecutionError::advice_error(
+                        AdviceError::MapKeyAlreadyPresent {
+                            key: *digest,
+                            prev_values: stored_values.to_vec(),
+                            new_values: values.clone(),
+                        },
+                        &(),
+                    ));
                 }
             }
             self.advice_provider_mut().insert_into_map(*digest, values.clone())

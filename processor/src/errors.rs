@@ -281,6 +281,20 @@ impl From<Ext2InttError> for ExecutionError {
 }
 
 impl ExecutionError {
+    pub fn advice_error(err: AdviceError, err_ctx: &impl ErrorContext) -> ExecutionError {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        ExecutionError::AdviceError { label, source_file, err, clk: None }
+    }
+
+    pub fn advice_error_at_clk(
+        err: AdviceError,
+        clk: RowIndex,
+        err_ctx: &impl ErrorContext,
+    ) -> ExecutionError {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        ExecutionError::AdviceError { label, source_file, err, clk: Some(clk) }
+    }
+
     pub fn divide_by_zero(clk: RowIndex, err_ctx: &impl ErrorContext) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::DivideByZero { clk, label, source_file }
@@ -464,27 +478,6 @@ pub enum Ext2InttError {
     OutputSizeIsZero,
     #[error("uninitialized memory at address {0}")]
     UninitializedMemoryAddress(u32),
-}
-
-impl AdviceError {
-    pub fn into_exec_err(self, err_ctx: &impl ErrorContext) -> ExecutionError {
-        let (label, source_file) = err_ctx.label_and_source_file();
-        ExecutionError::AdviceError { label, source_file, err: self, clk: None }
-    }
-
-    pub fn into_exec_err_at_clk(
-        self,
-        clk: RowIndex,
-        err_ctx: &impl ErrorContext,
-    ) -> ExecutionError {
-        let (label, source_file) = err_ctx.label_and_source_file();
-        ExecutionError::AdviceError {
-            label,
-            source_file,
-            err: self,
-            clk: Some(clk),
-        }
-    }
 }
 
 // ERROR CONTEXT

@@ -304,12 +304,14 @@ impl Process {
         for (digest, values) in program.mast_forest().advice_map().iter() {
             if let Ok(stored_values) = host.advice_provider().get_mapped_values(digest) {
                 if stored_values != values {
-                    return Err(AdviceError::MapKeyAlreadyPresent {
-                        key: *digest,
-                        prev_values: stored_values.to_vec(),
-                        new_values: values.clone(),
-                    }
-                    .into_exec_err(&()));
+                    return Err(ExecutionError::advice_error(
+                        AdviceError::MapKeyAlreadyPresent {
+                            key: *digest,
+                            prev_values: stored_values.to_vec(),
+                            new_values: values.clone(),
+                        },
+                        &(),
+                    ));
                 }
             }
             host.advice_provider_mut().insert_into_map(*digest, values.clone())
