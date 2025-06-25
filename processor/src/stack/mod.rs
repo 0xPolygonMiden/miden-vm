@@ -133,7 +133,6 @@ impl Stack {
     /// # Errors
     /// Returns an error if the overflow table is not empty at the current clock cycle.
     pub fn build_stack_outputs(&self) -> Result<StackOutputs, ExecutionError> {
-        std::println!("stack state is {:?}", self.get_state_at(self.clk));
         if self.overflow.total_num_elements() != 0 {
             return Err(ExecutionError::OutputStackOverflow(self.overflow.total_num_elements()));
         }
