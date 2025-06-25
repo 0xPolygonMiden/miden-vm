@@ -37,7 +37,7 @@ impl FastProcessor {
         let addr = self.stack_get(0);
         self.decrement_stack_size();
 
-        let word = *self.memory.read_word(self.ctx, addr, self.clk + op_idx)?;
+        let word = self.memory.read_word(self.ctx, addr, self.clk + op_idx)?;
         self.stack_write_word(0, &word);
 
         Ok(())
@@ -85,8 +85,8 @@ impl FastProcessor {
         let addr_first_word = self.stack_get(MEM_ADDR_STACK_IDX);
         let addr_second_word = addr_first_word + WORD_SIZE_FELT;
         let words = [
-            *self.memory.read_word(self.ctx, addr_first_word, self.clk + op_idx)?,
-            *self.memory.read_word(self.ctx, addr_second_word, self.clk + op_idx)?,
+            self.memory.read_word(self.ctx, addr_first_word, self.clk + op_idx)?,
+            self.memory.read_word(self.ctx, addr_second_word, self.clk + op_idx)?,
         ];
 
         // Replace the stack elements with the elements from memory (in stack order). The word at

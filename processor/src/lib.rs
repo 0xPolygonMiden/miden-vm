@@ -838,14 +838,10 @@ impl<'a> ProcessState<'a> {
     /// # Errors
     /// - If the address is not word aligned.
     #[inline(always)]
-    pub fn get_mem_word(&self, ctx: ContextId, addr: u32) -> Result<Option<Word>, ExecutionError> {
+    pub fn get_mem_word(&self, ctx: ContextId, addr: u32) -> Result<Option<Word>, MemoryError> {
         match self {
-            ProcessState::Slow(state) => {
-                state.chiplets.memory.get_word(ctx, addr).map_err(ExecutionError::MemoryError)
-            },
-            ProcessState::Fast(state) => {
-                Ok(state.processor.memory.read_word_impl(ctx, addr, None)?.copied())
-            },
+            ProcessState::Slow(state) => state.chiplets.memory.get_word(ctx, addr),
+            ProcessState::Fast(state) => state.processor.memory.read_word_impl(ctx, addr, None),
         }
     }
 

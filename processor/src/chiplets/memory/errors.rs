@@ -7,7 +7,7 @@ use vm_core::{
     mast::MastNodeExt,
 };
 
-use crate::{ContextId, errors::ErrorContext};
+use crate::{ContextId, ErrorContext};
 
 #[derive(Debug, thiserror::Error, Diagnostic)]
 pub enum MemoryError {

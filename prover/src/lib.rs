@@ -125,8 +125,7 @@ pub fn prove(
             let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpx256);
             maybe_await!(prover.prove(trace))
         },
-    }
-    .map_err(ExecutionError::ProverError)?;
+    }?;
     let proof = ExecutionProof::new(proof, hash_fn);
 
     Ok((stack_outputs, proof))

@@ -99,7 +99,7 @@ pub fn eval_circuit_fast_(
     // perform READ operations
     for _ in 0..num_read_rows {
         let word = mem.read_word(ctx, ptr, clk + op_idx)?;
-        evaluation_context.do_read(ptr, *word)?;
+        evaluation_context.do_read(ptr, word)?;
         ptr += PTR_OFFSET_WORD;
     }
     // perform EVAL operations

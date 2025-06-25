@@ -93,7 +93,7 @@ pub enum ExecutionError {
         error: Box<dyn Error + Send + Sync + 'static>,
     },
     #[error("failed to execute Ext2Intt operation: {0}")]
-    Ext2InttError(Ext2InttError),
+    Ext2InttError(#[from] Ext2InttError),
     #[error("assertion failed at clock cycle {clk} with error {}",
       match err_msg {
         Some(msg) => format!("message: {msg}"),
@@ -184,7 +184,7 @@ pub enum ExecutionError {
     MastNodeNotFoundInForest { node_id: MastNodeId },
     #[error(transparent)]
     #[diagnostic(transparent)]
-    MemoryError(MemoryError),
+    MemoryError(#[from] MemoryError),
     #[error("no MAST forest contains the procedure with root digest {root_digest}")]
     NoMastForestWithProcedure {
         #[label]
@@ -294,7 +294,7 @@ pub enum ExecutionError {
     #[error("a program has already been executed in this process")]
     ProgramAlreadyExecuted,
     #[error("proof generation failed")]
-    ProverError(#[source] ProverError),
+    ProverError(#[from] ProverError),
     #[error("smt node {node_hex} not found", node_hex = to_hex(node.as_bytes()))]
     SmtNodeNotFound {
         #[label]
@@ -333,12 +333,6 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         error: AceError,
     },
-}
-
-impl From<Ext2InttError> for ExecutionError {
-    fn from(value: Ext2InttError) -> Self {
-        Self::Ext2InttError(value)
-    }
 }
 
 impl ExecutionError {

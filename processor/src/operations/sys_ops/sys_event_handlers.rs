@@ -722,28 +722,19 @@ fn get_mem_addr_range(
     process: ProcessState,
     start_idx: usize,
     end_idx: usize,
-) -> Result<(u32, u32), ExecutionError> {
+) -> Result<(u32, u32), MemoryError> {
     let start_addr = process.get_stack_item(start_idx).as_int();
     let end_addr = process.get_stack_item(end_idx).as_int();
 
     if start_addr > u32::MAX as u64 {
-        return Err(ExecutionError::MemoryError(MemoryError::address_out_of_bounds(
-            start_addr,
-            &ErrorContext::default(),
-        )));
+        return Err(MemoryError::address_out_of_bounds(start_addr, &ErrorContext::default()));
     }
     if end_addr > u32::MAX as u64 {
-        return Err(ExecutionError::MemoryError(MemoryError::address_out_of_bounds(
-            end_addr,
-            &ErrorContext::default(),
-        )));
+        return Err(MemoryError::address_out_of_bounds(end_addr, &ErrorContext::default()));
     }
 
     if start_addr > end_addr {
-        return Err(ExecutionError::MemoryError(MemoryError::InvalidMemoryRange {
-            start_addr,
-            end_addr,
-        }));
+        return Err(MemoryError::InvalidMemoryRange { start_addr, end_addr });
     }
 
     Ok((start_addr as u32, end_addr as u32))
