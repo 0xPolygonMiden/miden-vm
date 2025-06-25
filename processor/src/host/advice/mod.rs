@@ -3,7 +3,6 @@ use alloc::{collections::BTreeMap, vec::Vec};
 use vm_core::{
     Felt,
     crypto::merkle::{MerklePath, MerkleStore, NodeIndex, StoreNode},
-    mast::MastNodeExt,
 };
 
 use crate::{ErrorContext, ExecutionError, ProcessState, Word};
@@ -56,7 +55,7 @@ impl AdviceProvider {
     pub fn pop_stack(
         &mut self,
         process: ProcessState,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<Felt, ExecutionError> {
         self.stack
             .pop()
@@ -73,7 +72,7 @@ impl AdviceProvider {
     pub fn pop_stack_word(
         &mut self,
         process: ProcessState,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<Word, ExecutionError> {
         if self.stack.len() < 4 {
             return Err(ExecutionError::advice_stack_read_failed(process.clk(), err_ctx));
@@ -99,7 +98,7 @@ impl AdviceProvider {
     pub fn pop_stack_dword(
         &mut self,
         process: ProcessState,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<[Word; 2], ExecutionError> {
         let word0 = self.pop_stack_word(process, err_ctx)?;
         let word1 = self.pop_stack_word(process, err_ctx)?;
@@ -114,7 +113,7 @@ impl AdviceProvider {
     pub fn push_stack(
         &mut self,
         source: AdviceSource,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         match source {
             AdviceSource::Value(value) => {
@@ -185,7 +184,7 @@ impl AdviceProvider {
         root: Word,
         depth: &Felt,
         index: &Felt,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<Word, ExecutionError> {
         let index = NodeIndex::from_elements(depth, index)
             .map_err(|_| ExecutionError::invalid_merkle_tree_node_index(*depth, *index, err_ctx))?;
@@ -208,7 +207,7 @@ impl AdviceProvider {
         root: Word,
         depth: &Felt,
         index: &Felt,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<MerklePath, ExecutionError> {
         let index = NodeIndex::from_elements(depth, index)
             .map_err(|_| ExecutionError::invalid_merkle_tree_node_index(*depth, *index, err_ctx))?;
@@ -237,7 +236,7 @@ impl AdviceProvider {
         depth: &Felt,
         index: &Felt,
         value: Word,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(MerklePath, Word), ExecutionError> {
         let node_index = NodeIndex::from_elements(depth, index)
             .map_err(|_| ExecutionError::invalid_merkle_tree_node_index(*depth, *index, err_ctx))?;
@@ -259,7 +258,7 @@ impl AdviceProvider {
         &mut self,
         lhs: Word,
         rhs: Word,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<Word, ExecutionError> {
         self.store
             .merge_roots(lhs, rhs)

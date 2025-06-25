@@ -4,7 +4,6 @@ use miden_air::trace::chiplets::bitwise::{
     A_COL_IDX, A_COL_RANGE, B_COL_IDX, B_COL_RANGE, BITWISE_AND, BITWISE_XOR, OUTPUT_COL_IDX,
     PREV_OUTPUT_COL_IDX, TRACE_WIDTH,
 };
-use vm_core::mast::MastNodeExt;
 
 use super::{ExecutionError, Felt, TraceFragment, ZERO, utils::get_trace_len};
 use crate::ErrorContext;
@@ -89,7 +88,7 @@ impl Bitwise {
         &mut self,
         a: Felt,
         b: Felt,
-        err_ctx: &ErrorContext<impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<Felt, ExecutionError> {
         let a = assert_u32(a, err_ctx)?.as_int();
         let b = assert_u32(b, err_ctx)?.as_int();
@@ -129,7 +128,7 @@ impl Bitwise {
         &mut self,
         a: Felt,
         b: Felt,
-        err_ctx: &ErrorContext<impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<Felt, ExecutionError> {
         let a = assert_u32(a, err_ctx)?.as_int();
         let b = assert_u32(b, err_ctx)?.as_int();
@@ -213,10 +212,7 @@ impl Default for Bitwise {
 // HELPER FUNCTIONS
 // --------------------------------------------------------------------------------------------
 
-pub fn assert_u32(
-    value: Felt,
-    err_ctx: &ErrorContext<impl MastNodeExt>,
-) -> Result<Felt, ExecutionError> {
+pub fn assert_u32(value: Felt, err_ctx: &impl ErrorContext) -> Result<Felt, ExecutionError> {
     let val_u64 = value.as_int();
     if val_u64 > u32::MAX.into() {
         Err(ExecutionError::not_u32_value(value, ZERO, err_ctx))

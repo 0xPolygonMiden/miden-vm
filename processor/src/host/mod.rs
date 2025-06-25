@@ -1,9 +1,6 @@
 use alloc::sync::Arc;
 
-use vm_core::{
-    DebugOptions, Felt, Word,
-    mast::{MastForest, MastNodeExt},
-};
+use vm_core::{DebugOptions, Felt, Word, mast::MastForest};
 
 use crate::{ExecutionError, KvMap, ProcessState, errors::ErrorContext};
 
@@ -48,7 +45,7 @@ pub trait Host {
         &mut self,
         _process: ProcessState,
         _event_id: u32,
-        _err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        _err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         #[cfg(feature = "std")]
         std::println!(
@@ -110,7 +107,7 @@ where
         &mut self,
         process: ProcessState,
         event_id: u32,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         H::on_event(self, process, event_id, err_ctx)
     }
@@ -199,7 +196,7 @@ impl Host for DefaultHost {
         &mut self,
         _process: ProcessState,
         _event_id: u32,
-        _err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        _err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         #[cfg(feature = "std")]
         std::println!(

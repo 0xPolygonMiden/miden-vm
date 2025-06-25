@@ -22,6 +22,9 @@ concurrent = ["std", "winter-prover/concurrent"]
 default = ["std"]
 std = ["vm-core/std", "winter-prover/std", "thiserror/std"]
 testing = ["miden-air/testing"]
+# Removes proper error context from the error messages. Enable in production builds that need
+# maximal performance. 
+no_err_ctx = []
 # Like `testing`, but slows down the processor speed to make it easier to debug.
 bus-debugger = ["testing", "miden-air/testing"]
 

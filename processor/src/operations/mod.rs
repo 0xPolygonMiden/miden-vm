@@ -1,7 +1,4 @@
-use vm_core::{
-    mast::{BasicBlockNode, MastForest},
-    stack::MIN_STACK_DEPTH,
-};
+use vm_core::{mast::MastForest, stack::MIN_STACK_DEPTH};
 
 use super::{ExecutionError, Felt, FieldElement, Host, Operation, Process};
 use crate::errors::ErrorContext;
@@ -36,7 +33,7 @@ impl Process {
         program: &MastForest,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
-        self.execute_op_with_error_ctx(op, program, host, &ErrorContext::default())
+        self.execute_op_with_error_ctx(op, program, host, &())
     }
 
     /// Executes the specified operation.
@@ -48,7 +45,7 @@ impl Process {
         op: Operation,
         program: &MastForest,
         host: &mut impl Host,
-        error_ctx: &ErrorContext<'_, BasicBlockNode>,
+        error_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         // make sure there is enough memory allocated to hold the execution trace
         self.ensure_trace_capacity();

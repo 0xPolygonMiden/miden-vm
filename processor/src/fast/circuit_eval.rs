@@ -1,5 +1,5 @@
 use miden_air::RowIndex;
-use vm_core::{Felt, FieldElement, mast::BasicBlockNode};
+use vm_core::{Felt, FieldElement};
 
 use super::{FastProcessor, memory::Memory};
 use crate::{
@@ -41,7 +41,7 @@ impl FastProcessor {
             num_eval_rows,
             &mut self.memory,
             op_idx,
-            &ErrorContext::default(),
+            &(),
         )?;
         self.ace.add_circuit_evaluation(clk, circuit_evaluation);
 
@@ -59,7 +59,7 @@ pub fn eval_circuit_fast_(
     num_eval: Felt,
     mem: &mut Memory,
     op_idx: usize,
-    error_ctx: &ErrorContext<'_, BasicBlockNode>,
+    error_ctx: &impl ErrorContext,
 ) -> Result<CircuitEvaluation, ExecutionError> {
     let num_vars = num_vars.as_int();
     let num_eval = num_eval.as_int();

@@ -5,7 +5,6 @@ use processor::{
 };
 use prover::{ExecutionError, Host, Word};
 use stdlib::{EVENT_FALCON_SIG_TO_STACK, falcon_sign};
-use vm_core::mast::MastNodeExt;
 
 pub struct TestHost(DefaultHost);
 
@@ -44,7 +43,7 @@ impl Host for TestHost {
         &mut self,
         process: ProcessState,
         event_id: u32,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         if event_id == EVENT_FALCON_SIG_TO_STACK {
             let advice_provider = self.advice_provider_mut();
@@ -75,7 +74,7 @@ impl Host for TestHost {
 pub fn push_falcon_signature(
     advice_provider: &mut AdviceProvider,
     process: ProcessState,
-    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
     let pub_key = process.get_stack_word(0);
     let msg = process.get_stack_word(1);
