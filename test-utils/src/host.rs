@@ -36,7 +36,7 @@ impl Host for TestHost {
         self.0.advice_provider_mut()
     }
 
-    fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<processor::MastForest>> {
+    fn get_mast_forest(&mut self, node_digest: &Word) -> Option<Arc<MastForest>> {
         self.0.get_mast_forest(node_digest)
     }
 

@@ -38,7 +38,7 @@ pub trait Host {
 
     /// Returns MAST forest corresponding to the specified digest, or None if the MAST forest for
     /// this digest could not be found in this [Host].
-    fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>>;
+    fn get_mast_forest(&mut self, node_digest: &Word) -> Option<Arc<MastForest>>;
 
     // PROVIDED METHODS
     // --------------------------------------------------------------------------------------------
@@ -102,7 +102,7 @@ where
         H::advice_provider_mut(self)
     }
 
-    fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>> {
+    fn get_mast_forest(&mut self, node_digest: &Word) -> Option<Arc<MastForest>> {
         H::get_mast_forest(self, node_digest)
     }
 
@@ -191,7 +191,7 @@ impl Host for DefaultHost {
         &mut self.adv_provider
     }
 
-    fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>> {
+    fn get_mast_forest(&mut self, node_digest: &Word) -> Option<Arc<MastForest>> {
         self.store.get(node_digest)
     }
 
