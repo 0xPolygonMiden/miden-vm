@@ -208,6 +208,12 @@ impl FastProcessor {
         }
     }
 
+    /// Set the internal source manager to an externally initialized one.
+    pub fn with_source_manager(mut self, source_manager: Arc<dyn SourceManager>) -> Self {
+        self.source_manager = source_manager;
+        self
+    }
+
     // ACCESSORS
     // -------------------------------------------------------------------------------------------
 
@@ -841,8 +847,8 @@ impl FastProcessor {
             Operation::Mul => self.op_mul()?,
             Operation::Inv => self.op_inv(op_idx, err_ctx)?,
             Operation::Incr => self.op_incr()?,
-            Operation::And => self.op_and()?,
-            Operation::Or => self.op_or()?,
+            Operation::And => self.op_and(err_ctx)?,
+            Operation::Or => self.op_or(err_ctx)?,
             Operation::Not => self.op_not(err_ctx)?,
             Operation::Eq => self.op_eq()?,
             Operation::Eqz => self.op_eqz()?,
