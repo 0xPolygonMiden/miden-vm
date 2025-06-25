@@ -1,7 +1,4 @@
-use vm_core::{
-    WORD_SIZE,
-    mast::{BasicBlockNode, MastNodeExt},
-};
+use vm_core::WORD_SIZE;
 
 use super::{ExecutionError, Felt, Process};
 use crate::{Host, errors::ErrorContext};
@@ -40,7 +37,7 @@ impl Process {
     /// - Returns an error if the address is not aligned to a word boundary.
     pub(super) fn op_mloadw(
         &mut self,
-        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        error_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         // get the address from the stack and read the word from current memory context
         let mut word: [Felt; WORD_SIZE] = self
@@ -67,16 +64,11 @@ impl Process {
     ///   initialized to ZEROs, and thus, if the specified address has never been written to, the
     ///   ZERO element is returned.
     /// - The element retrieved from memory is pushed to the top of the stack.
-    pub(super) fn op_mload(
-        &mut self,
-        error_ctx: &ErrorContext<'_, BasicBlockNode>,
-    ) -> Result<(), ExecutionError> {
-        let element = self.chiplets.memory.read(
-            self.system.ctx(),
-            self.stack.get(0),
-            self.system.clk(),
-            error_ctx,
-        )?;
+    pub(super) fn op_mload(&mut self, error_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
+        let element = self
+            .chiplets
+            .memory
+            .read(self.system.ctx(), self.stack.get(0), self.system.clk(), error_ctx)?;
 
         self.stack.set(0, element);
         self.stack.copy_state(1);
@@ -97,7 +89,7 @@ impl Process {
     /// - Returns an error if the address is not aligned to a word boundary.
     pub(super) fn op_mstorew(
         &mut self,
-        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        error_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         // get the address from the stack and build the word to be saved from the stack values
         let addr = self.stack.get(0);
@@ -133,7 +125,7 @@ impl Process {
     /// Thus, the net result of the operation is that the stack is shifted left by one item.
     pub(super) fn op_mstore(
         &mut self,
-        error_ctx: &ErrorContext<'_, BasicBlockNode>,
+        error_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         // get the address and the value from the stack
         let ctx = self.system.ctx();
@@ -164,7 +156,7 @@ impl Process {
     /// - Returns an error if the address is not aligned to a word boundary.
     pub(super) fn op_mstream(
         &mut self,
-        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        error_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         const MEM_ADDR_STACK_IDX: usize = 12;
 
@@ -216,7 +208,7 @@ impl Process {
     pub(super) fn op_pipe(
         &mut self,
         host: &mut impl Host,
-        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        error_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         const MEM_ADDR_STACK_IDX: usize = 12;
 
@@ -268,7 +260,7 @@ impl Process {
     pub(super) fn op_advpop(
         &mut self,
         host: &mut impl Host,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         let value = host.advice_provider_mut().pop_stack(self.into(), err_ctx)?;
         self.stack.set(0, value);
@@ -284,7 +276,7 @@ impl Process {
     pub(super) fn op_advpopw(
         &mut self,
         host: &mut impl Host,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         let word = host.advice_provider_mut().pop_stack_word(self.into(), err_ctx)?;
 
@@ -311,9 +303,7 @@ mod tests {
         super::{MIN_STACK_DEPTH, Operation},
         Felt, Host, Process,
     };
-    use crate::{
-        AdviceSource, ContextId, DefaultHost, ExecutionError, MemoryError, errors::ErrorContext,
-    };
+    use crate::{AdviceSource, ContextId, DefaultHost, ExecutionError, MemoryError};
 
     #[test]
     fn op_push() {
@@ -599,7 +589,7 @@ mod tests {
 
     #[test]
     fn op_pipe() {
-        let err_ctx = ErrorContext::default();
+        let err_ctx = ();
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
         let program = &MastForest::default();
@@ -707,9 +697,9 @@ mod tests {
 
         // emulate reading and writing in the same clock cycle
         process.ensure_trace_capacity();
-        process.op_mload(&ErrorContext::default()).unwrap();
+        process.op_mload(&()).unwrap();
         assert_matches!(
-            process.op_mstore(&ErrorContext::default()),
+            process.op_mstore(&()),
             Err(ExecutionError::MemoryError(MemoryError::IllegalMemoryAccess {
                 ctx: _,
                 addr: _,
@@ -726,9 +716,9 @@ mod tests {
 
         // emulate reading and writing in the same clock cycle
         process.ensure_trace_capacity();
-        process.op_mstore(&ErrorContext::default()).unwrap();
+        process.op_mstore(&()).unwrap();
         assert_matches!(
-            process.op_mstore(&ErrorContext::default()),
+            process.op_mstore(&()),
             Err(ExecutionError::MemoryError(MemoryError::IllegalMemoryAccess {
                 ctx: _,
                 addr: _,
@@ -745,8 +735,8 @@ mod tests {
 
         // emulate reading in the same clock cycle
         process.ensure_trace_capacity();
-        process.op_mload(&ErrorContext::default()).unwrap();
-        process.op_mload(&ErrorContext::default()).unwrap();
+        process.op_mload(&()).unwrap();
+        process.op_mload(&()).unwrap();
     }
 
     // HELPER METHODS

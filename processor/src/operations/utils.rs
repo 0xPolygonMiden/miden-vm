@@ -1,5 +1,3 @@
-use vm_core::mast::MastNodeExt;
-
 use super::{ExecutionError, Felt};
 use crate::{ErrorContext, ONE, ZERO};
 
@@ -7,7 +5,7 @@ use crate::{ErrorContext, ONE, ZERO};
 #[inline(always)]
 pub fn assert_binary_with_ctx(
     value: Felt,
-    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    err_ctx: &impl ErrorContext,
 ) -> Result<Felt, ExecutionError> {
     if value != ZERO && value != ONE {
         Err(ExecutionError::not_binary_value_op(value, err_ctx))
@@ -19,7 +17,7 @@ pub fn assert_binary_with_ctx(
 #[inline(always)]
 pub fn assert_binary(value: Felt) -> Result<Felt, ExecutionError> {
     if value != ZERO && value != ONE {
-        Err(ExecutionError::not_binary_value_op(value, &ErrorContext::default()))
+        Err(ExecutionError::not_binary_value_op(value, &()))
     } else {
         Ok(value)
     }

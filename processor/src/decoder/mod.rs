@@ -283,7 +283,7 @@ impl Process {
         node: &CallNode,
         program: &MastForest,
         host: &mut H,
-        err_ctx: &ErrorContext<'_, CallNode>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         // when a CALL block ends, stack depth must be exactly 16
         let stack_depth = self.stack.depth();
@@ -320,7 +320,7 @@ impl Process {
         dyn_node: &DynNode,
         program: &MastForest,
         host: &mut H,
-        error_ctx: &ErrorContext<'_, DynNode>,
+        error_ctx: &impl ErrorContext,
     ) -> Result<Word, ExecutionError> {
         debug_assert!(!dyn_node.is_dyncall());
 
@@ -359,7 +359,7 @@ impl Process {
     pub(super) fn start_dyncall_node(
         &mut self,
         dyn_node: &DynNode,
-        error_ctx: &ErrorContext<'_, DynNode>,
+        error_ctx: &impl ErrorContext,
     ) -> Result<Word, ExecutionError> {
         debug_assert!(dyn_node.is_dyncall());
 
@@ -431,7 +431,7 @@ impl Process {
         dyn_node: &DynNode,
         program: &MastForest,
         host: &mut H,
-        err_ctx: &ErrorContext<'_, DynNode>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         // when a DYNCALL block ends, stack depth must be exactly 16
         let stack_depth = self.stack.depth();

@@ -1,8 +1,4 @@
-use vm_core::{
-    Felt, Operation,
-    mast::{MastForest, MastNodeExt},
-    sys_events::SystemEvent,
-};
+use vm_core::{Felt, Operation, mast::MastForest, sys_events::SystemEvent};
 
 use super::{
     super::{
@@ -27,7 +23,7 @@ impl Process {
         err_code: Felt,
         program: &MastForest,
         host: &mut H,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError>
     where
         H: Host,
@@ -134,7 +130,7 @@ impl Process {
         &mut self,
         event_id: u32,
         host: &mut H,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError>
     where
         H: Host,

@@ -10,7 +10,7 @@ use miden_air::{
         MEMORY_WRITE, V_COL_RANGE, WORD_COL_IDX,
     },
 };
-use vm_core::{WORD_SIZE, ZERO, mast::MastNodeExt};
+use vm_core::{WORD_SIZE, ZERO};
 
 use super::{
     EMPTY_WORD, Felt, FieldElement, ONE, RangeChecker, TraceFragment, Word,
@@ -166,7 +166,7 @@ impl Memory {
         ctx: ContextId,
         addr: Felt,
         clk: RowIndex,
-        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        error_ctx: &impl ErrorContext,
     ) -> Result<Felt, MemoryError> {
         let addr: u32 = addr
             .as_int()
@@ -190,7 +190,7 @@ impl Memory {
         ctx: ContextId,
         addr: Felt,
         clk: RowIndex,
-        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        error_ctx: &impl ErrorContext,
     ) -> Result<Word, MemoryError> {
         let addr: u32 = addr
             .as_int()
@@ -215,7 +215,7 @@ impl Memory {
         addr: Felt,
         clk: RowIndex,
         value: Felt,
-        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        error_ctx: &impl ErrorContext,
     ) -> Result<(), MemoryError> {
         let addr: u32 = addr
             .as_int()
@@ -237,7 +237,7 @@ impl Memory {
         addr: Felt,
         clk: RowIndex,
         value: Word,
-        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        error_ctx: &impl ErrorContext,
     ) -> Result<(), MemoryError> {
         let addr: u32 = addr
             .as_int()
