@@ -1,4 +1,4 @@
-use vm_core::mast::{MastForest, MastNodeExt};
+use vm_core::mast::MastForest;
 
 use super::{ExecutionError, Operation, Process};
 use crate::{ErrorContext, Felt, Host};
@@ -70,7 +70,7 @@ impl Process {
         err_code: Felt,
         host: &mut impl Host,
         program: &MastForest,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         // read node value, depth, index and root value from the stack
         let node =
@@ -141,7 +141,7 @@ impl Process {
     pub(super) fn op_mrupdate(
         &mut self,
         host: &mut impl Host,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         // read old node value, depth, index, tree root and new node values from the stack
         let old_node =

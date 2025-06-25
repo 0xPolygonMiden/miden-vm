@@ -6,7 +6,7 @@ use miden_air::{
     RowIndex,
     trace::{chiplets::ace::ACE_CHIPLET_NUM_COLS, main_trace::MainTrace},
 };
-use vm_core::{FieldElement, ZERO, mast::BasicBlockNode};
+use vm_core::{FieldElement, ZERO};
 
 use crate::{
     ContextId, ExecutionError, Felt, QuadFelt,
@@ -296,7 +296,7 @@ pub fn eval_circuit(
     num_vars: Felt,
     num_eval: Felt,
     mem: &mut Memory,
-    error_ctx: &ErrorContext<'_, BasicBlockNode>,
+    error_ctx: &impl ErrorContext,
 ) -> Result<CircuitEvaluation, ExecutionError> {
     let num_vars = num_vars.as_int();
     let num_eval = num_eval.as_int();

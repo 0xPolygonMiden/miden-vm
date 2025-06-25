@@ -62,6 +62,9 @@ executable = [
 ]
 metal = ["prover/metal", "std"]
 std = ["assembly/std", "processor/std", "prover/std", "verifier/std"]
+# Removes proper error context from the error messages. Enable in production builds that need
+# maximal performance. 
+no_err_ctx = ["processor/no_err_ctx"]
 # For internal use, not meant to be used by users
 internal = ["dep:serde", "dep:serde_derive", "dep:serde_json", "dep:hex"]
 

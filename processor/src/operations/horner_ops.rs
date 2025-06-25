@@ -1,4 +1,4 @@
-use vm_core::{Felt, FieldElement, Operation, mast::MastNodeExt};
+use vm_core::{Felt, FieldElement, Operation};
 
 use crate::{ExecutionError, Process, QuadFelt, errors::ErrorContext};
 
@@ -65,7 +65,7 @@ impl Process {
     /// containing (alpha0, alpha1), as well as the temporary values acc_tmp.
     pub(super) fn op_horner_eval_base(
         &mut self,
-        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        error_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         // read the values of the coefficients, over the base field, from the stack
         let coef = self.get_coeff_as_base_elements();
@@ -157,7 +157,7 @@ impl Process {
     /// containing (alpha0, alpha1), as well as the temporary values acc_tmp.
     pub(super) fn op_horner_eval_ext(
         &mut self,
-        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        error_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         // read the values of the coefficients, over the extension field, from the stack
         let coef = self.get_coeff_as_quad_ext_elements();
@@ -233,7 +233,7 @@ impl Process {
     /// the evaluation point.
     fn get_evaluation_point(
         &mut self,
-        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        error_ctx: &impl ErrorContext,
     ) -> Result<(QuadFelt, Felt, Felt), ExecutionError> {
         let ctx = self.system.ctx();
         let addr = self.stack.get(ALPHA_ADDR_INDEX);
@@ -303,7 +303,7 @@ mod tests {
                 inputs[2].as_int().try_into().expect("Shouldn't fail by construction"),
                 process.system.clk(),
                 alpha_mem_word.into(),
-                &ErrorContext::default(),
+                &(),
             )
             .unwrap();
         process.execute_op(Operation::Noop, program, &mut host).unwrap();
@@ -394,7 +394,7 @@ mod tests {
                 inputs[2].as_int().try_into().expect("Shouldn't fail by construction"),
                 process.system.clk(),
                 alpha_mem_word.into(),
-                &ErrorContext::default(),
+                &(),
             )
             .unwrap();
         process.execute_op(Operation::Noop, program, &mut host).unwrap();

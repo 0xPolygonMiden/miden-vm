@@ -24,6 +24,7 @@
 #### Enhancements
 
 - The documentation for the `Assembler` and its APIs was improved, to better explain how each affects the final assembled artifact (#1881).
+- Make `ErrorContext` zero-cost ([#1910](https://github.com/0xMiden/miden-vm/issues/1910))
 
 #### Fixes
 

@@ -1,7 +1,7 @@
 use vm_core::{Felt, FieldElement, ONE, ZERO};
 
 use super::{ExecutionError, FastProcessor};
-use crate::{ErrorContext, operations::utils::assert_binary};
+use crate::operations::utils::assert_binary;
 
 const TWO: Felt = Felt::new(2);
 
@@ -27,10 +27,7 @@ impl FastProcessor {
     pub fn op_inv(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
         let top = self.stack_get_mut(0);
         if (*top) == ZERO {
-            return Err(ExecutionError::divide_by_zero(
-                self.clk + op_idx,
-                &ErrorContext::default(),
-            ));
+            return Err(ExecutionError::divide_by_zero(self.clk + op_idx, &()));
         }
         *top = top.inv();
         Ok(())
@@ -70,7 +67,7 @@ impl FastProcessor {
         } else if *top == ONE {
             *top = ZERO;
         } else {
-            return Err(ExecutionError::not_binary_value_op(*top, &ErrorContext::default()));
+            return Err(ExecutionError::not_binary_value_op(*top, &()));
         }
         Ok(())
     }
