@@ -335,7 +335,7 @@ end
 #! Output: [...]
 proc.compute_and_store_public_inputs_address
     # 1) Get a pointer to where OOD evaluations are stored
-    exec.constants::ood_trace_current_ptr
+    exec.constants::ood_evaluations_ptr
     # => [ood_evals_ptr, ...]
 
     # 2) Compute the pointer to the reductions of the variable length public inputs
