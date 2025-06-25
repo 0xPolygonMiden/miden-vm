@@ -152,8 +152,7 @@ impl Memory {
 /// - Returns an error if the provided address is out-of-bounds.
 fn clean_addr(addr: Felt) -> Result<u32, MemoryError> {
     let addr = addr.as_int();
-    addr.try_into()
-        .map_err(|_| MemoryError::address_out_of_bounds(addr, &()))
+    addr.try_into().map_err(|_| MemoryError::address_out_of_bounds(addr, &()))
 }
 
 /// Splits the provided address into the word address and the index within the word.
@@ -179,12 +178,9 @@ fn enforce_word_aligned_addr(
 ) -> Result<u32, MemoryError> {
     if addr % WORD_SIZE as u32 != 0 {
         return match clk {
-            Some(clk) => Err(MemoryError::unaligned_word_access(
-                addr,
-                ctx,
-                Felt::from(clk.as_u32()),
-                &(),
-            )),
+            Some(clk) => {
+                Err(MemoryError::unaligned_word_access(addr, ctx, Felt::from(clk.as_u32()), &()))
+            },
             None => Err(MemoryError::UnalignedWordAccessNoClk { addr, ctx }),
         };
     }

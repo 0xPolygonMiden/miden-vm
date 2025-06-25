@@ -65,10 +65,12 @@ impl Process {
     ///   ZERO element is returned.
     /// - The element retrieved from memory is pushed to the top of the stack.
     pub(super) fn op_mload(&mut self, error_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
-        let element = self
-            .chiplets
-            .memory
-            .read(self.system.ctx(), self.stack.get(0), self.system.clk(), error_ctx)?;
+        let element = self.chiplets.memory.read(
+            self.system.ctx(),
+            self.stack.get(0),
+            self.system.clk(),
+            error_ctx,
+        )?;
 
         self.stack.set(0, element);
         self.stack.copy_state(1);
