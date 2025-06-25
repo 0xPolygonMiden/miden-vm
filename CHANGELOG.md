@@ -24,6 +24,7 @@
 #### Enhancements
 
 - The documentation for the `Assembler` and its APIs was improved, to better explain how each affects the final assembled artifact (#1881).
+- Add `clear_debug_info` to `Program` and `Library` to reduce their size (#1889).
 
 #### Fixes
 
