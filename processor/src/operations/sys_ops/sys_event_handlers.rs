@@ -6,7 +6,6 @@ use vm_core::{
         hash::Rpo256,
         merkle::{EmptySubtreeRoots, SMT_DEPTH, Smt},
     },
-    mast::MastNodeExt,
     sys_events::SystemEvent,
 };
 use winter_prover::math::fft;
@@ -27,7 +26,7 @@ impl Process {
         &self,
         system_event: SystemEvent,
         host: &mut impl Host,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         let advice_provider = host.advice_provider_mut();
         let process_state: ProcessState = self.into();
@@ -207,7 +206,7 @@ pub fn insert_hperm_into_adv_map(
 pub fn merge_merkle_nodes(
     advice_provider: &mut AdviceProvider,
     process: ProcessState,
-    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
     // fetch the arguments from the stack
     let lhs = process.get_stack_word(1);
@@ -243,7 +242,7 @@ pub fn merge_merkle_nodes(
 pub fn copy_merkle_node_to_adv_stack(
     advice_provider: &mut AdviceProvider,
     process: ProcessState,
-    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
     let depth = process.get_stack_item(0);
     let index = process.get_stack_item(1);
@@ -302,7 +301,7 @@ pub fn copy_map_value_to_adv_stack(
     advice_provider: &mut AdviceProvider,
     process: ProcessState,
     include_len: bool,
-    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
     let key = [
         process.get_stack_item(3),
@@ -338,7 +337,7 @@ pub fn copy_map_value_to_adv_stack(
 pub fn push_u64_div_result(
     advice_provider: &mut AdviceProvider,
     process: ProcessState,
-    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
     let divisor = {
         let divisor_hi = process.get_stack_item(0).as_int();
@@ -419,7 +418,7 @@ pub fn push_u64_div_result(
 pub fn push_falcon_mod_result(
     advice_provider: &mut AdviceProvider,
     process: ProcessState,
-    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
     let dividend_hi = process.get_stack_item(0).as_int();
     let dividend_lo = process.get_stack_item(1).as_int();
@@ -469,7 +468,7 @@ pub fn push_falcon_mod_result(
 pub fn push_ext2_inv_result(
     advice_provider: &mut AdviceProvider,
     process: ProcessState,
-    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
     let coef0 = process.get_stack_item(1);
     let coef1 = process.get_stack_item(0);
@@ -521,7 +520,7 @@ pub fn push_ext2_inv_result(
 pub fn push_ext2_intt_result(
     advice_provider: &mut AdviceProvider,
     process: ProcessState,
-    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
     let output_size = process.get_stack_item(0).as_int() as usize;
     let input_size = process.get_stack_item(1).as_int() as usize;
@@ -589,7 +588,7 @@ pub fn push_ext2_intt_result(
 pub fn push_leading_zeros(
     advice_provider: &mut AdviceProvider,
     process: ProcessState,
-    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
     push_transformed_stack_top(
         advice_provider,
@@ -611,7 +610,7 @@ pub fn push_leading_zeros(
 pub fn push_trailing_zeros(
     advice_provider: &mut AdviceProvider,
     process: ProcessState,
-    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
     push_transformed_stack_top(
         advice_provider,
@@ -633,7 +632,7 @@ pub fn push_trailing_zeros(
 pub fn push_leading_ones(
     advice_provider: &mut AdviceProvider,
     process: ProcessState,
-    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
     push_transformed_stack_top(
         advice_provider,
@@ -655,7 +654,7 @@ pub fn push_leading_ones(
 pub fn push_trailing_ones(
     advice_provider: &mut AdviceProvider,
     process: ProcessState,
-    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
     push_transformed_stack_top(
         advice_provider,
@@ -679,7 +678,7 @@ pub fn push_trailing_ones(
 pub fn push_ilog2(
     advice_provider: &mut AdviceProvider,
     process: ProcessState,
-    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
     let n = process.get_stack_item(0).as_int();
     if n == 0 {
@@ -714,7 +713,7 @@ pub fn push_ilog2(
 pub fn push_smtpeek_result(
     advice_provider: &mut AdviceProvider,
     process: ProcessState,
-    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
     let empty_leaf = EmptySubtreeRoots::entry(SMT_DEPTH, SMT_DEPTH);
     // fetch the arguments from the operand stack
@@ -772,14 +771,11 @@ fn get_mem_addr_range(
     if start_addr > u32::MAX as u64 {
         return Err(ExecutionError::MemoryError(MemoryError::address_out_of_bounds(
             start_addr,
-            &ErrorContext::default(),
+            &(),
         )));
     }
     if end_addr > u32::MAX as u64 {
-        return Err(ExecutionError::MemoryError(MemoryError::address_out_of_bounds(
-            end_addr,
-            &ErrorContext::default(),
-        )));
+        return Err(ExecutionError::MemoryError(MemoryError::address_out_of_bounds(end_addr, &())));
     }
 
     if start_addr > end_addr {
@@ -804,7 +800,7 @@ fn push_transformed_stack_top(
     advice_provider: &mut AdviceProvider,
     process: ProcessState,
     f: impl FnOnce(u32) -> Felt,
-    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
     let stack_top = process.get_stack_item(0);
     let stack_top: u32 = stack_top
@@ -821,7 +817,7 @@ fn push_transformed_stack_top(
 fn get_smt_leaf_preimage(
     advice_provider: &AdviceProvider,
     node: Word,
-    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    err_ctx: &impl ErrorContext,
 ) -> Result<Vec<(Word, Word)>, ExecutionError> {
     let kv_pairs = advice_provider
         .get_mapped_values(&node)

@@ -1,5 +1,5 @@
 use super::{DOUBLE_WORD_SIZE, ExecutionError, FastProcessor, Felt, WORD_SIZE_FELT};
-use crate::{ErrorContext, Host};
+use crate::Host;
 
 impl FastProcessor {
     /// Analogous to `Process::op_push`.
@@ -13,7 +13,7 @@ impl FastProcessor {
         let value = host
             .advice_provider_mut()
             .pop_stack()
-            .map_err(|err| err.into_exec_err_at_clk(self.clk + op_idx, &ErrorContext::default()))?;
+            .map_err(|err| err.into_exec_err_at_clk(self.clk + op_idx, &()))?;
         self.increment_stack_size();
         self.stack_write(0, value);
         Ok(())
@@ -28,7 +28,7 @@ impl FastProcessor {
         let word = host
             .advice_provider_mut()
             .pop_stack_word()
-            .map_err(|err| err.into_exec_err_at_clk(self.clk + op_idx, &ErrorContext::default()))?;
+            .map_err(|err| err.into_exec_err_at_clk(self.clk + op_idx, &()))?;
         self.stack_write_word(0, &word);
 
         Ok(())
@@ -114,7 +114,7 @@ impl FastProcessor {
         let words = host
             .advice_provider_mut()
             .pop_stack_dword()
-            .map_err(|err| err.into_exec_err_at_clk(self.clk + op_idx, &ErrorContext::default()))?;
+            .map_err(|err| err.into_exec_err_at_clk(self.clk + op_idx, &()))?;
 
         // write the words to memory
         self.memory.write_word(self.ctx, addr_first_word, self.clk + op_idx, words[0])?;

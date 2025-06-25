@@ -3,7 +3,7 @@ use alloc::{collections::BTreeMap, vec::Vec};
 use miden_air::RowIndex;
 use vm_core::{EMPTY_WORD, Felt, WORD_SIZE, Word, ZERO};
 
-use crate::{ContextId, ExecutionError, MemoryAddress, MemoryError, errors::ErrorContext};
+use crate::{ContextId, ExecutionError, MemoryAddress, MemoryError};
 
 /// The memory for the processor.
 ///
@@ -152,12 +152,8 @@ impl Memory {
 /// - Returns an error if the provided address is out-of-bounds.
 fn clean_addr(addr: Felt) -> Result<u32, ExecutionError> {
     let addr = addr.as_int();
-    addr.try_into().map_err(|_| {
-        ExecutionError::MemoryError(MemoryError::address_out_of_bounds(
-            addr,
-            &ErrorContext::default(),
-        ))
-    })
+    addr.try_into()
+        .map_err(|_| ExecutionError::MemoryError(MemoryError::address_out_of_bounds(addr, &())))
 }
 
 /// Splits the provided address into the word address and the index within the word.
@@ -187,7 +183,7 @@ fn enforce_word_aligned_addr(
                 addr,
                 ctx,
                 Felt::from(clk.as_u32()),
-                &ErrorContext::default(),
+                &(),
             ))),
             None => Err(ExecutionError::MemoryError(MemoryError::UnalignedWordAccessNoClk {
                 addr,

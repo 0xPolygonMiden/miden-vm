@@ -3,7 +3,7 @@ use vm_core::{
 };
 
 use super::FastProcessor;
-use crate::{ErrorContext, ExecutionError, Host};
+use crate::{ExecutionError, Host};
 
 impl FastProcessor {
     /// Applies a permutation of the Rpo256 hash function to the top 12 elements of the stack.
@@ -40,7 +40,7 @@ impl FastProcessor {
         let path = host
             .advice_provider_mut()
             .get_merkle_path(root, &depth, &index)
-            .map_err(|err| err.into_exec_err_at_clk(self.clk, &ErrorContext::default()))?;
+            .map_err(|err| err.into_exec_err_at_clk(self.clk, &()))?;
 
         // verify the path
         match path.verify(index.as_int(), node, &root) {
@@ -53,7 +53,7 @@ impl FastProcessor {
                     root,
                     err_code,
                     err_msg,
-                    &ErrorContext::default(),
+                    &(),
                 ))
             },
         }
@@ -75,7 +75,7 @@ impl FastProcessor {
         let (path, new_root) = host
             .advice_provider_mut()
             .update_merkle_node(old_root, &depth, &index, new_node)
-            .map_err(|err| err.into_exec_err_at_clk(self.clk, &ErrorContext::default()))?;
+            .map_err(|err| err.into_exec_err_at_clk(self.clk, &()))?;
 
         assert_eq!(path.len(), depth.as_int() as usize);
 
@@ -87,7 +87,7 @@ impl FastProcessor {
                 old_root,
                 ZERO,
                 None,
-                &ErrorContext::default(),
+                &(),
             ));
         }
 

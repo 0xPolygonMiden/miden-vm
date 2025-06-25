@@ -5,7 +5,7 @@ use miden_air::RowIndex;
 use miette::Diagnostic;
 use vm_core::{
     debuginfo::{SourceFile, SourceManager, SourceSpan},
-    mast::{BasicBlockNode, DecoratorId, MastForest, MastNodeExt, MastNodeId},
+    mast::{DecoratorId, MastForest, MastNodeExt, MastNodeId},
     stack::MIN_STACK_DEPTH,
     utils::to_hex,
 };
@@ -281,24 +281,17 @@ impl From<Ext2InttError> for ExecutionError {
 }
 
 impl ExecutionError {
-    pub fn divide_by_zero(clk: RowIndex, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
+    pub fn divide_by_zero(clk: RowIndex, err_ctx: &impl ErrorContext) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::DivideByZero { clk, label, source_file }
     }
 
-    pub fn input_not_u32(
-        clk: RowIndex,
-        input: u64,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Self {
+    pub fn input_not_u32(clk: RowIndex, input: u64, err_ctx: &impl ErrorContext) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::NotU32StackValue { clk, input, label, source_file }
     }
 
-    pub fn dynamic_node_not_found(
-        digest: Word,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Self {
+    pub fn dynamic_node_not_found(digest: Word, err_ctx: &impl ErrorContext) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
 
         Self::DynamicNodeNotFound { label, source_file, digest }
@@ -306,7 +299,7 @@ impl ExecutionError {
 
     pub fn event_error(
         error: Box<dyn Error + Send + Sync + 'static>,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
 
@@ -317,7 +310,7 @@ impl ExecutionError {
         clk: RowIndex,
         err_code: Felt,
         err_msg: Option<Arc<str>>,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
 
@@ -330,31 +323,22 @@ impl ExecutionError {
         }
     }
 
-    pub fn invalid_stack_depth_on_return(
-        depth: usize,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Self {
+    pub fn invalid_stack_depth_on_return(depth: usize, err_ctx: &impl ErrorContext) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::InvalidStackDepthOnReturn { label, source_file, depth }
     }
 
-    pub fn log_argument_zero(clk: RowIndex, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
+    pub fn log_argument_zero(clk: RowIndex, err_ctx: &impl ErrorContext) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::LogArgumentZero { label, source_file, clk }
     }
 
-    pub fn malfored_mast_forest_in_host(
-        root_digest: Word,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Self {
+    pub fn malfored_mast_forest_in_host(root_digest: Word, err_ctx: &impl ErrorContext) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::MalformedMastForestInHost { label, source_file, root_digest }
     }
 
-    pub fn malformed_signature_key(
-        key_type: &'static str,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Self {
+    pub fn malformed_signature_key(key_type: &'static str, err_ctx: &impl ErrorContext) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::MalformedSignatureKey { label, source_file, key_type }
     }
@@ -365,7 +349,7 @@ impl ExecutionError {
         root: Word,
         err_code: Felt,
         err_msg: Option<Arc<str>>,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
 
@@ -380,42 +364,32 @@ impl ExecutionError {
         }
     }
 
-    pub fn no_mast_forest_with_procedure(
-        root_digest: Word,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Self {
+    pub fn no_mast_forest_with_procedure(root_digest: Word, err_ctx: &impl ErrorContext) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::NoMastForestWithProcedure { label, source_file, root_digest }
     }
 
-    pub fn not_binary_value_if(value: Felt, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
+    pub fn not_binary_value_if(value: Felt, err_ctx: &impl ErrorContext) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::NotBinaryValueIf { label, source_file, value }
     }
 
-    pub fn not_binary_value_op(value: Felt, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
+    pub fn not_binary_value_op(value: Felt, err_ctx: &impl ErrorContext) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::NotBinaryValueOp { label, source_file, value }
     }
 
-    pub fn not_binary_value_loop(
-        value: Felt,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Self {
+    pub fn not_binary_value_loop(value: Felt, err_ctx: &impl ErrorContext) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::NotBinaryValueLoop { label, source_file, value }
     }
 
-    pub fn not_u32_value(
-        value: Felt,
-        err_code: Felt,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Self {
+    pub fn not_u32_value(value: Felt, err_code: Felt, err_ctx: &impl ErrorContext) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::NotU32Value { label, source_file, value, err_code }
     }
 
-    pub fn smt_node_not_found(node: Word, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
+    pub fn smt_node_not_found(node: Word, err_ctx: &impl ErrorContext) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::SmtNodeNotFound { label, source_file, node }
     }
@@ -423,24 +397,18 @@ impl ExecutionError {
     pub fn smt_node_preimage_not_valid(
         node: Word,
         preimage_len: usize,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::SmtNodePreImageNotValid { label, source_file, node, preimage_len }
     }
 
-    pub fn syscall_target_not_in_kernel(
-        proc_root: Word,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Self {
+    pub fn syscall_target_not_in_kernel(proc_root: Word, err_ctx: &impl ErrorContext) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::SyscallTargetNotInKernel { label, source_file, proc_root }
     }
 
-    pub fn failed_arithmetic_evaluation(
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-        error: AceError,
-    ) -> Self {
+    pub fn failed_arithmetic_evaluation(err_ctx: &impl ErrorContext, error: AceError) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::AceChipError { label, source_file, error }
     }
@@ -499,7 +467,7 @@ pub enum Ext2InttError {
 }
 
 impl AdviceError {
-    pub fn into_exec_err(self, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> ExecutionError {
+    pub fn into_exec_err(self, err_ctx: &impl ErrorContext) -> ExecutionError {
         let (label, source_file) = err_ctx.label_and_source_file();
         ExecutionError::AdviceError { label, source_file, err: self, clk: None }
     }
@@ -507,7 +475,7 @@ impl AdviceError {
     pub fn into_exec_err_at_clk(
         self,
         clk: RowIndex,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> ExecutionError {
         let (label, source_file) = err_ctx.label_and_source_file();
         ExecutionError::AdviceError {
@@ -522,64 +490,63 @@ impl AdviceError {
 // ERROR CONTEXT
 // ===============================================================================================
 
-/// Context information to be used when reporting errors.
-#[derive(Debug)]
-pub struct ErrorContext<'a, N: MastNodeExt>(Option<ErrorContextImpl<'a, N>>);
+/// Constructs an error context for the given node in the MAST forest.
+///
+/// When the `no_err_ctx` feature is disabled, this macro returns a proper error context; otherwise,
+/// it returns `()`. That is, this macro is designed to be zero-cost when the `no_err_ctx` feature
+/// is enabled.
+///
+/// Usage:
+/// - `err_ctx!(mast_forest, node, source_manager)` - creates basic error context
+/// - `err_ctx!(mast_forest, node, source_manager, op_idx)` - creates error context with operation
+///   index
+#[cfg(not(feature = "no_err_ctx"))]
+#[macro_export]
+macro_rules! err_ctx {
+    ($mast_forest:expr, $node:expr, $source_manager:expr) => {
+        $crate::errors::ErrorContextImpl::new($mast_forest, $node, $source_manager)
+    };
+    ($mast_forest:expr, $node:expr, $source_manager:expr, $op_idx:expr) => {
+        $crate::errors::ErrorContextImpl::new_with_op_idx(
+            $mast_forest,
+            $node,
+            $source_manager,
+            $op_idx,
+        )
+    };
+}
 
-impl<'a, N: MastNodeExt> ErrorContext<'a, N> {
-    /// Creates a new error context for the specified node and source manager.
-    ///
-    /// This method should be used for all nodes except basic block nodes.
-    pub fn new(
-        mast_forest: &'a MastForest,
-        node: &'a N,
-        source_manager: Arc<dyn SourceManager>,
-    ) -> Self {
-        Self(Some(ErrorContextImpl::new(mast_forest, node, source_manager)))
-    }
+/// Constructs an error context for the given node in the MAST forest.
+///
+/// When the `no_err_ctx` feature is disabled, this macro returns a proper error context; otherwise,
+/// it returns `()`. That is, this macro is designed to be zero-cost when the `no_err_ctx` feature
+/// is enabled.
+///
+/// Usage:
+/// - `err_ctx!(mast_forest, node, source_manager)` - creates basic error context
+/// - `err_ctx!(mast_forest, node, source_manager, op_idx)` - creates error context with operation
+///   index
+#[cfg(feature = "no_err_ctx")]
+#[macro_export]
+macro_rules! err_ctx {
+    ($mast_forest:expr, $node:expr, $source_manager:expr) => {{ () }};
+    ($mast_forest:expr, $node:expr, $source_manager:expr, $op_idx:expr) => {{ () }};
+}
 
-    /// Creates a new error context for the specified node and source manager.
-    ///
-    /// This method should be used for basic block nodes.
-    pub fn new_with_op_idx(
-        mast_forest: &'a MastForest,
-        node: &'a N,
-        source_manager: Arc<dyn SourceManager>,
-        op_idx: usize,
-    ) -> Self {
-        Self(Some(ErrorContextImpl::new_with_op_idx(
-            mast_forest,
-            node,
-            source_manager,
-            op_idx,
-        )))
-    }
-
-    /// Creates a new empty error context.
-    ///
-    /// This error context will not provide any information about the source of the error.
-    pub fn none() -> Self {
-        Self(None)
-    }
-
+/// Trait defining the interface for error context providers.
+///
+/// This trait contains the same methods as `ErrorContext` to provide a common
+/// interface for error context functionality.
+pub trait ErrorContext {
     /// Returns the label and source file associated with the error context, if any.
     ///
     /// Note that `SourceSpan::UNKNOWN` will be returned to indicate an empty span.
-    pub fn label_and_source_file(&self) -> (SourceSpan, Option<Arc<SourceFile>>) {
-        self.0
-            .as_ref()
-            .map_or((SourceSpan::UNKNOWN, None), |ctx| ctx.label_and_source_file())
-    }
+    fn label_and_source_file(&self) -> (SourceSpan, Option<Arc<SourceFile>>);
 }
 
-impl Default for ErrorContext<'_, BasicBlockNode> {
-    fn default() -> Self {
-        Self::none()
-    }
-}
-
+/// Context information to be used when reporting errors.
 #[derive(Debug)]
-struct ErrorContextImpl<'a, N: MastNodeExt> {
+pub struct ErrorContextImpl<'a, N: MastNodeExt> {
     mast_forest: &'a MastForest,
     node: &'a N,
     source_manager: Arc<dyn SourceManager>,
@@ -587,6 +554,7 @@ struct ErrorContextImpl<'a, N: MastNodeExt> {
 }
 
 impl<'a, N: MastNodeExt> ErrorContextImpl<'a, N> {
+    #[allow(dead_code)]
     pub fn new(
         mast_forest: &'a MastForest,
         node: &'a N,
@@ -600,6 +568,7 @@ impl<'a, N: MastNodeExt> ErrorContextImpl<'a, N> {
         }
     }
 
+    #[allow(dead_code)]
     pub fn new_with_op_idx(
         mast_forest: &'a MastForest,
         node: &'a N,
@@ -627,6 +596,18 @@ impl<'a, N: MastNodeExt> ErrorContextImpl<'a, N> {
                     )
                 },
             )
+    }
+}
+
+impl<'a, N: MastNodeExt> ErrorContext for ErrorContextImpl<'a, N> {
+    fn label_and_source_file(&self) -> (SourceSpan, Option<Arc<SourceFile>>) {
+        self.label_and_source_file()
+    }
+}
+
+impl ErrorContext for () {
+    fn label_and_source_file(&self) -> (SourceSpan, Option<Arc<SourceFile>>) {
+        (SourceSpan::UNKNOWN, None)
     }
 }
 

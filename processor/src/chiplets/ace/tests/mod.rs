@@ -10,7 +10,7 @@ use miden_air::{
         V_2_0_IDX, V_2_1_IDX,
     },
 };
-use vm_core::{WORD_SIZE, ZERO, mast::BasicBlockNode};
+use vm_core::{WORD_SIZE, ZERO};
 
 use crate::{
     ContextId, Felt, QuadFelt, Word,
@@ -49,7 +49,7 @@ fn test_var_plus_one() {
     }
 
     let valid_input = &[-QuadFelt::ONE, QuadFelt::ZERO];
-    let err_ctx = ErrorContext::default();
+    let err_ctx = ();
     let encoded_circuit = verify_encoded_circuit_eval(&circuit, valid_input, &err_ctx);
     verify_eval_circuit(&encoded_circuit, valid_input);
 }
@@ -81,7 +81,7 @@ fn test_bool_check() {
             [x, result]
         })
         .collect();
-    let err_ctx = ErrorContext::default();
+    let err_ctx = ();
     for input in &inputs {
         verify_circuit_eval(&circuit, input, |_| QuadFelt::ZERO);
         let encoded_circuit = verify_encoded_circuit_eval(&circuit, input, &err_ctx);
@@ -191,7 +191,7 @@ fn verify_circuit_eval(
 fn verify_encoded_circuit_eval(
     circuit: &Circuit,
     inputs: &[QuadFelt],
-    err_ctx: &ErrorContext<'_, BasicBlockNode>,
+    err_ctx: &impl ErrorContext,
 ) -> EncodedCircuit {
     let encoded_circuit = EncodedCircuit::try_from_circuit(circuit).expect("cannot encode");
 
@@ -234,7 +234,7 @@ fn verify_eval_circuit(circuit: &EncodedCircuit, inputs: &[QuadFelt]) {
     let ptr = Felt::ZERO;
     let clk = RowIndex::from(0);
     let mut mem = Memory::default();
-    let error_ctx = ErrorContext::<BasicBlockNode>::none();
+    let error_ctx = ();
 
     let circuit_mem = generate_memory(circuit, inputs);
 

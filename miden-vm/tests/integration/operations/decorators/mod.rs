@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use processor::{AdviceProvider, ErrorContext, ExecutionError, Host, MastForest, ProcessState};
 use prover::Word;
-use vm_core::{DebugOptions, mast::MastNodeExt};
+use vm_core::DebugOptions;
 
 mod advice;
 mod asmop;
@@ -27,7 +27,7 @@ impl Host for TestHost {
         &mut self.adv_provider
     }
 
-    fn get_mast_forest(&self, _node_digest: &Word) -> Option<Arc<MastForest>> {
+    fn get_mast_forest(&mut self, _node_digest: &Word) -> Option<Arc<MastForest>> {
         // Empty MAST forest store
         None
     }
@@ -36,7 +36,7 @@ impl Host for TestHost {
         &mut self,
         _process: ProcessState,
         event_id: u32,
-        _err_ctx: &ErrorContext<impl MastNodeExt>,
+        _err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         self.event_handler.push(event_id);
         Ok(())

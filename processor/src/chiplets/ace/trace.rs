@@ -9,7 +9,7 @@ use miden_air::{
         V_1_1_IDX, V_2_0_IDX, V_2_1_IDX,
     },
 };
-use vm_core::{FieldElement, mast::BasicBlockNode};
+use vm_core::FieldElement;
 
 use crate::{
     ContextId, ExecutionError, Felt, QuadFelt, Word,
@@ -118,7 +118,7 @@ impl CircuitEvaluation {
         &mut self,
         ptr: Felt,
         instruction: Felt,
-        error_ctx: &ErrorContext<'_, BasicBlockNode>,
+        error_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         // Decode instruction, ensuring it is valid
         let (id_l, id_r, op) = decode_instruction(instruction).ok_or_else(|| {

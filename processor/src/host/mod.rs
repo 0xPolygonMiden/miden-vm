@@ -1,9 +1,6 @@
 use alloc::sync::Arc;
 
-use vm_core::{
-    DebugOptions, Felt, Word,
-    mast::{MastForest, MastNodeExt},
-};
+use vm_core::{DebugOptions, Felt, Word, mast::MastForest};
 
 use crate::{AdviceError, ExecutionError, KvMap, ProcessState, errors::ErrorContext};
 
@@ -38,7 +35,7 @@ pub trait Host {
 
     /// Returns MAST forest corresponding to the specified digest, or None if the MAST forest for
     /// this digest could not be found in this [Host].
-    fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>>;
+    fn get_mast_forest(&mut self, node_digest: &Word) -> Option<Arc<MastForest>>;
 
     // PROVIDED METHODS
     // --------------------------------------------------------------------------------------------
@@ -48,7 +45,7 @@ pub trait Host {
         &mut self,
         _process: ProcessState,
         _event_id: u32,
-        _err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        _err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         #[cfg(feature = "std")]
         std::println!(
@@ -102,7 +99,7 @@ where
         H::advice_provider_mut(self)
     }
 
-    fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>> {
+    fn get_mast_forest(&mut self, node_digest: &Word) -> Option<Arc<MastForest>> {
         H::get_mast_forest(self, node_digest)
     }
 
@@ -110,7 +107,7 @@ where
         &mut self,
         process: ProcessState,
         event_id: u32,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         H::on_event(self, process, event_id, err_ctx)
     }
@@ -161,7 +158,7 @@ impl DefaultHost {
                         prev_values: stored_values.to_vec(),
                         new_values: values.clone(),
                     }
-                    .into_exec_err(&ErrorContext::default()));
+                    .into_exec_err(&()));
                 }
             }
             self.advice_provider_mut().insert_into_map(*digest, values.clone())
@@ -191,7 +188,7 @@ impl Host for DefaultHost {
         &mut self.adv_provider
     }
 
-    fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>> {
+    fn get_mast_forest(&mut self, node_digest: &Word) -> Option<Arc<MastForest>> {
         self.store.get(node_digest)
     }
 
@@ -199,7 +196,7 @@ impl Host for DefaultHost {
         &mut self,
         _process: ProcessState,
         _event_id: u32,
-        _err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        _err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         #[cfg(feature = "std")]
         std::println!(

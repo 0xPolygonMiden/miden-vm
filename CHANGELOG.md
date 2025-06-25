@@ -19,11 +19,13 @@
 - [BREAKING] Updated dependencies Winterfell to v0.13 and Crypto to v0.15 (#1896).
 - Fixed instructions with errors print without quotes (#1882).
 - [BREAKING] Convert `AdviceProvider` into a struct ([#1904](https://github.com/0xMiden/miden-vm/issues/1904), [#1905](https://github.com/0xMiden/miden-vm/issues/1905))
+- [BREAKING] `Host::get_mast_forest` takes `&mut self` ([#1902](https://github.com/0xMiden/miden-vm/issues/1902)
 - [BREAKING] `AdviceProvider` should return its own error type ([#1907](https://github.com/0xMiden/miden-vm/issues/1907)
 
 #### Enhancements
 
 - The documentation for the `Assembler` and its APIs was improved, to better explain how each affects the final assembled artifact (#1881).
+- Make `ErrorContext` zero-cost ([#1910](https://github.com/0xMiden/miden-vm/issues/1910))
 
 #### Fixes
 
