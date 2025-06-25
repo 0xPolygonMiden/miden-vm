@@ -27,7 +27,11 @@ impl FastProcessor {
     ///
     /// Stack transition:
     /// [ptr, num_read_rows, num_eval_rows, ...] -> [ptr, num_read_rows, num_eval_rows, ...]
-    pub fn arithmetic_circuit_eval(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
+    pub fn arithmetic_circuit_eval(
+        &mut self,
+        op_idx: usize,
+        err_ctx: &impl ErrorContext,
+    ) -> Result<(), ExecutionError> {
         let num_eval_rows = self.stack_get(2);
         let num_read_rows = self.stack_get(1);
         let ptr = self.stack_get(0);
@@ -41,7 +45,7 @@ impl FastProcessor {
             num_eval_rows,
             &mut self.memory,
             op_idx,
-            &(),
+            err_ctx,
         )?;
         self.ace.add_circuit_evaluation(clk, circuit_evaluation);
 
@@ -98,13 +102,16 @@ pub fn eval_circuit_fast_(
     let mut ptr = ptr;
     // perform READ operations
     for _ in 0..num_read_rows {
-        let word = mem.read_word(ctx, ptr, clk + op_idx).map_err(ExecutionError::MemoryError)?;
+        let word = mem
+            .read_word(ctx, ptr, clk + op_idx, error_ctx)
+            .map_err(ExecutionError::MemoryError)?;
         evaluation_context.do_read(ptr, word)?;
         ptr += PTR_OFFSET_WORD;
     }
     // perform EVAL operations
     for _ in 0..num_eval_rows {
-        let instruction = mem.read_element(ctx, ptr).map_err(ExecutionError::MemoryError)?;
+        let instruction =
+            mem.read_element(ctx, ptr, error_ctx).map_err(ExecutionError::MemoryError)?;
         evaluation_context.do_eval(ptr, instruction, error_ctx)?;
         ptr += PTR_OFFSET_ELEM;
     }

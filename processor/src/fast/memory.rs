@@ -3,7 +3,7 @@ use alloc::{collections::BTreeMap, vec::Vec};
 use miden_air::RowIndex;
 use vm_core::{EMPTY_WORD, Felt, WORD_SIZE, Word, ZERO};
 
-use crate::{ContextId, MemoryAddress, MemoryError};
+use crate::{ContextId, ErrorContext, MemoryAddress, MemoryError};
 
 /// The memory for the processor.
 ///
@@ -24,8 +24,13 @@ impl Memory {
     ///
     /// # Errors
     /// - Returns an error if the provided address is out-of-bounds.
-    pub fn read_element(&mut self, ctx: ContextId, addr: Felt) -> Result<Felt, MemoryError> {
-        let element = self.read_element_impl(ctx, clean_addr(addr)?).unwrap_or(ZERO);
+    pub fn read_element(
+        &mut self,
+        ctx: ContextId,
+        addr: Felt,
+        err_ctx: &impl ErrorContext,
+    ) -> Result<Felt, MemoryError> {
+        let element = self.read_element_impl(ctx, clean_addr(addr, err_ctx)?).unwrap_or(ZERO);
         Ok(element)
     }
 
@@ -38,9 +43,10 @@ impl Memory {
         ctx: ContextId,
         addr: Felt,
         clk: RowIndex,
+        err_ctx: &impl ErrorContext,
     ) -> Result<Word, MemoryError> {
-        let addr = clean_addr(addr)?;
-        let word = self.read_word_impl(ctx, addr, Some(clk))?.unwrap_or(EMPTY_WORD);
+        let addr = clean_addr(addr, err_ctx)?;
+        let word = self.read_word_impl(ctx, addr, Some(clk), err_ctx)?.unwrap_or(EMPTY_WORD);
 
         Ok(word)
     }
@@ -54,8 +60,9 @@ impl Memory {
         ctx: ContextId,
         addr: Felt,
         element: Felt,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), MemoryError> {
-        let (word_addr, idx) = split_addr(clean_addr(addr)?);
+        let (word_addr, idx) = split_addr(clean_addr(addr, err_ctx)?);
 
         self.memory
             .entry((ctx, word_addr))
@@ -84,8 +91,9 @@ impl Memory {
         addr: Felt,
         clk: RowIndex,
         word: Word,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), MemoryError> {
-        let addr = enforce_word_aligned_addr(ctx, clean_addr(addr)?, Some(clk))?;
+        let addr = enforce_word_aligned_addr(ctx, clean_addr(addr, err_ctx)?, Some(clk), err_ctx)?;
         self.memory.insert((ctx, addr), word);
 
         Ok(())
@@ -135,8 +143,9 @@ impl Memory {
         ctx: ContextId,
         addr: u32,
         clk: Option<RowIndex>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<Option<Word>, MemoryError> {
-        let addr = enforce_word_aligned_addr(ctx, addr, clk)?;
+        let addr = enforce_word_aligned_addr(ctx, addr, clk, err_ctx)?;
         let word = self.memory.get(&(ctx, addr)).copied();
 
         Ok(word)
@@ -150,9 +159,9 @@ impl Memory {
 ///
 /// # Errors
 /// - Returns an error if the provided address is out-of-bounds.
-fn clean_addr(addr: Felt) -> Result<u32, MemoryError> {
+fn clean_addr(addr: Felt, err_ctx: &impl ErrorContext) -> Result<u32, MemoryError> {
     let addr = addr.as_int();
-    addr.try_into().map_err(|_| MemoryError::address_out_of_bounds(addr, &()))
+    addr.try_into().map_err(|_| MemoryError::address_out_of_bounds(addr, err_ctx))
 }
 
 /// Splits the provided address into the word address and the index within the word.
@@ -175,12 +184,16 @@ fn enforce_word_aligned_addr(
     ctx: ContextId,
     addr: u32,
     clk: Option<RowIndex>,
+    err_ctx: &impl ErrorContext,
 ) -> Result<u32, MemoryError> {
     if addr % WORD_SIZE as u32 != 0 {
         return match clk {
-            Some(clk) => {
-                Err(MemoryError::unaligned_word_access(addr, ctx, Felt::from(clk.as_u32()), &()))
-            },
+            Some(clk) => Err(MemoryError::unaligned_word_access(
+                addr,
+                ctx,
+                Felt::from(clk.as_u32()),
+                err_ctx,
+            )),
             None => Err(MemoryError::UnalignedWordAccessNoClk { addr, ctx }),
         };
     }
