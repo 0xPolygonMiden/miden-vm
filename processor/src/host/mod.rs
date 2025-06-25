@@ -1,12 +1,11 @@
 use alloc::sync::Arc;
 
 use vm_core::{
-    DebugOptions, Word,
+    DebugOptions, Felt, Word,
     mast::{MastForest, MastNodeExt},
 };
 
-use super::{ExecutionError, ProcessState};
-use crate::{Felt, KvMap, MemAdviceProvider, errors::ErrorContext};
+use crate::{ExecutionError, KvMap, ProcessState, errors::ErrorContext};
 
 pub(super) mod advice;
 use advice::AdviceProvider;
@@ -28,16 +27,14 @@ pub use mast_forest_store::{MastForestStore, MemMastForestStore};
 /// 3. handling advice events (which internally mutates the advice provider), and
 /// 4. handling debug and trace events.
 pub trait Host {
-    type AdviceProvider: AdviceProvider;
-
     // REQUIRED METHODS
     // --------------------------------------------------------------------------------------------
 
     /// Returns a reference to the advice provider.
-    fn advice_provider(&self) -> &Self::AdviceProvider;
+    fn advice_provider(&self) -> &AdviceProvider;
 
     /// Returns a mutable reference to the advice provider.
-    fn advice_provider_mut(&mut self) -> &mut Self::AdviceProvider;
+    fn advice_provider_mut(&mut self) -> &mut AdviceProvider;
 
     /// Returns MAST forest corresponding to the specified digest, or None if the MAST forest for
     /// this digest could not be found in this [Host].
@@ -97,26 +94,16 @@ impl<H> Host for &mut H
 where
     H: Host,
 {
-    type AdviceProvider = H::AdviceProvider;
-
-    fn advice_provider(&self) -> &Self::AdviceProvider {
+    fn advice_provider(&self) -> &AdviceProvider {
         H::advice_provider(self)
     }
 
-    fn advice_provider_mut(&mut self) -> &mut Self::AdviceProvider {
+    fn advice_provider_mut(&mut self) -> &mut AdviceProvider {
         H::advice_provider_mut(self)
     }
 
     fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>> {
         H::get_mast_forest(self, node_digest)
-    }
-
-    fn on_debug(
-        &mut self,
-        process: ProcessState,
-        options: &DebugOptions,
-    ) -> Result<(), ExecutionError> {
-        H::on_debug(self, process, options)
     }
 
     fn on_event(
@@ -126,6 +113,14 @@ where
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<(), ExecutionError> {
         H::on_event(self, process, event_id, err_ctx)
+    }
+
+    fn on_debug(
+        &mut self,
+        process: ProcessState,
+        options: &DebugOptions,
+    ) -> Result<(), ExecutionError> {
+        H::on_debug(self, process, options)
     }
 
     fn on_trace(&mut self, process: ProcessState, trace_id: u32) -> Result<(), ExecutionError> {
@@ -141,31 +136,14 @@ where
 // ================================================================================================
 
 /// A default [Host] implementation that provides the essential functionality required by the VM.
-pub struct DefaultHost<A> {
-    adv_provider: A,
+#[derive(Debug, Clone, Default)]
+pub struct DefaultHost {
+    adv_provider: AdviceProvider,
     store: MemMastForestStore,
 }
 
-impl<A: Clone> Clone for DefaultHost<A> {
-    fn clone(&self) -> Self {
-        Self {
-            adv_provider: self.adv_provider.clone(),
-            store: self.store.clone(),
-        }
-    }
-}
-
-impl Default for DefaultHost<MemAdviceProvider> {
-    fn default() -> Self {
-        Self {
-            adv_provider: MemAdviceProvider::default(),
-            store: MemMastForestStore::default(),
-        }
-    }
-}
-
-impl<A: AdviceProvider> DefaultHost<A> {
-    pub fn new(adv_provider: A) -> Self {
+impl DefaultHost {
+    pub fn new(adv_provider: AdviceProvider) -> Self {
         Self {
             adv_provider,
             store: MemMastForestStore::default(),
@@ -194,28 +172,22 @@ impl<A: AdviceProvider> DefaultHost<A> {
     }
 
     #[cfg(any(test, feature = "testing"))]
-    pub fn advice_provider(&self) -> &A {
+    pub fn advice_provider(&self) -> &AdviceProvider {
         &self.adv_provider
     }
 
     #[cfg(any(test, feature = "testing"))]
-    pub fn advice_provider_mut(&mut self) -> &mut A {
+    pub fn advice_provider_mut(&mut self) -> &mut AdviceProvider {
         &mut self.adv_provider
-    }
-
-    pub fn into_inner(self) -> A {
-        self.adv_provider
     }
 }
 
-impl<A: AdviceProvider> Host for DefaultHost<A> {
-    type AdviceProvider = A;
-
-    fn advice_provider(&self) -> &Self::AdviceProvider {
+impl Host for DefaultHost {
+    fn advice_provider(&self) -> &AdviceProvider {
         &self.adv_provider
     }
 
-    fn advice_provider_mut(&mut self) -> &mut Self::AdviceProvider {
+    fn advice_provider_mut(&mut self) -> &mut AdviceProvider {
         &mut self.adv_provider
     }
 

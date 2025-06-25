@@ -55,7 +55,7 @@ use range::RangeChecker;
 mod host;
 pub use host::{
     DefaultHost, Host, MastForestStore, MemMastForestStore,
-    advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, RecAdviceProvider},
+    advice::{AdviceInputs, AdviceProvider, AdviceSource},
 };
 
 mod chiplets;

@@ -209,7 +209,7 @@ pub mod testing {
     use vm_core::{StackInputs, mast::MastForest};
 
     use super::*;
-    use crate::{AdviceInputs, DefaultHost, MemAdviceProvider};
+    use crate::{AdviceInputs, DefaultHost};
 
     impl Process {
         /// Instantiates a new blank process for testing purposes. The stack in the process is
@@ -230,14 +230,11 @@ pub mod testing {
         }
 
         /// Instantiates a new process with an advice stack for testing purposes.
-        pub fn new_dummy_with_advice_stack(
-            advice_stack: &[u64],
-        ) -> (Self, DefaultHost<MemAdviceProvider>) {
+        pub fn new_dummy_with_advice_stack(advice_stack: &[u64]) -> (Self, DefaultHost) {
             let stack_inputs = StackInputs::default();
             let advice_inputs =
                 AdviceInputs::default().with_stack_values(advice_stack.iter().copied()).unwrap();
-            let advice_provider = MemAdviceProvider::from(advice_inputs);
-            let mut host = DefaultHost::new(advice_provider);
+            let mut host = DefaultHost::new(advice_inputs.into());
             let mut process =
                 Self::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
             let program = &MastForest::default();
@@ -269,9 +266,8 @@ pub mod testing {
         pub fn new_dummy_with_inputs_and_decoder_helpers(
             stack_inputs: StackInputs,
             advice_inputs: AdviceInputs,
-        ) -> (Self, DefaultHost<MemAdviceProvider>) {
-            let advice_provider = MemAdviceProvider::from(advice_inputs);
-            let mut host = DefaultHost::new(advice_provider);
+        ) -> (Self, DefaultHost) {
+            let mut host = DefaultHost::new(advice_inputs.into());
             let mut process =
                 Self::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
             let program = &MastForest::default();

@@ -3,7 +3,7 @@ use vm_core::{
 };
 
 use super::FastProcessor;
-use crate::{AdviceProvider, ErrorContext, ExecutionError, Host};
+use crate::{ErrorContext, ExecutionError, Host};
 
 impl FastProcessor {
     /// Applies a permutation of the Rpo256 hash function to the top 12 elements of the stack.

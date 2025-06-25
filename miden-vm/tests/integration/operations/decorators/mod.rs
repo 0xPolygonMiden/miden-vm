@@ -1,8 +1,6 @@
 use std::sync::Arc;
 
-use processor::{
-    AdviceProvider, ErrorContext, ExecutionError, Host, MastForest, MemAdviceProvider, ProcessState,
-};
+use processor::{AdviceProvider, ErrorContext, ExecutionError, Host, MastForest, ProcessState};
 use prover::Word;
 use vm_core::{DebugOptions, mast::MastNodeExt};
 
@@ -12,33 +10,26 @@ mod events;
 
 // TEST HOST
 // ================================================================================================
-pub struct TestHost<A> {
-    pub adv_provider: A,
+#[derive(Debug, Clone, Default)]
+pub struct TestHost {
+    pub adv_provider: AdviceProvider,
     pub event_handler: Vec<u32>,
     pub trace_handler: Vec<u32>,
     pub debug_handler: Vec<String>,
 }
 
-impl Default for TestHost<MemAdviceProvider> {
-    fn default() -> Self {
-        Self {
-            adv_provider: MemAdviceProvider::default(),
-            event_handler: Vec::new(),
-            trace_handler: Vec::new(),
-            debug_handler: Vec::new(),
-        }
-    }
-}
-
-impl<A: AdviceProvider> Host for TestHost<A> {
-    type AdviceProvider = A;
-
-    fn advice_provider(&self) -> &Self::AdviceProvider {
+impl Host for TestHost {
+    fn advice_provider(&self) -> &AdviceProvider {
         &self.adv_provider
     }
 
-    fn advice_provider_mut(&mut self) -> &mut Self::AdviceProvider {
+    fn advice_provider_mut(&mut self) -> &mut AdviceProvider {
         &mut self.adv_provider
+    }
+
+    fn get_mast_forest(&self, _node_digest: &Word) -> Option<Arc<MastForest>> {
+        // Empty MAST forest store
+        None
     }
 
     fn on_event(
@@ -51,11 +42,6 @@ impl<A: AdviceProvider> Host for TestHost<A> {
         Ok(())
     }
 
-    fn on_trace(&mut self, _process: ProcessState, trace_id: u32) -> Result<(), ExecutionError> {
-        self.trace_handler.push(trace_id);
-        Ok(())
-    }
-
     fn on_debug(
         &mut self,
         _process: ProcessState,
@@ -65,8 +51,8 @@ impl<A: AdviceProvider> Host for TestHost<A> {
         Ok(())
     }
 
-    fn get_mast_forest(&self, _node_digest: &Word) -> Option<Arc<MastForest>> {
-        // Empty MAST forest store
-        None
+    fn on_trace(&mut self, _process: ProcessState, trace_id: u32) -> Result<(), ExecutionError> {
+        self.trace_handler.push(trace_id);
+        Ok(())
     }
 }

@@ -1,5 +1,5 @@
 use super::{DOUBLE_WORD_SIZE, ExecutionError, FastProcessor, Felt, WORD_SIZE_FELT};
-use crate::{AdviceProvider, ErrorContext, Host, ProcessState};
+use crate::{ErrorContext, Host, ProcessState};
 
 impl FastProcessor {
     /// Analogous to `Process::op_push`.

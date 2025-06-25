@@ -24,7 +24,7 @@ use processor::{Program, fast::FastProcessor};
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
 use prover::utils::range;
-pub use prover::{MemAdviceProvider, MerkleTreeVC, ProvingOptions, prove};
+pub use prover::{MerkleTreeVC, ProvingOptions, prove};
 pub use test_case::test_case;
 pub use verifier::{AcceptableOptions, VerifierError, verify};
 pub use vm_core::{
@@ -230,7 +230,7 @@ impl Test {
     ) {
         // compile the program
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = TestHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let mut host = TestHost::new(self.advice_inputs.clone().into());
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }
@@ -442,7 +442,7 @@ impl Test {
     /// and library MAST forests.
     fn get_program_and_host(&self) -> (Program, TestHost) {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = TestHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let mut host = TestHost::new(self.advice_inputs.clone().into());
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }

@@ -4,7 +4,7 @@ use vm_core::{
 };
 
 use super::{ExecutionError, Felt, Process};
-use crate::{AdviceProvider, Host, errors::ErrorContext};
+use crate::{Host, errors::ErrorContext};
 
 // INPUT / OUTPUT OPERATIONS
 // ================================================================================================
@@ -316,7 +316,7 @@ mod tests {
     };
 
     use super::{
-        super::{super::AdviceProvider, MIN_STACK_DEPTH, Operation},
+        super::{MIN_STACK_DEPTH, Operation},
         Felt, Host, Process,
     };
     use crate::{

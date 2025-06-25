@@ -89,7 +89,7 @@ impl Process {
 /// - `end_addr` is greater than or equal to 2^32.
 /// - `start_addr` > `end_addr`.
 pub fn insert_mem_values_into_adv_map(
-    advice_provider: &mut impl AdviceProvider,
+    advice_provider: &mut AdviceProvider,
     process: ProcessState,
 ) -> Result<(), ExecutionError> {
     let (start_addr, end_addr) = get_mem_addr_range(process, 4, 5)?;
@@ -121,7 +121,7 @@ pub fn insert_mem_values_into_adv_map(
 /// Where KEY is computed as hash(A || B, domain), where domain is provided via the immediate
 /// value.
 pub fn insert_hdword_into_adv_map(
-    advice_provider: &mut impl AdviceProvider,
+    advice_provider: &mut AdviceProvider,
     process: ProcessState,
     domain: Felt,
 ) -> Result<(), ExecutionError> {
@@ -154,7 +154,7 @@ pub fn insert_hdword_into_adv_map(
 /// Where KEY is computed by extracting the digest elements from hperm([C, A, B]). For example,
 /// if C is [0, d, 0, 0], KEY will be set as hash(A || B, d).
 pub fn insert_hperm_into_adv_map(
-    advice_provider: &mut impl AdviceProvider,
+    advice_provider: &mut AdviceProvider,
     process: ProcessState,
 ) -> Result<(), ExecutionError> {
     // read the state from the stack
@@ -205,7 +205,7 @@ pub fn insert_hperm_into_adv_map(
 ///
 /// It is not checked whether the provided roots exist as Merkle trees in the advide providers.
 pub fn merge_merkle_nodes(
-    advice_provider: &mut impl AdviceProvider,
+    advice_provider: &mut AdviceProvider,
     process: ProcessState,
     err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
@@ -239,7 +239,7 @@ pub fn merge_merkle_nodes(
 ///   the specified root.
 /// - Value of the node at the specified depth and index is not known to the advice provider.
 pub fn copy_merkle_node_to_adv_stack(
-    advice_provider: &mut impl AdviceProvider,
+    advice_provider: &mut AdviceProvider,
     process: ProcessState,
     err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
@@ -287,7 +287,7 @@ pub fn copy_merkle_node_to_adv_stack(
 /// Returns an error if the required key was not found in the key-value map or if stack offset
 /// is greater than 12.
 pub fn copy_map_value_to_adv_stack(
-    advice_provider: &mut impl AdviceProvider,
+    advice_provider: &mut AdviceProvider,
     process: ProcessState,
     include_len: bool,
     err_ctx: &ErrorContext<'_, impl MastNodeExt>,
@@ -322,7 +322,7 @@ pub fn copy_map_value_to_adv_stack(
 /// # Errors
 /// Returns an error if the divisor is ZERO.
 pub fn push_u64_div_result(
-    advice_provider: &mut impl AdviceProvider,
+    advice_provider: &mut AdviceProvider,
     process: ProcessState,
     err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
@@ -395,7 +395,7 @@ pub fn push_u64_div_result(
 /// - Returns an error if the divisor is ZERO.
 /// - Returns an error if either a0 or a1 is not a u32.
 pub fn push_falcon_mod_result(
-    advice_provider: &mut impl AdviceProvider,
+    advice_provider: &mut AdviceProvider,
     process: ProcessState,
     err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
@@ -439,7 +439,7 @@ pub fn push_falcon_mod_result(
 /// # Errors
 /// Returns an error if the input is a zero element in the extension field.
 pub fn push_ext2_inv_result(
-    advice_provider: &mut impl AdviceProvider,
+    advice_provider: &mut AdviceProvider,
     process: ProcessState,
     err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
@@ -487,7 +487,7 @@ pub fn push_ext2_inv_result(
 /// - `input_ptr` is greater than 2^32, or is not aligned on a word boundary.
 /// - `input_ptr + input_size * 2` is greater than 2^32.
 pub fn push_ext2_intt_result(
-    advice_provider: &mut impl AdviceProvider,
+    advice_provider: &mut AdviceProvider,
     process: ProcessState,
     err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
@@ -553,7 +553,7 @@ pub fn push_ext2_intt_result(
 ///   Operand stack: [n, ...]
 ///   Advice stack: [leading_zeros, ...]
 pub fn push_leading_zeros(
-    advice_provider: &mut impl AdviceProvider,
+    advice_provider: &mut AdviceProvider,
     process: ProcessState,
     err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
@@ -575,7 +575,7 @@ pub fn push_leading_zeros(
 ///   Operand stack: [n, ...]
 ///   Advice stack: [trailing_zeros, ...]
 pub fn push_trailing_zeros(
-    advice_provider: &mut impl AdviceProvider,
+    advice_provider: &mut AdviceProvider,
     process: ProcessState,
     err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
@@ -597,7 +597,7 @@ pub fn push_trailing_zeros(
 ///   Operand stack: [n, ...]
 ///   Advice stack: [leading_ones, ...]
 pub fn push_leading_ones(
-    advice_provider: &mut impl AdviceProvider,
+    advice_provider: &mut AdviceProvider,
     process: ProcessState,
     err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
@@ -619,7 +619,7 @@ pub fn push_leading_ones(
 ///   Operand stack: [n, ...]
 ///   Advice stack: [trailing_ones, ...]
 pub fn push_trailing_ones(
-    advice_provider: &mut impl AdviceProvider,
+    advice_provider: &mut AdviceProvider,
     process: ProcessState,
     err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
@@ -643,7 +643,7 @@ pub fn push_trailing_ones(
 /// # Errors
 /// Returns an error if the logarithm argument (top stack element) equals ZERO.
 pub fn push_ilog2(
-    advice_provider: &mut impl AdviceProvider,
+    advice_provider: &mut AdviceProvider,
     process: ProcessState,
     err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
@@ -676,7 +676,7 @@ pub fn push_ilog2(
 /// # Panics
 /// Will panic as unimplemented if the target depth is `64`.
 pub fn push_smtpeek_result(
-    advice_provider: &mut impl AdviceProvider,
+    advice_provider: &mut AdviceProvider,
     process: ProcessState,
     err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
@@ -757,8 +757,8 @@ fn u64_to_u32_elements(value: u64) -> (Felt, Felt) {
 
 /// Gets the top stack element, applies a provided function to it and pushes it to the advice
 /// provider.
-fn push_transformed_stack_top<A: AdviceProvider>(
-    advice_provider: &mut A,
+fn push_transformed_stack_top(
+    advice_provider: &mut AdviceProvider,
     process: ProcessState,
     f: impl FnOnce(u32) -> Felt,
     err_ctx: &ErrorContext<'_, impl MastNodeExt>,
@@ -773,8 +773,8 @@ fn push_transformed_stack_top<A: AdviceProvider>(
     Ok(())
 }
 
-fn get_smt_leaf_preimage<A: AdviceProvider>(
-    advice_provider: &A,
+fn get_smt_leaf_preimage(
+    advice_provider: &AdviceProvider,
     node: Word,
     err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<Vec<(Word, Word)>, ExecutionError> {
