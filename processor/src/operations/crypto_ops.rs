@@ -1,7 +1,7 @@
 use vm_core::mast::{MastForest, MastNodeExt};
 
 use super::{ExecutionError, Operation, Process};
-use crate::{AdviceProvider, ErrorContext, Felt, Host};
+use crate::{ErrorContext, Felt, Host};
 
 // CRYPTOGRAPHIC OPERATIONS
 // ================================================================================================

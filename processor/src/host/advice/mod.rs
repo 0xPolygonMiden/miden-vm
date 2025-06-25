@@ -1,23 +1,29 @@
 use alloc::vec::Vec;
+use std::collections::BTreeMap;
 
-use vm_core::{Felt, crypto::merkle::MerklePath, mast::MastNodeExt};
+use vm_core::{
+    Felt,
+    crypto::merkle::{MerklePath, MerkleStore, NodeIndex, StoreNode},
+    mast::MastNodeExt,
+};
 
 use crate::{ErrorContext, ExecutionError, ProcessState, Word};
 
 mod inputs;
 pub use inputs::AdviceInputs;
 
-mod providers;
-pub use providers::{MemAdviceProvider, RecAdviceProvider};
-
 mod source;
 pub use source::AdviceSource;
+
+// TYPE ALIASES
+// ================================================================================================
+
+type SimpleMerkleMap = BTreeMap<Word, StoreNode>;
+type SimpleAdviceMap = BTreeMap<Word, Vec<Felt>>;
 
 // ADVICE PROVIDER
 // ================================================================================================
 
-/// Defines behavior of an advice provider.
-///
 /// An advice provider is a component through which the host can interact with the advice provider.
 /// The host can request nondeterministic inputs from the advice provider (i.e., result of a
 /// computation performed outside of the VM), as well as insert new data into the advice provider.
@@ -31,10 +37,16 @@ pub use source::AdviceSource;
 /// 3. Merkle store, which contains structured data reducible to Merkle paths. The VM can request
 ///    Merkle paths from the store, as well as mutate it by updating or merging nodes contained in
 ///    the store.
-pub trait AdviceProvider: Sized {
-    // REQUIRED METHODS
-    // --------------------------------------------------------------------------------------------
+///
+/// Advice data is store in-memory using [BTreeMap]s as its backing storage.
+#[derive(Debug, Clone, Default)]
+pub struct AdviceProvider {
+    pub stack: Vec<Felt>,
+    pub map: SimpleAdviceMap,
+    pub store: MerkleStore<SimpleMerkleMap>,
+}
 
+impl AdviceProvider {
     // ADVICE STACK
     // --------------------------------------------------------------------------------------------
 
@@ -42,11 +54,15 @@ pub trait AdviceProvider: Sized {
     ///
     /// # Errors
     /// Returns an error if the advice stack is empty.
-    fn pop_stack(
+    pub fn pop_stack(
         &mut self,
         process: ProcessState,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Result<Felt, ExecutionError>;
+    ) -> Result<Felt, ExecutionError> {
+        self.stack
+            .pop()
+            .ok_or(ExecutionError::advice_stack_read_failed(process.clk(), err_ctx))
+    }
 
     /// Pops a word (4 elements) from the advice stack and returns it.
     ///
@@ -55,11 +71,23 @@ pub trait AdviceProvider: Sized {
     ///
     /// # Errors
     /// Returns an error if the advice stack does not contain a full word.
-    fn pop_stack_word(
+    pub fn pop_stack_word(
         &mut self,
         process: ProcessState,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Result<Word, ExecutionError>;
+    ) -> Result<Word, ExecutionError> {
+        if self.stack.len() < 4 {
+            return Err(ExecutionError::advice_stack_read_failed(process.clk(), err_ctx));
+        }
+
+        let idx = self.stack.len() - 4;
+        let result =
+            [self.stack[idx + 3], self.stack[idx + 2], self.stack[idx + 1], self.stack[idx]];
+
+        self.stack.truncate(idx);
+
+        Ok(result.into())
+    }
 
     /// Pops a double word (8 elements) from the advice stack and returns them.
     ///
@@ -69,31 +97,67 @@ pub trait AdviceProvider: Sized {
     ///
     /// # Errors
     /// Returns an error if the advice stack does not contain two words.
-    fn pop_stack_dword(
+    pub fn pop_stack_dword(
         &mut self,
         process: ProcessState,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Result<[Word; 2], ExecutionError>;
+    ) -> Result<[Word; 2], ExecutionError> {
+        let word0 = self.pop_stack_word(process, err_ctx)?;
+        let word1 = self.pop_stack_word(process, err_ctx)?;
+
+        Ok([word0, word1])
+    }
 
     /// Pushes the value(s) specified by the source onto the advice stack.
     ///
     /// # Errors
     /// Returns an error if the value specified by the advice source cannot be obtained.
-    fn push_stack(
+    pub fn push_stack(
         &mut self,
         source: AdviceSource,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Result<(), ExecutionError>;
+    ) -> Result<(), ExecutionError> {
+        match source {
+            AdviceSource::Value(value) => {
+                self.stack.push(value);
+            },
+            AdviceSource::Word(word) => {
+                self.stack.extend(word.iter().rev());
+            },
+            AdviceSource::Map { key, include_len } => {
+                let values = self
+                    .map
+                    .get(&key)
+                    .ok_or(ExecutionError::advice_map_key_not_found(key, err_ctx))?;
+
+                self.stack.extend(values.iter().rev());
+                if include_len {
+                    self.stack
+                        .push(Felt::try_from(values.len() as u64).expect("value length too big"));
+                }
+            },
+        }
+
+        Ok(())
+    }
 
     /// Returns a slice of length `length` from the top of the advice stack.
     /// If length = 0 returns the whole advice stack.
-    fn peek_stack(&self, length: usize) -> &[Felt];
+    pub fn peek_stack(&self, length: usize) -> &[Felt] {
+        if length == 0 {
+            &self.stack
+        } else {
+            &self.stack[0..length]
+        }
+    }
 
     // ADVICE MAP
     // --------------------------------------------------------------------------------------------
 
     /// Returns a reference to the value(s) associated with the specified key in the advice map.
-    fn get_mapped_values(&self, key: &Word) -> Option<&[Felt]>;
+    pub fn get_mapped_values(&self, key: &Word) -> Option<&[Felt]> {
+        self.map.get(key).map(|v| v.as_slice())
+    }
 
     /// Inserts the provided value into the advice map under the specified key.
     ///
@@ -102,7 +166,9 @@ pub trait AdviceProvider: Sized {
     ///
     /// If the specified key is already present in the advice map, the values under the key
     /// are replaced with the specified values.
-    fn insert_into_map(&mut self, key: Word, values: Vec<Felt>);
+    pub fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) {
+        self.map.insert(key, values);
+    }
 
     // MERKLE STORE
     // --------------------------------------------------------------------------------------------
@@ -115,13 +181,19 @@ pub trait AdviceProvider: Sized {
     /// - The specified depth is either zero or greater than the depth of the Merkle tree identified
     ///   by the specified root.
     /// - Value of the node at the specified depth and index is not known to this advice provider.
-    fn get_tree_node(
+    pub fn get_tree_node(
         &self,
         root: Word,
         depth: &Felt,
         index: &Felt,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Result<Word, ExecutionError>;
+    ) -> Result<Word, ExecutionError> {
+        let index = NodeIndex::from_elements(depth, index)
+            .map_err(|_| ExecutionError::invalid_merkle_tree_node_index(*depth, *index, err_ctx))?;
+        self.store
+            .get_node(root, index)
+            .map_err(|err| ExecutionError::merkle_store_lookup_failed(err, err_ctx))
+    }
 
     /// Returns a path to a node at the specified depth and index in a Merkle tree with the
     /// specified root.
@@ -132,13 +204,20 @@ pub trait AdviceProvider: Sized {
     /// - The specified depth is either zero or greater than the depth of the Merkle tree identified
     ///   by the specified root.
     /// - Path to the node at the specified depth and index is not known to this advice provider.
-    fn get_merkle_path(
+    pub fn get_merkle_path(
         &self,
         root: Word,
         depth: &Felt,
         index: &Felt,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Result<MerklePath, ExecutionError>;
+    ) -> Result<MerklePath, ExecutionError> {
+        let index = NodeIndex::from_elements(depth, index)
+            .map_err(|_| ExecutionError::invalid_merkle_tree_node_index(*depth, *index, err_ctx))?;
+        self.store
+            .get_path(root, index)
+            .map(|value| value.path)
+            .map_err(|err| ExecutionError::merkle_store_lookup_failed(err, err_ctx))
+    }
 
     /// Reconstructs a path from the root until a leaf or empty node and returns its depth.
     ///
@@ -148,13 +227,19 @@ pub trait AdviceProvider: Sized {
     /// Will return an error if:
     /// - The provided `tree_depth` doesn't fit `u8`.
     /// - The conditions of [crate::crypto::MerkleStore::get_leaf_depth] aren't met.
-    fn get_leaf_depth(
+    pub fn get_leaf_depth(
         &self,
         root: Word,
         tree_depth: &Felt,
         index: &Felt,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Result<u8, ExecutionError>;
+    ) -> Result<u8, ExecutionError> {
+        let tree_depth = u8::try_from(tree_depth.as_int())
+            .map_err(|_| ExecutionError::invalid_merkle_tree_depth(*tree_depth, err_ctx))?;
+        self.store
+            .get_leaf_depth(root, tree_depth, index.as_int())
+            .map_err(|err| ExecutionError::merkle_store_lookup_failed(err, err_ctx))
+    }
 
     /// Updates a node at the specified depth and index in a Merkle tree with the specified root;
     /// returns the Merkle path from the updated node to the new root, together with the new root.
@@ -169,14 +254,21 @@ pub trait AdviceProvider: Sized {
     ///   by the specified root.
     /// - Path to the leaf at the specified index in the specified Merkle tree is not known to this
     ///   advice provider.
-    fn update_merkle_node(
+    pub fn update_merkle_node(
         &mut self,
         root: Word,
         depth: &Felt,
         index: &Felt,
         value: Word,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Result<(MerklePath, Word), ExecutionError>;
+    ) -> Result<(MerklePath, Word), ExecutionError> {
+        let node_index = NodeIndex::from_elements(depth, index)
+            .map_err(|_| ExecutionError::invalid_merkle_tree_node_index(*depth, *index, err_ctx))?;
+        self.store
+            .set_node(root, node_index, value)
+            .map(|root| (root.path, root.root))
+            .map_err(|err| ExecutionError::merkle_store_update_failed(err, err_ctx))
+    }
 
     /// Creates a new Merkle tree in the advice provider by combining Merkle trees with the
     /// specified roots. The root of the new tree is defined as `hash(left_root, right_root)`.
@@ -186,10 +278,175 @@ pub trait AdviceProvider: Sized {
     ///
     /// It is not checked whether a Merkle tree for either of the specified roots can be found in
     /// this advice provider.
-    fn merge_roots(
+    pub fn merge_roots(
         &mut self,
         lhs: Word,
         rhs: Word,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Result<Word, ExecutionError>;
+    ) -> Result<Word, ExecutionError> {
+        self.store
+            .merge_roots(lhs, rhs)
+            .map_err(|err| ExecutionError::merkle_store_merge_failed(err, err_ctx))
+    }
+
+    /// Returns true if the Merkle root exists for the advice provider Merkle store.
+    pub fn has_merkle_root(&self, root: Word) -> bool {
+        self.store.get_node(root, NodeIndex::root()).is_ok()
+    }
 }
+
+impl From<AdviceInputs> for AdviceProvider {
+    fn from(inputs: AdviceInputs) -> Self {
+        let (mut stack, map, store) = inputs.into_parts();
+        stack.reverse();
+        Self {
+            stack,
+            map: map.into_iter().collect(),
+            store: store.inner_nodes().collect(),
+        }
+    }
+}
+
+// // RECORDING ADVICE PROVIDER
+// // ================================================================================================
+//
+// /// An in-memory `[AdviceProvider]` implementation with support for data access recording.
+// ///
+// /// The recorder can be converted into a proof which can be used to provide the non-deterministic
+// /// inputs for program execution.
+// #[derive(Debug, Clone, Default)]
+// pub struct RecAdviceProvider {
+//     provider: BaseAdviceProvider<RecordingAdviceMap, RecordingMerkleMap>,
+//     init_stack: Vec<Felt>,
+// }
+//
+// impl From<AdviceInputs> for RecAdviceProvider {
+//     pub fn from(inputs: AdviceInputs) -> Self {
+//         let init_stack = inputs.stack().to_vec();
+//         let provider = inputs.into();
+//         Self { provider, init_stack }
+//     }
+// }
+//
+// /// Accessors to internal data structures of the provider used for testing purposes.
+// #[cfg(any(test, feature = "testing"))]
+// impl RecAdviceProvider {
+//     /// Returns the current state of the advice stack.
+//     pub fn stack(&self) -> &[Felt] {
+//         &self.provider.stack
+//     }
+//
+//     /// Returns the current state of the advice map.
+//     pub fn map(&self) -> &RecordingAdviceMap {
+//         &self.provider.map
+//     }
+//
+//     // Returns the current state of the Merkle store.
+//     pub fn store(&self) -> &MerkleStore<RecordingMerkleMap> {
+//         &self.provider.store
+//     }
+//
+//     /// Returns true if the Merkle root exists for the advice provider Merkle store.
+//     pub fn has_merkle_root(&self, root: Word) -> bool {
+//         self.provider.store.get_node(root, NodeIndex::root()).is_ok()
+//     }
+// }
+//
+// /// Pass-through implementations of [AdviceProvider] methods.
+// ///
+// /// TODO: potentially do this via a macro.
+// #[rustfmt::skip]
+// impl AdviceProvider for RecAdviceProvider {
+//     pub fn pop_stack(&mut self, process: ProcessState,
+//         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+//     ) -> Result<Felt, ExecutionError> {
+//         self.provider.pop_stack(process,err_ctx)
+//     }
+//
+//     pub fn pop_stack_word(&mut self, process: ProcessState,
+//         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+//     ) -> Result<Word, ExecutionError> {
+//         self.provider.pop_stack_word(process,err_ctx)
+//     }
+//
+//     pub fn pop_stack_dword(&mut self, process: ProcessState,
+//         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+//     ) -> Result<[Word; 2], ExecutionError> {
+//         self.provider.pop_stack_dword(process, err_ctx)
+//     }
+//
+//     pub fn push_stack(&mut self, source: AdviceSource, err_ctx: &ErrorContext<impl MastNodeExt>)
+// -> Result<(), ExecutionError> {         self.provider.push_stack(source, err_ctx)
+//     }
+//
+//     pub fn peek_stack(&self, length: usize) -> &[Felt] {
+//         self.provider.peek_stack(length)
+//     }
+//
+//     pub fn insert_into_map(&mut self, key: Word, values: Vec<Felt>)  {
+//         self.provider.insert_into_map(key, values)
+//     }
+//
+//     pub fn get_mapped_values(&self, key: &Word) -> Option<&[Felt]> {
+//         self.provider.get_mapped_values(key)
+//     }
+//
+//     pub fn get_tree_node(&self, root: Word, depth: &Felt, index: &Felt,
+//         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+//     ) -> Result<Word, ExecutionError> {
+//         self.provider.get_tree_node(root, depth, index, err_ctx)
+//     }
+//
+//     pub fn get_merkle_path(&self, root: Word, depth: &Felt, index: &Felt,
+//         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+//     ) -> Result<MerklePath, ExecutionError> {
+//         self.provider.get_merkle_path(root, depth, index, err_ctx)
+//     }
+//
+//     pub fn get_leaf_depth(&self, root: Word, tree_depth: &Felt, index: &Felt,
+//         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+//     ) -> Result<u8, ExecutionError> {
+//         self.provider.get_leaf_depth(root, tree_depth, index, err_ctx)
+//     }
+//
+//     pub fn update_merkle_node(&mut self, root: Word, depth: &Felt, index: &Felt, value: Word,
+//         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+//     ) -> Result<(MerklePath, Word), ExecutionError> {
+//         self.provider.update_merkle_node(root, depth, index, value, err_ctx)
+//     }
+//
+//     pub fn merge_roots(&mut self, lhs: Word, rhs: Word,
+//         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+//     ) -> Result<Word, ExecutionError> {
+//         self.provider.merge_roots(lhs, rhs, err_ctx)
+//     }
+// }
+//
+// impl RecAdviceProvider {
+//     // FINALIZATION
+//     // --------------------------------------------------------------------------------------------
+//
+//     /// Consumes the advice provider and returns an `(AdviceInputs, Vec<Felt>, SimpleAdviceMap,
+//     /// MerkleStore)` tuple.
+//     ///
+//     /// The [AdviceInputs] can be used to re-execute the program. The returned [AdviceInputs]
+//     /// instance will contain only the non-deterministic inputs which were requested during
+// program     /// execution.
+//     ///
+//     /// The `Vec<Felt>`, `SimpleAdviceMap`, and `MerkleStore` represent the stack, map, and
+// Merkle     /// store of the advice provider at the time of finalization.
+//     pub fn finalize(self) -> (AdviceInputs, Vec<Felt>, SimpleAdviceMap, MerkleStore) {
+//         let Self { provider, init_stack } = self;
+//         let BaseAdviceProvider { stack, map, store } = provider;
+//
+//         let (map, map_proof) = map.finalize();
+//         let (store, store_proof) = store.into_inner().finalize();
+//
+//         let proof = AdviceInputs::default()
+//             .with_stack(init_stack)
+//             .with_map(map_proof)
+//             .with_merkle_store(store_proof.into());
+//
+//         (proof, stack, map, store.into())
+//     }
+// }
