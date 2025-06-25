@@ -218,28 +218,6 @@ impl AdviceProvider {
             .map_err(|err| ExecutionError::merkle_store_lookup_failed(err, err_ctx))
     }
 
-    /// Reconstructs a path from the root until a leaf or empty node and returns its depth.
-    ///
-    /// For more information, check [crate::crypto::MerkleStore::get_leaf_depth].
-    ///
-    /// # Errors
-    /// Will return an error if:
-    /// - The provided `tree_depth` doesn't fit `u8`.
-    /// - The conditions of [crate::crypto::MerkleStore::get_leaf_depth] aren't met.
-    pub fn get_leaf_depth(
-        &self,
-        root: Word,
-        tree_depth: &Felt,
-        index: &Felt,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Result<u8, ExecutionError> {
-        let tree_depth = u8::try_from(tree_depth.as_int())
-            .map_err(|_| ExecutionError::invalid_merkle_tree_depth(*tree_depth, err_ctx))?;
-        self.store
-            .get_leaf_depth(root, tree_depth, index.as_int())
-            .map_err(|err| ExecutionError::merkle_store_lookup_failed(err, err_ctx))
-    }
-
     /// Updates a node at the specified depth and index in a Merkle tree with the specified root;
     /// returns the Merkle path from the updated node to the new root, together with the new root.
     ///
