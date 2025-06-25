@@ -249,7 +249,7 @@ impl Host for ConsistencyHost {
         &mut self.advice_provider
     }
 
-    fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>> {
+    fn get_mast_forest(&mut self, node_digest: &Word) -> Option<Arc<MastForest>> {
         self.store.get(node_digest)
     }
 

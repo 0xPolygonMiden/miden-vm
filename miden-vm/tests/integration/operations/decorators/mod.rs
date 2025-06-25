@@ -27,7 +27,7 @@ impl Host for TestHost {
         &mut self.adv_provider
     }
 
-    fn get_mast_forest(&self, _node_digest: &Word) -> Option<Arc<MastForest>> {
+    fn get_mast_forest(&mut self, _node_digest: &Word) -> Option<Arc<MastForest>> {
         // Empty MAST forest store
         None
     }
