@@ -1,5 +1,3 @@
-use vm_core::mast::MastNodeExt;
-
 use super::{
     super::utils::{split_element, split_u32_into_u16},
     ExecutionError, Felt, FieldElement, Operation, Process,
@@ -46,7 +44,7 @@ impl Process {
     pub(super) fn op_u32assert2(
         &mut self,
         err_code: Felt,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         let b = require_u32_operand!(self.stack, 0, err_code, err_ctx);
         let a = require_u32_operand!(self.stack, 1, err_code, err_ctx);
@@ -62,10 +60,7 @@ impl Process {
 
     /// Pops two elements off the stack, adds them, splits the result into low and high 32-bit
     /// values, and pushes these values back onto the stack.
-    pub(super) fn op_u32add(
-        &mut self,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Result<(), ExecutionError> {
+    pub(super) fn op_u32add(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         let b = require_u32_operand!(self.stack, 0, err_ctx).as_int();
         let a = require_u32_operand!(self.stack, 1, err_ctx).as_int();
 
@@ -81,10 +76,7 @@ impl Process {
 
     /// Pops three elements off the stack, adds them, splits the result into low and high 32-bit
     /// values, and pushes these values back onto the stack.
-    pub(super) fn op_u32add3(
-        &mut self,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Result<(), ExecutionError> {
+    pub(super) fn op_u32add3(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         let c = require_u32_operand!(self.stack, 0, err_ctx).as_int();
         let b = require_u32_operand!(self.stack, 1, err_ctx).as_int();
         let a = require_u32_operand!(self.stack, 2, err_ctx).as_int();
@@ -102,10 +94,7 @@ impl Process {
     /// Pops two elements off the stack, subtracts the top element from the second element, and
     /// pushes the result as well as a flag indicating whether there was underflow back onto the
     /// stack.
-    pub(super) fn op_u32sub(
-        &mut self,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Result<(), ExecutionError> {
+    pub(super) fn op_u32sub(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         let b = require_u32_operand!(self.stack, 0, err_ctx).as_int();
         let a = require_u32_operand!(self.stack, 1, err_ctx).as_int();
         let result = a.wrapping_sub(b);
@@ -125,10 +114,7 @@ impl Process {
 
     /// Pops two elements off the stack, multiplies them, splits the result into low and high
     /// 32-bit values, and pushes these values back onto the stack.
-    pub(super) fn op_u32mul(
-        &mut self,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Result<(), ExecutionError> {
+    pub(super) fn op_u32mul(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         let b = require_u32_operand!(self.stack, 0, err_ctx).as_int();
         let a = require_u32_operand!(self.stack, 1, err_ctx).as_int();
         let result = Felt::new(a * b);
@@ -145,10 +131,7 @@ impl Process {
     /// Pops three elements off the stack, multiplies the first two and adds the third element to
     /// the result, splits the result into low and high 32-bit values, and pushes these values
     /// back onto the stack.
-    pub(super) fn op_u32madd(
-        &mut self,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Result<(), ExecutionError> {
+    pub(super) fn op_u32madd(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         let b = require_u32_operand!(self.stack, 0, err_ctx).as_int();
         let a = require_u32_operand!(self.stack, 1, err_ctx).as_int();
         let c = require_u32_operand!(self.stack, 2, err_ctx).as_int();
@@ -168,10 +151,7 @@ impl Process {
     ///
     /// # Errors
     /// Returns an error if the divisor is ZERO.
-    pub(super) fn op_u32div(
-        &mut self,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Result<(), ExecutionError> {
+    pub(super) fn op_u32div(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         let b = require_u32_operand!(self.stack, 0, err_ctx).as_int();
         let a = require_u32_operand!(self.stack, 1, err_ctx).as_int();
 
@@ -199,10 +179,7 @@ impl Process {
 
     /// Pops two elements off the stack, computes their bitwise AND, and pushes the result back
     /// onto the stack.
-    pub(super) fn op_u32and(
-        &mut self,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Result<(), ExecutionError> {
+    pub(super) fn op_u32and(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         let b = require_u32_operand!(self.stack, 0, err_ctx);
         let a = require_u32_operand!(self.stack, 1, err_ctx);
         let result = self.chiplets.bitwise.u32and(a, b, err_ctx)?;
@@ -215,10 +192,7 @@ impl Process {
 
     /// Pops two elements off the stack, computes their bitwise XOR, and pushes the result back onto
     /// the stack.
-    pub(super) fn op_u32xor(
-        &mut self,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Result<(), ExecutionError> {
+    pub(super) fn op_u32xor(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         let b = require_u32_operand!(self.stack, 0, err_ctx);
         let a = require_u32_operand!(self.stack, 1, err_ctx);
         let result = self.chiplets.bitwise.u32xor(a, b, err_ctx)?;

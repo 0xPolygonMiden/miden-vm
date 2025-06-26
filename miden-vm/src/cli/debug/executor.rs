@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use miden_vm::{DefaultHost, MemAdviceProvider, Program, StackInputs, VmState, VmStateIterator};
+use miden_vm::{AdviceProvider, DefaultHost, Program, StackInputs, VmState, VmStateIterator};
 use processor::MemoryAddress;
 
 use super::DebugCommand;
@@ -25,7 +25,7 @@ impl DebugExecutor {
     pub fn new(
         program: Program,
         stack_inputs: StackInputs,
-        advice_provider: MemAdviceProvider,
+        advice_provider: AdviceProvider,
         source_manager: Arc<dyn assembly::SourceManager>,
     ) -> Result<Self, String> {
         let mut vm_state_iter = processor::execute_iter(

@@ -1,5 +1,3 @@
-use vm_core::mast::BasicBlockNode;
-
 use crate::{ExecutionError, Process, chiplets::eval_circuit, errors::ErrorContext};
 
 impl Process {
@@ -23,7 +21,7 @@ impl Process {
     /// [ptr, num_read_rows, num_eval_rows, ...] -> [ptr, num_read_rows, num_eval_rows, ...]
     pub fn arithmetic_circuit_eval(
         &mut self,
-        error_ctx: &ErrorContext<'_, BasicBlockNode>,
+        error_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         let num_eval_rows = self.stack.get(2);
         let num_read_rows = self.stack.get(1);

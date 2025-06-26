@@ -1,7 +1,6 @@
 use alloc::collections::BTreeMap;
 
 use miden_air::{RowIndex, trace::chiplets::kernel_rom::TRACE_WIDTH};
-use vm_core::mast::MastNodeExt;
 
 use super::{ExecutionError, Felt, Kernel, TraceFragment, Word as Digest};
 use crate::ErrorContext;
@@ -77,7 +76,7 @@ impl KernelRom {
     pub fn access_proc(
         &mut self,
         proc_hash: Digest,
-        err_ctx: &ErrorContext<impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         let proc_hash_bytes: ProcHashBytes = proc_hash.into();
         let access_info = self

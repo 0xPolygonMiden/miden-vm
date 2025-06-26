@@ -29,8 +29,7 @@ pub use vm_core::{
 use vm_core::{
     Decorator, DecoratorIterator, FieldElement, WORD_SIZE,
     mast::{
-        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastNodeExt, OP_GROUP_SIZE, OpBatch,
-        SplitNode,
+        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, OP_GROUP_SIZE, OpBatch, SplitNode,
     },
 };
 pub use winter_prover::matrix::ColMatrix;
@@ -55,7 +54,7 @@ use range::RangeChecker;
 mod host;
 pub use host::{
     DefaultHost, Host, MastForestStore, MemMastForestStore,
-    advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, RecAdviceProvider},
+    advice::{AdviceInputs, AdviceProvider, AdviceSource},
 };
 
 mod chiplets;
@@ -344,14 +343,14 @@ impl Process {
             MastNode::Split(node) => self.execute_split_node(node, program, host)?,
             MastNode::Loop(node) => self.execute_loop_node(node, program, host)?,
             MastNode::Call(node) => {
-                let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+                let err_ctx = err_ctx!(program, node, self.source_manager.clone());
                 add_error_ctx_to_external_error(
                     self.execute_call_node(node, program, host),
                     err_ctx,
                 )?
             },
             MastNode::Dyn(node) => {
-                let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+                let err_ctx = err_ctx!(program, node, self.source_manager.clone());
                 add_error_ctx_to_external_error(
                     self.execute_dyn_node(node, program, host),
                     err_ctx,
@@ -405,7 +404,7 @@ impl Process {
         } else if condition == ZERO {
             self.execute_mast_node(node.on_false(), program, host)?;
         } else {
-            let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+            let err_ctx = err_ctx!(program, node, self.source_manager.clone());
             return Err(ExecutionError::not_binary_value_if(condition, &err_ctx));
         }
 
@@ -438,7 +437,7 @@ impl Process {
             }
 
             if self.stack.peek() != ZERO {
-                let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+                let err_ctx = err_ctx!(program, node, self.source_manager.clone());
                 return Err(ExecutionError::not_binary_value_loop(self.stack.peek(), &err_ctx));
             }
 
@@ -449,7 +448,7 @@ impl Process {
             // already dropped when we started the LOOP block
             self.end_loop_node(node, false, program, host)
         } else {
-            let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+            let err_ctx = err_ctx!(program, node, self.source_manager.clone());
             Err(ExecutionError::not_binary_value_loop(condition, &err_ctx))
         }
     }
@@ -473,10 +472,10 @@ impl Process {
             let callee = program.get_node_by_id(call_node.callee()).ok_or_else(|| {
                 ExecutionError::MastNodeNotFoundInForest { node_id: call_node.callee() }
             })?;
-            let err_ctx = ErrorContext::new(program, call_node, self.source_manager.clone());
+            let err_ctx = err_ctx!(program, call_node, self.source_manager.clone());
             self.chiplets.kernel_rom.access_proc(callee.digest(), &err_ctx)?;
         }
-        let err_ctx = ErrorContext::new(program, call_node, self.source_manager.clone());
+        let err_ctx = err_ctx!(program, call_node, self.source_manager.clone());
 
         self.start_call_node(call_node, program, host)?;
         self.execute_mast_node(call_node.callee(), program, host)?;
@@ -499,7 +498,7 @@ impl Process {
             return Err(ExecutionError::CallInSyscall("dyncall"));
         }
 
-        let error_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+        let error_ctx = err_ctx!(program, node, self.source_manager.clone());
 
         let callee_hash = if node.is_dyncall() {
             self.start_dyncall_node(node, &error_ctx)?
@@ -519,12 +518,9 @@ impl Process {
 
                 // We limit the parts of the program that can be called externally to procedure
                 // roots, even though MAST doesn't have that restriction.
-                let root_id = mast_forest.find_procedure_root(callee_hash).ok_or(
-                    ExecutionError::malfored_mast_forest_in_host(
-                        callee_hash,
-                        &ErrorContext::default(),
-                    ),
-                )?;
+                let root_id = mast_forest
+                    .find_procedure_root(callee_hash)
+                    .ok_or(ExecutionError::malfored_mast_forest_in_host(callee_hash, &()))?;
 
                 self.execute_mast_node(root_id, &mast_forest, host)?
             },
@@ -630,12 +626,8 @@ impl Process {
             }
 
             // decode and execute the operation
-            let error_ctx = ErrorContext::new_with_op_idx(
-                program,
-                basic_block,
-                self.source_manager.clone(),
-                i + op_offset,
-            );
+            let error_ctx =
+                err_ctx!(program, basic_block, self.source_manager.clone(), i + op_offset);
             self.decoder.execute_user_op(op, op_idx);
             self.execute_op_with_error_ctx(op, program, host, &error_ctx)?;
 
@@ -895,7 +887,7 @@ impl<'a> From<&'a mut Process> for ProcessState<'a> {
 /// proper error context.
 fn add_error_ctx_to_external_error(
     result: Result<(), ExecutionError>,
-    err_ctx: ErrorContext<impl MastNodeExt>,
+    err_ctx: impl ErrorContext,
 ) -> Result<(), ExecutionError> {
     match result {
         Ok(_) => Ok(()),

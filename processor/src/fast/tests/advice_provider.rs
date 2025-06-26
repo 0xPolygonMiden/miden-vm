@@ -4,7 +4,7 @@ use pretty_assertions::assert_eq;
 use vm_core::Word;
 
 use super::*;
-use crate::{MastForestStore, MemAdviceProvider, MemMastForestStore, MemoryAddress, ProcessState};
+use crate::{AdviceProvider, MastForestStore, MemMastForestStore, MemoryAddress, ProcessState};
 
 #[test]
 fn test_advice_provider() {
@@ -223,7 +223,7 @@ struct ConsistencyHost {
     /// A map of trace ID to a list of snapshots. A single trace ID can be associated with multiple
     /// snapshots for example if it's used in a loop.
     snapshots: BTreeMap<u32, Vec<ProcessStateSnapshot>>,
-    advice_provider: MemAdviceProvider,
+    advice_provider: AdviceProvider,
     store: MemMastForestStore,
 }
 
@@ -234,24 +234,22 @@ impl ConsistencyHost {
 
         Self {
             snapshots: BTreeMap::new(),
-            advice_provider: MemAdviceProvider::default(),
+            advice_provider: AdviceProvider::default(),
             store,
         }
     }
 }
 
 impl Host for ConsistencyHost {
-    type AdviceProvider = MemAdviceProvider;
-
-    fn advice_provider(&self) -> &Self::AdviceProvider {
+    fn advice_provider(&self) -> &AdviceProvider {
         &self.advice_provider
     }
 
-    fn advice_provider_mut(&mut self) -> &mut Self::AdviceProvider {
+    fn advice_provider_mut(&mut self) -> &mut AdviceProvider {
         &mut self.advice_provider
     }
 
-    fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>> {
+    fn get_mast_forest(&mut self, node_digest: &Word) -> Option<Arc<MastForest>> {
         self.store.get(node_digest)
     }
 

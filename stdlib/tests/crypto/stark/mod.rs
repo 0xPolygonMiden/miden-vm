@@ -10,8 +10,7 @@ use rand::{Rng, RngCore, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use rstest::rstest;
 use test_utils::{
-    AdviceInputs, MemAdviceProvider, ProvingOptions, StackInputs, VerifierError,
-    proptest::proptest, prove,
+    AdviceInputs, ProvingOptions, StackInputs, VerifierError, proptest::proptest, prove,
 };
 use verifier_recursive::{QuadExt, VerifierData, generate_advice_inputs};
 use vm_core::{Felt, FieldElement, WORD_SIZE, Word, ZERO};
@@ -84,8 +83,7 @@ pub fn generate_recursive_verifier_data(
     };
     let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
     let advice_inputs = AdviceInputs::default();
-    let advice_provider = MemAdviceProvider::from(advice_inputs);
-    let mut host = DefaultHost::new(advice_provider);
+    let mut host = DefaultHost::new(advice_inputs.into());
 
     let options =
         ProvingOptions::new(27, 8, 16, FieldExtension::Quadratic, 4, 127, HashFunction::Rpo256);

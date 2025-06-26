@@ -76,7 +76,7 @@ impl Printer {
 
     /// Prints length items from the top of the  advice stack. If length is 0 it returns the whole
     /// stack.
-    fn print_vm_adv_stack(&self, advice_provider: &impl AdviceProvider, length: usize) {
+    fn print_vm_adv_stack(&self, advice_provider: &AdviceProvider, length: usize) {
         let stack = advice_provider.peek_stack(length);
 
         // we may have less elements than requested
