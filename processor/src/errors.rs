@@ -184,7 +184,7 @@ pub enum ExecutionError {
     MastNodeNotFoundInForest { node_id: MastNodeId },
     #[error(transparent)]
     #[diagnostic(transparent)]
-    MemoryError(#[from] MemoryError),
+    MemoryError(MemoryError),
     #[error("no MAST forest contains the procedure with root digest {root_digest}")]
     NoMastForestWithProcedure {
         #[label]
@@ -294,7 +294,7 @@ pub enum ExecutionError {
     #[error("a program has already been executed in this process")]
     ProgramAlreadyExecuted,
     #[error("proof generation failed")]
-    ProverError(#[from] ProverError),
+    ProverError(#[source] ProverError),
     #[error("smt node {node_hex} not found", node_hex = to_hex(node.as_bytes()))]
     SmtNodeNotFound {
         #[label]

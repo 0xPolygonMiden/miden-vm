@@ -327,12 +327,11 @@ impl Process {
         let mem_addr = self.stack.get(0);
         // The callee hash is stored in memory, and the address is specified on the top of the
         // stack.
-        let callee_hash = self.chiplets.memory.read_word(
-            self.system.ctx(),
-            mem_addr,
-            self.system.clk(),
-            error_ctx,
-        )?;
+        let callee_hash = self
+            .chiplets
+            .memory
+            .read_word(self.system.ctx(), mem_addr, self.system.clk(), error_ctx)
+            .map_err(ExecutionError::MemoryError)?;
 
         let (addr, hashed_block) = self.chiplets.hasher.hash_control_block(
             EMPTY_WORD,
@@ -366,12 +365,11 @@ impl Process {
         let mem_addr = self.stack.get(0);
         // The callee hash is stored in memory, and the address is specified on the top of the
         // stack.
-        let callee_hash = self.chiplets.memory.read_word(
-            self.system.ctx(),
-            mem_addr,
-            self.system.clk(),
-            error_ctx,
-        )?;
+        let callee_hash = self
+            .chiplets
+            .memory
+            .read_word(self.system.ctx(), mem_addr, self.system.clk(), error_ctx)
+            .map_err(ExecutionError::MemoryError)?;
 
         // Note: other functions end in "executing a Noop", which
         // 1. ensures trace capacity,

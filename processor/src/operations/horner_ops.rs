@@ -237,7 +237,11 @@ impl Process {
     ) -> Result<(QuadFelt, Felt, Felt), ExecutionError> {
         let ctx = self.system.ctx();
         let addr = self.stack.get(ALPHA_ADDR_INDEX);
-        let word = self.chiplets.memory.read_word(ctx, addr, self.system.clk(), error_ctx)?;
+        let word = self
+            .chiplets
+            .memory
+            .read_word(ctx, addr, self.system.clk(), error_ctx)
+            .map_err(ExecutionError::MemoryError)?;
         let alpha_0 = word[0];
         let alpha_1 = word[1];
 

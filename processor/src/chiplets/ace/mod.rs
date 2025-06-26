@@ -334,13 +334,14 @@ pub fn eval_circuit(
     let mut ptr = ptr;
     // perform READ operations
     for _ in 0..num_read_rows {
-        let word = mem.read_word(ctx, ptr, clk, error_ctx)?;
+        let word = mem.read_word(ctx, ptr, clk, error_ctx).map_err(ExecutionError::MemoryError)?;
         evaluation_context.do_read(ptr, word)?;
         ptr += PTR_OFFSET_WORD;
     }
     // perform EVAL operations
     for _ in 0..num_eval_rows {
-        let instruction = mem.read(ctx, ptr, clk, error_ctx)?;
+        let instruction =
+            mem.read(ctx, ptr, clk, error_ctx).map_err(ExecutionError::MemoryError)?;
         evaluation_context.do_eval(ptr, instruction, error_ctx)?;
         ptr += PTR_OFFSET_ELEM;
     }

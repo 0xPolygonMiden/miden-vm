@@ -91,7 +91,8 @@ pub fn insert_mem_values_into_adv_map(
     advice_provider: &mut AdviceProvider,
     process: ProcessState,
 ) -> Result<(), ExecutionError> {
-    let (start_addr, end_addr) = get_mem_addr_range(process, 4, 5)?;
+    let (start_addr, end_addr) =
+        get_mem_addr_range(process, 4, 5).map_err(ExecutionError::MemoryError)?;
     let ctx = process.ctx();
 
     let mut values = Vec::with_capacity(((end_addr - start_addr) as usize) * WORD_SIZE);
@@ -525,7 +526,8 @@ pub fn push_ext2_intt_result(
     let mut poly = Vec::with_capacity(input_size);
     for addr in ((input_start_ptr as u32)..(input_end_ptr as u32)).step_by(4) {
         let word = process
-            .get_mem_word(process.ctx(), addr)?
+            .get_mem_word(process.ctx(), addr)
+            .map_err(ExecutionError::MemoryError)?
             .ok_or(Ext2InttError::UninitializedMemoryAddress(addr))?;
 
         poly.push(QuadFelt::new(word[0], word[1]));
