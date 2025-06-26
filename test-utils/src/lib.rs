@@ -13,7 +13,7 @@ use alloc::{
     vec::Vec,
 };
 
-use assembly::{Compile, KernelLibrary, Library};
+use assembly::{KernelLibrary, Library, Parse};
 pub use assembly::{LibraryPath, SourceFile, SourceManager, diagnostics::Report};
 pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
 pub use processor::{
@@ -293,7 +293,7 @@ impl Test {
     /// # Errors
     /// Returns an error if compilation of the program source or the kernel fails.
     pub fn compile(&self) -> Result<(Program, Option<KernelLibrary>), Report> {
-        use assembly::{Assembler, CompileOptions, ast::ModuleKind};
+        use assembly::{Assembler, ParseOptions, ast::ModuleKind};
 
         let (assembler, kernel_lib) = if let Some(kernel) = self.kernel_source.clone() {
             let kernel_lib =
@@ -312,9 +312,9 @@ impl Test {
             .iter()
             .fold(assembler, |mut assembler, (path, source)| {
                 let module = source
-                    .compile_with_options(
+                    .parse_with_options(
                         &assembler.source_manager(),
-                        CompileOptions::new(ModuleKind::Library, path.clone()).unwrap(),
+                        ParseOptions::new(ModuleKind::Library, path.clone()).unwrap(),
                     )
                     .expect("invalid masm source code");
                 assembler.compile_and_statically_link(module).expect("failed to link module");

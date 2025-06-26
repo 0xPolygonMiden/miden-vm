@@ -328,7 +328,7 @@ mod use_std_library {
 /// Represents a library containing a Miden VM kernel.
 ///
 /// This differs from the regular [Library] as follows:
-/// - All exported procedures must be exported directly from the kernel namespace (i.e., `#sys`).
+/// - All exported procedures must be exported directly from the kernel namespace (i.e., `$kernel`).
 /// - There must be at least one exported procedure.
 /// - The number of exported procedures cannot exceed [Kernel::MAX_NUM_PROCEDURES] (i.e., 256).
 #[derive(Debug, Clone, PartialEq, Eq)]

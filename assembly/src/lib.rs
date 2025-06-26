@@ -16,9 +16,9 @@ use vm_core::{
 
 mod assembler;
 pub mod ast;
-mod compile;
 pub mod diagnostics;
 mod library;
+mod parse;
 mod parser;
 mod sema;
 #[cfg(any(test, feature = "testing"))]
@@ -34,7 +34,6 @@ pub use vm_core::utils;
 
 pub use self::{
     assembler::{Assembler, LinkLibraryKind, LinkerError},
-    compile::{Compile, Options as CompileOptions},
     diagnostics::{
         DefaultSourceManager, Report, SourceFile, SourceId, SourceManager, SourceSpan, Span,
         Spanned,
@@ -43,6 +42,7 @@ pub use self::{
         KernelLibrary, Library, LibraryError, LibraryNamespace, LibraryPath, LibraryPathComponent,
         PathError, Version, VersionError,
     },
+    parse::{Parse, ParseOptions},
     parser::ModuleParser,
 };
 

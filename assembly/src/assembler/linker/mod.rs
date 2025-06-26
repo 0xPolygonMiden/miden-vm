@@ -419,6 +419,26 @@ impl Linker {
         Ok(module_indices)
     }
 
+    /// Links `kernel` using the current state of the linker.
+    ///
+    /// Returns the module index of the kernel module, which is expected to provide the public
+    /// interface of the final assembled kernel.
+    ///
+    /// This differs from `link` in that we allow all AST modules in the module graph access to
+    /// kernel features, e.g. `caller`, as if they are defined by the kernel module itself.
+    pub fn link_kernel(&mut self, kernel: Box<Module>) -> Result<Vec<ModuleIndex>, LinkerError> {
+        let module_index = self.link_module(kernel)?;
+
+        // Set the module kind of all pending AST modules to Kernel, as we are linking a kernel
+        for module in self.pending.iter_mut() {
+            module.module.set_kind(crate::ast::ModuleKind::Kernel);
+        }
+
+        self.link_and_rewrite()?;
+
+        Ok(vec![module_index])
+    }
+
     /// Compute the module graph from the set of pending modules, and link it, rewriting any AST
     /// modules with unresolved, or partially-resolved, symbol references.
     ///

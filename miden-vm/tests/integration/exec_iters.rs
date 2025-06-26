@@ -76,7 +76,7 @@ fn test_exec_iter() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     mem_storew1_loc.clone(),
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     3,
                     "mem_storew.1".to_string(),
                     false,
@@ -94,7 +94,7 @@ fn test_exec_iter() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     mem_storew1_loc.clone(),
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     3,
                     "mem_storew.1".to_string(),
                     false,
@@ -112,7 +112,7 @@ fn test_exec_iter() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     mem_storew1_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     3,
                     "mem_storew.1".to_string(),
                     false,
@@ -130,7 +130,7 @@ fn test_exec_iter() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     dropw_loc.clone(),
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     4,
                     "dropw".to_string(),
                     false,
@@ -148,7 +148,7 @@ fn test_exec_iter() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     dropw_loc.clone(),
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     4,
                     "dropw".to_string(),
                     false,
@@ -166,7 +166,7 @@ fn test_exec_iter() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     dropw_loc.clone(),
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     4,
                     "dropw".to_string(),
                     false,
@@ -184,7 +184,7 @@ fn test_exec_iter() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     dropw_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     4,
                     "dropw".to_string(),
                     false,
@@ -202,7 +202,7 @@ fn test_exec_iter() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     push17_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "push.17".to_string(),
                     false,
@@ -265,7 +265,7 @@ fn test_exec_iter() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     locstore0_loc.clone(),
-                    "#exec::foo".to_string(),
+                    "$exec::foo".to_string(),
                     4,
                     "loc_store.0".to_string(),
                     false,
@@ -283,7 +283,7 @@ fn test_exec_iter() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     locstore0_loc.clone(),
-                    "#exec::foo".to_string(),
+                    "$exec::foo".to_string(),
                     4,
                     "loc_store.0".to_string(),
                     false,
@@ -302,7 +302,7 @@ fn test_exec_iter() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     locstore0_loc.clone(),
-                    "#exec::foo".to_string(),
+                    "$exec::foo".to_string(),
                     4,
                     "loc_store.0".to_string(),
                     false,
@@ -320,7 +320,7 @@ fn test_exec_iter() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     locstore0_loc.clone(),
-                    "#exec::foo".to_string(),
+                    "$exec::foo".to_string(),
                     4,
                     "loc_store.0".to_string(),
                     false,
