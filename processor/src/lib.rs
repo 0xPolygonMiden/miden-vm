@@ -545,6 +545,7 @@ impl Process {
             host,
         )?;
         op_offset += basic_block.op_batches()[0].ops().len();
+        // offset
 
         // if the span contains more operation batches, execute them. each additional batch is
         // preceded by a RESPAN operation; executing RESPAN operation does not change the state
@@ -607,6 +608,7 @@ impl Process {
 
         // execute operations in the batch one by one
         for (i, &op) in batch.ops().iter().enumerate() {
+            // the decorator offset
             while let Some(&decorator_id) = decorators.next_filtered(i + op_offset) {
                 let decorator = program
                     .get_decorator_by_id(decorator_id)

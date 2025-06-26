@@ -726,6 +726,7 @@ impl Assembler {
                         self.compile_instruction(inst, &mut block_builder, proc_ctx)?
                     {
                         if let Some(basic_block_id) = block_builder.make_basic_block()? {
+                            // block id
                             body_node_ids.push(basic_block_id);
                         } else if let Some(decorator_ids) = block_builder.drain_decorators() {
                             block_builder

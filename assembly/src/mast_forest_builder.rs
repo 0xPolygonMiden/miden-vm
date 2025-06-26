@@ -260,6 +260,7 @@ impl MastForestBuilder {
     pub fn join_nodes(&mut self, node_ids: Vec<MastNodeId>) -> Result<MastNodeId, Report> {
         debug_assert!(!node_ids.is_empty(), "cannot combine empty MAST node id list");
 
+        // merging
         let mut node_ids = self.merge_contiguous_basic_blocks(node_ids)?;
 
         // build a binary tree of blocks joining them using JOIN blocks
@@ -431,6 +432,7 @@ impl MastForestBuilder {
             .into_diagnostic()
             .wrap_err("assembler failed to add new basic block node")?;
         self.ensure_node(block)
+        // here add decorators to mast
     }
 
     /// Adds a join node to the forest, and returns the [`MastNodeId`] associated with it.
