@@ -277,9 +277,10 @@ impl ToElements for ProgramInfo {
         // we reverse the digests in order to make reducing them using auxiliary randomness easier
         // we also pad them to the next multiple of 8
         for proc_hash in self.kernel.proc_hashes() {
-            let mut digest = pad_next_mul_8(proc_hash.as_elements().to_vec());
-            digest.reverse();
-            result.extend_from_slice(&digest);
+            let mut proc_hash_elements = proc_hash.as_elements().to_vec();
+            pad_next_mul_8(&mut proc_hash_elements);
+            proc_hash_elements.reverse();
+            result.extend_from_slice(&proc_hash_elements);
         }
         result
     }
@@ -289,11 +290,7 @@ impl ToElements for ProgramInfo {
 // ===============================================================================================
 
 /// Pads a vector of field elements using zeros to the next multiple of 8.
-fn pad_next_mul_8(input: Vec<Felt>) -> Vec<Felt> {
+fn pad_next_mul_8(input: &mut Vec<Felt>) {
     let output_len = input.len().next_multiple_of(8);
-    let mut output = vec![Felt::ZERO; output_len];
-
-    output.iter_mut().zip(input.iter()).for_each(|(out, inp)| *out = *inp);
-
-    output
+    input.resize(output_len, Felt::ZERO);
 }
