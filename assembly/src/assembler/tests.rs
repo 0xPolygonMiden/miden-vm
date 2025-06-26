@@ -8,7 +8,8 @@ use vm_core::{
 
 use super::{Assembler, Operation};
 use crate::{
-    assembler::mast_forest_builder::MastForestBuilder, diagnostics::Report, testing::TestContext,
+    LibraryNamespace, LibraryPath, assembler::mast_forest_builder::MastForestBuilder, ast::Ident,
+    diagnostics::Report, testing::TestContext,
 };
 
 // TESTS
@@ -387,6 +388,46 @@ fn module_ordering_can_be_arbitrary() -> Result<(), Report> {
     let mut assembler = Assembler::new(context.source_manager());
     assembler.compile_and_statically_link(b)?.compile_and_statically_link(a)?;
     assembler.assemble_library([c])?;
+
+    Ok(())
+}
+
+#[test]
+fn can_assemble_a_multi_module_kernel() -> Result<(), Report> {
+    const KERNEL: &str = r#"
+        use.kernellib::helpers->h
+        export.foo
+            exec.h::get_caller
+        end"#;
+    const HELPERS: &str = r#"
+        export.get_caller
+            caller
+        end"#;
+    const PROGRAM: &str = r#"
+        begin
+            syscall.foo
+        end"#;
+
+    let context = TestContext::new();
+
+    let kernel_lib = {
+        let helpers = context.parse_module_with_path(
+            LibraryPath::new_from_components(
+                LibraryNamespace::User("kernellib".into()),
+                [Ident::new("helpers").unwrap()],
+            ),
+            HELPERS,
+        )?;
+        let kernel = context.parse_kernel(KERNEL).unwrap();
+
+        let mut assembler = Assembler::new(context.source_manager());
+        assembler.compile_and_statically_link(helpers)?;
+        assembler.assemble_kernel(kernel).unwrap()
+    };
+
+    assert_eq!(kernel_lib.kernel().proc_hashes().len(), 1);
+
+    Assembler::with_kernel(context.source_manager(), kernel_lib).assemble_program(PROGRAM)?;
 
     Ok(())
 }

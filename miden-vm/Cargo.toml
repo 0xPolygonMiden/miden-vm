@@ -70,7 +70,7 @@ internal = ["dep:serde", "dep:serde_derive", "dep:serde_json", "dep:hex"]
 
 [dependencies]
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.15", default-features = false }
-blake3 = "1.5"
+blake3 = "1.8"
 clap = { version = "4.4", features = ["derive"], optional = true }
 hex = { version = "0.4", optional = true }
 processor = { package = "miden-processor", path = "../processor", version = "0.15", default-features = false }

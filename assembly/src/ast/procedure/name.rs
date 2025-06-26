@@ -181,7 +181,7 @@ pub struct ProcedureName(Ident);
 
 impl ProcedureName {
     /// Reserved name for a main procedure.
-    pub const MAIN_PROC_NAME: &'static str = "#main";
+    pub const MAIN_PROC_NAME: &'static str = "$main";
 
     /// Creates a [ProcedureName] from `name`.
     pub fn new(name: impl AsRef<str>) -> Result<Self, IdentError> {

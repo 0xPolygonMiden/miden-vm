@@ -297,6 +297,7 @@ impl<'input> Lexer<'input> {
                 _ => pop!(self, Token::Slash),
             },
             '*' => pop!(self, Token::Star),
+            '$' => self.lex_special_identifier(),
             '"' => self.lex_quoted_identifier_or_string(),
             '0' => match self.peek() {
                 'x' => {
@@ -477,6 +478,28 @@ impl<'input> Lexer<'input> {
         }
 
         Ok(Token::Ident(self.slice()))
+    }
+
+    fn lex_special_identifier(&mut self) -> Result<Token<'input>, ParsingError> {
+        let c = self.pop();
+        debug_assert_eq!(c, '$');
+
+        loop {
+            match self.read() {
+                '_' | '0'..='9' => self.skip(),
+                c if c.is_ascii_lowercase() => self.skip(),
+                _ => break,
+            }
+        }
+
+        match self.slice() {
+            id @ ("$kernel" | "$exec" | "$anon") => Ok(Token::Ident(id)),
+            _ => {
+                let start = self.span().start();
+                let span = SourceSpan::at(self.span().source_id(), start);
+                Err(ParsingError::InvalidToken { span })
+            },
+        }
     }
 
     fn lex_const_identifier(&mut self) -> Result<Token<'input>, ParsingError> {

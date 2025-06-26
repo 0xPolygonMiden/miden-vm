@@ -13,7 +13,9 @@
 - [BREAKING] Removed `Assembler::add_modules_with_options` (#1881)
 - [BREAKING] Renamed `Assembler::add_library` to `Assembler::link_dynamic_library` (#1881)
 - [BREAKING] Renamed `Assembler::add_vendored_library` to `Assembler::link_static_library` (#1881)
-- `AssemblyError` was removed, and all uses replaced with `Report` (#1881).
+- [BREAKING] `AssemblyError` was removed, and all uses replaced with `Report` (#1881).
+- [BREAKING] `Compile` trait was renamed to `Parse`
+- [BREAKING] `CompileOptions` was renamed to `ParseOptions`
 - Licensed the project under the Apache 2.0 license (in addition to the MIT) (#1840).
 - Uniform chiplet bus message flag encoding (#1887).
 - [BREAKING] Updated dependencies Winterfell to v0.13 and Crypto to v0.15 (#1896).
@@ -25,12 +27,16 @@
 #### Enhancements
 
 - The documentation for the `Assembler` and its APIs was improved, to better explain how each affects the final assembled artifact (#1881).
+- It is now possible to assemble kernels with multiple modules while allowing those modules to perform kernel-like actions, such as using the `caller` instruction. (#1893)
+- Optimize handling of variable length public inputs in the recursive verifier (#1842).
+- Simplify processing of OOD evaluations in the recursive verifier (#1848).
 - Make `ErrorContext` zero-cost ([#1910](https://github.com/0xMiden/miden-vm/issues/1910))
 
 #### Fixes
 
 - Modules can now be provided in any order to the `Assembler`, see #1669 (#1881)
 - Addressed bug which caused references to re-exported procedures whose definition internally referred to an aliased module import, to produce an "undefined module" error, see #1451 (#1892)
+- The special identifiers for kernel, executable, and anonymous namespaces were not valid MASM syntax (#1893)
 
 
 ## 0.15.0 (2025-06-06)
