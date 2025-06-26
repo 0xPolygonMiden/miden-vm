@@ -419,7 +419,6 @@ fn can_assemble_a_multi_module_kernel() -> Result<(), Report> {
             HELPERS,
         )?;
         let kernel = context.parse_kernel(KERNEL).unwrap();
-        std::println!("{kernel}");
 
         let mut assembler = Assembler::new(context.source_manager());
         assembler.compile_and_statically_link(helpers)?;

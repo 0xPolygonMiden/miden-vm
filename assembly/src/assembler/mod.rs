@@ -377,7 +377,7 @@ impl Assembler {
 
         let module_indices = self.linker.link(modules)?;
 
-        self.assemble_common(module_indices)
+        self.assemble_common(&module_indices)
     }
 
     /// Assembles the provided module into a [KernelLibrary] intended to be used as a Kernel.
@@ -397,12 +397,12 @@ impl Assembler {
 
         let module_indices = self.linker.link_kernel(module)?;
 
-        self.assemble_common(module_indices)
+        self.assemble_common(&module_indices)
             .and_then(|lib| KernelLibrary::try_from(lib).map_err(Report::new))
     }
 
     /// Shared code used by both [`Self::assemble_library`] and [`Self::assemble_kernel`].
-    fn assemble_common(mut self, module_indices: Vec<ModuleIndex>) -> Result<Library, Report> {
+    fn assemble_common(mut self, module_indices: &[ModuleIndex]) -> Result<Library, Report> {
         let staticlibs = self.linker.libraries().filter_map(|lib| {
             if matches!(lib.kind, LinkLibraryKind::Static) {
                 Some(lib.library.as_ref())
@@ -414,7 +414,7 @@ impl Assembler {
         let mut exports = {
             let mut exports = BTreeMap::new();
 
-            for module_idx in module_indices {
+            for module_idx in module_indices.iter().copied() {
                 // Note: it is safe to use `unwrap_ast()` here, since all of the modules contained
                 // in `module_indices` are in AST form by definition.
                 let ast_module = self.linker[module_idx].unwrap_ast().clone();

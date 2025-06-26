@@ -100,7 +100,7 @@ impl VisitMut for VerifyInvokeTargets<'_> {
             },
             // Syscalls which reference a path, are only valid if the module id is $kernel
             InvocationTarget::ProcedurePath { name, module } => {
-                if module.as_str() == "$kernel" {
+                if module.as_str() == LibraryNamespace::KERNEL_PATH {
                     *target = InvocationTarget::AbsoluteProcedurePath {
                         name: name.clone(),
                         path: LibraryPath::new_from_components(LibraryNamespace::Kernel, []),
