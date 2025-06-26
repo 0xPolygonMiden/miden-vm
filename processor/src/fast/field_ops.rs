@@ -1,7 +1,7 @@
 use vm_core::{Felt, FieldElement, ONE, ZERO};
 
 use super::{ExecutionError, FastProcessor};
-use crate::{ErrorContext, operations::utils::assert_binary_with_ctx};
+use crate::{ErrorContext, operations::utils::assert_binary};
 
 const TWO: Felt = Felt::new(2);
 
@@ -48,8 +48,8 @@ impl FastProcessor {
     #[inline(always)]
     pub fn op_and(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         self.pop2_applyfn_push(|a, b| {
-            assert_binary_with_ctx(b, err_ctx)?;
-            assert_binary_with_ctx(a, err_ctx)?;
+            assert_binary(b, err_ctx)?;
+            assert_binary(a, err_ctx)?;
 
             if a == ONE && b == ONE { Ok(ONE) } else { Ok(ZERO) }
         })
@@ -59,8 +59,8 @@ impl FastProcessor {
     #[inline(always)]
     pub fn op_or(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         self.pop2_applyfn_push(|a, b| {
-            assert_binary_with_ctx(b, err_ctx)?;
-            assert_binary_with_ctx(a, err_ctx)?;
+            assert_binary(b, err_ctx)?;
+            assert_binary(a, err_ctx)?;
 
             if a == ONE || b == ONE { Ok(ONE) } else { Ok(ZERO) }
         })

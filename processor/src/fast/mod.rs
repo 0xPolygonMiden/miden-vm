@@ -143,6 +143,7 @@ pub struct FastProcessor {
     /// Whether to enable debug statements and tracing.
     in_debug_mode: bool,
 
+    /// The source manager (providing information about the location of each instruction).
     source_manager: Arc<dyn SourceManager>,
 }
 
