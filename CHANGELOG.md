@@ -13,7 +13,9 @@
 - [BREAKING] Removed `Assembler::add_modules_with_options` (#1881)
 - [BREAKING] Renamed `Assembler::add_library` to `Assembler::link_dynamic_library` (#1881)
 - [BREAKING] Renamed `Assembler::add_vendored_library` to `Assembler::link_static_library` (#1881)
-- `AssemblyError` was removed, and all uses replaced with `Report` (#1881).
+- [BREAKING] `AssemblyError` was removed, and all uses replaced with `Report` (#1881).
+- [BREAKING] `Compile` trait was renamed to `Parse`
+- [BREAKING] `CompileOptions` was renamed to `ParseOptions`
 - Licensed the project under the Apache 2.0 license (in addition to the MIT) (#1840).
 - Uniform chiplet bus message flag encoding (#1887).
 - [BREAKING] Updated dependencies Winterfell to v0.13 and Crypto to v0.15 (#1896).

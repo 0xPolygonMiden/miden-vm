@@ -10,7 +10,7 @@ use vm_core::{
 };
 
 use crate::{
-    Compile, CompileOptions, LibraryNamespace, LibraryPath, SourceManager, Spanned,
+    LibraryNamespace, LibraryPath, Parse, ParseOptions, SourceManager, Spanned,
     ast::{self, Export, InvocationTarget, InvokeKind, ModuleKind, QualifiedProcedureName},
     diagnostics::{RelatedLabel, Report},
     library::{KernelLibrary, Library},
@@ -168,10 +168,7 @@ impl Assembler {
     ///
     /// The given module must be a library module, or an error will be returned.
     #[inline]
-    pub fn compile_and_statically_link(
-        &mut self,
-        module: impl Compile,
-    ) -> Result<&mut Self, Report> {
+    pub fn compile_and_statically_link(&mut self, module: impl Parse) -> Result<&mut Self, Report> {
         self.compile_and_statically_link_all([module])
     }
 
@@ -181,16 +178,16 @@ impl Assembler {
     /// All of the given modules must be library modules, or an error will be returned.
     pub fn compile_and_statically_link_all(
         &mut self,
-        modules: impl IntoIterator<Item = impl Compile>,
+        modules: impl IntoIterator<Item = impl Parse>,
     ) -> Result<&mut Self, Report> {
         let modules = modules
             .into_iter()
             .map(|module| {
-                module.compile_with_options(
+                module.parse_with_options(
                     &self.source_manager,
-                    CompileOptions {
+                    ParseOptions {
                         warnings_as_errors: self.warnings_as_errors,
-                        ..CompileOptions::for_library()
+                        ..ParseOptions::for_library()
                     },
                 )
             })
@@ -360,16 +357,16 @@ impl Assembler {
     /// Returns an error if parsing or compilation of the specified modules fails.
     pub fn assemble_library(
         mut self,
-        modules: impl IntoIterator<Item = impl Compile>,
+        modules: impl IntoIterator<Item = impl Parse>,
     ) -> Result<Library, Report> {
         let modules = modules
             .into_iter()
             .map(|module| {
-                module.compile_with_options(
+                module.parse_with_options(
                     &self.source_manager,
-                    CompileOptions {
+                    ParseOptions {
                         warnings_as_errors: self.warnings_as_errors,
-                        ..CompileOptions::for_library()
+                        ..ParseOptions::for_library()
                     },
                 )
             })
@@ -385,13 +382,13 @@ impl Assembler {
     /// # Errors
     ///
     /// Returns an error if parsing or compilation of the specified modules fails.
-    pub fn assemble_kernel(mut self, module: impl Compile) -> Result<KernelLibrary, Report> {
-        let module = module.compile_with_options(
+    pub fn assemble_kernel(mut self, module: impl Parse) -> Result<KernelLibrary, Report> {
+        let module = module.parse_with_options(
             &self.source_manager,
-            CompileOptions {
+            ParseOptions {
                 path: Some(LibraryPath::new_from_components(LibraryNamespace::Kernel, [])),
                 warnings_as_errors: self.warnings_as_errors,
-                ..CompileOptions::for_kernel()
+                ..ParseOptions::for_kernel()
             },
         )?;
 
@@ -453,14 +450,14 @@ impl Assembler {
     ///
     /// Returns an error if parsing or compilation of the specified program fails, or if the source
     /// doesn't have an entrypoint.
-    pub fn assemble_program(mut self, source: impl Compile) -> Result<Program, Report> {
-        let options = CompileOptions {
+    pub fn assemble_program(mut self, source: impl Parse) -> Result<Program, Report> {
+        let options = ParseOptions {
             kind: ModuleKind::Executable,
             warnings_as_errors: self.warnings_as_errors,
             path: Some(LibraryPath::from(LibraryNamespace::Exec)),
         };
 
-        let program = source.compile_with_options(&self.source_manager, options)?;
+        let program = source.parse_with_options(&self.source_manager, options)?;
         assert!(program.is_executable());
 
         // Recompute graph with executable module, and start compiling
