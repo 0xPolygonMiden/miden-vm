@@ -119,13 +119,12 @@ export.store_random_coin_state
 end
 
 #! Initializes the seed for randomness generation by computing the hash of the proof context using
-#! the trace length, number of queries, the number of bits of grinding and the number of kernel
-#! procedures defining the kernel against which the program being verified was compiled.
+#! the trace length, number of queries, the number of bits of grinding.
 #! Currently, this part, as well as the rest of the STARK verifier assumes a blowup factor
 #! equal to 8.
 #! The ouput of this procedure is the capacity portion of the state after applying `hperm`.
 #!
-#! Input: [log(trace_length), num_queries, grinding, num_ker_proc, ...]
+#! Input: [log(trace_length), num_queries, grinding, ...]
 #! Output: [C, ...]
 #! Cycles: 210
 export.init_seed
@@ -134,7 +133,6 @@ export.init_seed
     dup exec.constants::set_trace_length_log
     dup.1 exec.constants::set_number_queries
     dup.2 exec.constants::set_grinding_factor
-    dup.3 exec.constants::set_num_kernel_procedures
 
     # Pre-load constants used by hperm into memory and initialize the state of the random coin to zeros.
     # Since memory beyond 3 * 2^30 does not have any special meaning, we can use the memory region
@@ -146,7 +144,7 @@ export.init_seed
     exec.constants::r1_ptr mem_storew
     exec.constants::r2_ptr mem_storew
     dropw
-    #=> [log(trace_length), num_queries, grinding, num_ker_proc, ...]
+    #=> [log(trace_length), num_queries, grinding, ...]
 
     # Create the initial seed for randomness generation from proof context
 
@@ -154,22 +152,22 @@ export.init_seed
     dup
     pow2
     u32split assertz
-    #=> [trace_length, log(trace_length), num_queries, grinding, num_ker_proc, ...]
+    #=> [trace_length, log(trace_length), num_queries, grinding, ...]
 
     ## Save the trace length and its log to memory
     dup.0 exec.constants::set_trace_length
-    #=> [trace_length, log(trace_length), num_queries, grinding, num_ker_proc, ...]
+    #=> [trace_length, log(trace_length), num_queries, grinding, ...]
 
     ## Compute log size of LDE domain
     swap
     exec.constants::get_blowup_factor_log
     add
-    #=> [log(lde_size), trace_length, num_queries, grinding, num_ker_proc, ...]
+    #=> [log(lde_size), trace_length, num_queries, grinding, ...]
 
     ## Compute size of LDE domain
     dup
     pow2
-    #=> [lde_size, log(lde_size), trace_length, num_queries, grinding, num_ker_proc, ...]
+    #=> [lde_size, log(lde_size), trace_length, num_queries, grinding, ...]
 
     # Compute lde_domain generator
     dup.1
@@ -222,38 +220,27 @@ export.init_seed
     ## field extension and FRI parameters
     ## field extension degree || FRI folding factor || FRI remainder polynomial max degree || blowup factor
     push.0x02047f08
-    # => [proof_options, modulus1, modulus0, trace_length, trace_info, num_queries, grinding, num_ker_proc, ...]
+    # => [proof_options, modulus1, modulus0, trace_length, trace_info, num_queries, grinding, ...]
 
     movup.6
     movup.6
-    # => [num_queries, grinding, proof_options, modulus1, modulus0, trace_length, trace_info, num_ker_proc, ...]
+    # => [num_queries, grinding, proof_options, modulus1, modulus0, trace_length, trace_info, ...]
 
     exec.constants::get_num_constraints
     movdn.3
-    # => [num_queries, grinding, proof_options, num_constraints, modulus1, modulus0, trace_length, trace_info, num_ker_proc, ...]
+    # => [num_queries, grinding, proof_options, num_constraints, modulus1, modulus0, trace_length, trace_info, ...]
 
-    # We will need to absorb:
-    #
-    # 1. The proof context (8 field elements)
-    # 2. The input stack (16 field elements)
-    # 3. The output stack (16 field elements)
-    # 4. The program hash (4 field elements)
-    # 5. The kernel procedures digests (4 times the number of procedures in the kernel)
-    #
-    # This means that the division with remainder of the number of field elements that will be absorbed by
-    # 8 is either equal to 4 if the number of kernel procedures is even or to 0 otherwise.
-    
-    movup.8
-    is_odd
-    # => [(num_ker_proc % 2 == 1), num_queries, grinding, proof_options, num_constraints, modulus1, modulus0, trace_length, trace_info, ...]
-
-    push.4
-    push.0
-    movup.2
-    cdrop
+    # We get the number of the variable length public inputs section non-deterministically so that
+    # we can initialize the capacity portion of the sponge state. The total number of public inputs
+    # is easily derived using an addition.
+    adv_push.1
+    exec.constants::get_num_fixed_len_public_inputs add
+    dup exec.constants::num_public_inputs_ptr mem_store
+    u32divmod.8
+    # => [rem, quo, num_queries, grinding, proof_options, num_constraints, modulus1, modulus0, trace_length, trace_info, ...]
 
     # Hash proof context
-
+    swap drop
     push.0.0.0
     movdnw.2
     # => [B, A, 0, 0, 0, c, ...]

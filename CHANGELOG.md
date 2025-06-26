@@ -24,6 +24,8 @@
 #### Enhancements
 
 - The documentation for the `Assembler` and its APIs was improved, to better explain how each affects the final assembled artifact (#1881).
+- Optimize handling of variable length public inputs in the recursive verifier (#1842).
+- Simplify processing of OOD evaluations in the recursive verifier (#1848).
 - Make `ErrorContext` zero-cost ([#1910](https://github.com/0xMiden/miden-vm/issues/1910))
 
 #### Fixes
