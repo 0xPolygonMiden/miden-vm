@@ -180,29 +180,33 @@ impl MastNode {
         }
     }
 
-    pub fn to_pretty_print<'a>(&'a self, mast_forest: &'a MastForest) -> impl PrettyPrint + 'a {
+    pub fn to_pretty_print<'a>(
+        &'a self,
+        mast_forest: &'a MastForest,
+        node_id: usize,
+    ) -> impl PrettyPrint + 'a {
         match self {
-            MastNode::Block(basic_block_node) => {
-                MastNodePrettyPrint::new(Box::new(basic_block_node.to_pretty_print(mast_forest)))
-            },
+            MastNode::Block(basic_block_node) => MastNodePrettyPrint::new(Box::new(
+                basic_block_node.to_pretty_print(mast_forest, node_id),
+            )),
             MastNode::Join(join_node) => {
-                MastNodePrettyPrint::new(Box::new(join_node.to_pretty_print(mast_forest)))
+                MastNodePrettyPrint::new(Box::new(join_node.to_pretty_print(mast_forest, node_id)))
             },
             MastNode::Split(split_node) => {
-                MastNodePrettyPrint::new(Box::new(split_node.to_pretty_print(mast_forest)))
+                MastNodePrettyPrint::new(Box::new(split_node.to_pretty_print(mast_forest, node_id)))
             },
             MastNode::Loop(loop_node) => {
-                MastNodePrettyPrint::new(Box::new(loop_node.to_pretty_print(mast_forest)))
+                MastNodePrettyPrint::new(Box::new(loop_node.to_pretty_print(mast_forest, node_id)))
             },
             MastNode::Call(call_node) => {
-                MastNodePrettyPrint::new(Box::new(call_node.to_pretty_print(mast_forest)))
+                MastNodePrettyPrint::new(Box::new(call_node.to_pretty_print(mast_forest, node_id)))
             },
             MastNode::Dyn(dyn_node) => {
-                MastNodePrettyPrint::new(Box::new(dyn_node.to_pretty_print(mast_forest)))
+                MastNodePrettyPrint::new(Box::new(dyn_node.to_pretty_print(mast_forest, node_id)))
             },
-            MastNode::External(external_node) => {
-                MastNodePrettyPrint::new(Box::new(external_node.to_pretty_print(mast_forest)))
-            },
+            MastNode::External(external_node) => MastNodePrettyPrint::new(Box::new(
+                external_node.to_pretty_print(mast_forest, node_id),
+            )),
         }
     }
 
@@ -230,15 +234,19 @@ impl MastNode {
         }
     }
 
-    pub fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+    pub fn to_display<'a>(
+        &'a self,
+        mast_forest: &'a MastForest,
+        node_id: usize,
+    ) -> impl fmt::Display + 'a {
         match self {
-            MastNode::Block(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
-            MastNode::Join(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
-            MastNode::Split(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
-            MastNode::Loop(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
-            MastNode::Call(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
-            MastNode::Dyn(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
-            MastNode::External(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
+            MastNode::Block(node) => MastNodeDisplay::new(node.to_display(mast_forest, node_id)),
+            MastNode::Join(node) => MastNodeDisplay::new(node.to_display(mast_forest, node_id)),
+            MastNode::Split(node) => MastNodeDisplay::new(node.to_display(mast_forest, node_id)),
+            MastNode::Loop(node) => MastNodeDisplay::new(node.to_display(mast_forest, node_id)),
+            MastNode::Call(node) => MastNodeDisplay::new(node.to_display(mast_forest, node_id)),
+            MastNode::Dyn(node) => MastNodeDisplay::new(node.to_display(mast_forest, node_id)),
+            MastNode::External(node) => MastNodeDisplay::new(node.to_display(mast_forest, node_id)),
         }
     }
 

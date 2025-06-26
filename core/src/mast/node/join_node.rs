@@ -5,7 +5,7 @@ use miden_crypto::{Felt, Word};
 
 use super::MastNodeExt;
 use crate::{
-    OPCODE_JOIN,
+    OPCODE_JOIN, OperationId,
     chiplets::hasher,
     mast::{DecoratorId, MastForest, MastForestError, MastNodeId, Remapping},
     prettier::PrettyPrint,
@@ -145,73 +145,92 @@ impl MastNodeExt for JoinNode {
 // ================================================================================================
 
 impl JoinNode {
-    pub(super) fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
-        JoinNodePrettyPrint { join_node: self, mast_forest }
+    pub(super) fn to_display<'a>(
+        &'a self,
+        mast_forest: &'a MastForest,
+        node_id: usize,
+    ) -> impl fmt::Display + 'a {
+        JoinNodePrettyPrint { join_node: self, mast_forest, node_id }
     }
 
     pub(super) fn to_pretty_print<'a>(
         &'a self,
         mast_forest: &'a MastForest,
+        node_id: usize,
     ) -> impl PrettyPrint + 'a {
-        JoinNodePrettyPrint { join_node: self, mast_forest }
+        JoinNodePrettyPrint { join_node: self, mast_forest, node_id }
     }
 }
 
 struct JoinNodePrettyPrint<'a> {
+    node_id: usize,
     join_node: &'a JoinNode,
     mast_forest: &'a MastForest,
 }
 
 impl PrettyPrint for JoinNodePrettyPrint<'_> {
-    #[rustfmt::skip]
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
+        let op_id = OperationId {
+            node: self.node_id,
+            batch_idx: 0,
+            op_id_in_batch: 0,
+        };
 
         let pre_decorators = {
-            let mut pre_decorators = self
-                .join_node
-                .before_enter()
-                .iter()
-                .map(|&decorator_id| self.mast_forest[decorator_id].render())
-                .reduce(|acc, doc| acc + const_text(" ") + doc)
-                .unwrap_or_default();
-            if !pre_decorators.is_empty() {
-                pre_decorators += nl();
-            }
+            if let Some(decorator_ids) =
+                self.mast_forest.debug_info.get_decorator_ids_before(&op_id)
+            {
+                let mut pre_decorators = decorator_ids
+                    .iter()
+                    .map(|&decorator_id| {
+                        self.mast_forest.debug_info.decorators[decorator_id].render()
+                    })
+                    .reduce(|acc, doc| acc + const_text(" ") + doc)
+                    .unwrap_or_default();
+                if !pre_decorators.is_empty() {
+                    pre_decorators += nl();
+                }
 
-            pre_decorators
+                pre_decorators
+            } else {
+                Document::default()
+            }
         };
 
         let post_decorators = {
-            let mut post_decorators = self
-                .join_node
-                .after_exit()
-                .iter()
-                .map(|&decorator_id| self.mast_forest[decorator_id].render())
-                .reduce(|acc, doc| acc + const_text(" ") + doc)
-                .unwrap_or_default();
-            if !post_decorators.is_empty() {
-                post_decorators = nl() + post_decorators;
-            }
+            if let Some(decorator_ids) = self.mast_forest.debug_info.get_decorator_ids_after(&op_id)
+            {
+                let mut post_decorators = decorator_ids
+                    .iter()
+                    .map(|&decorator_id| {
+                        self.mast_forest.debug_info.decorators[decorator_id].render()
+                    })
+                    .reduce(|acc, doc| acc + const_text(" ") + doc)
+                    .unwrap_or_default();
+                if !post_decorators.is_empty() {
+                    post_decorators = nl() + post_decorators;
+                }
 
-            post_decorators
+                post_decorators
+            } else {
+                Document::default()
+            }
         };
 
-        let first_child =
-            self.mast_forest[self.join_node.first()].to_pretty_print(self.mast_forest);
-        let second_child =
-            self.mast_forest[self.join_node.second()].to_pretty_print(self.mast_forest);
+        let first_child = self.mast_forest[self.join_node.first()]
+            .to_pretty_print(self.mast_forest, self.join_node.first().into());
+        let second_child = self.mast_forest[self.join_node.second()]
+            .to_pretty_print(self.mast_forest, self.join_node.second().into());
 
         pre_decorators
-        + indent(
-            4,
-            const_text("join")
+            + indent(
+                4,
+                const_text("join") + nl() + first_child.render() + nl() + second_child.render(),
+            )
             + nl()
-            + first_child.render()
-            + nl()
-            + second_child.render(),
-        ) + nl() + const_text("end")
-        + post_decorators
+            + const_text("end")
+            + post_decorators
     }
 }
 

@@ -8,7 +8,10 @@ use core::{
     ops::{Index, IndexMut},
 };
 
-use crate::crypto::hash::{Blake3_256, Blake3Digest, Digest};
+use crate::{
+    OperationId,
+    crypto::hash::{Blake3_256, Blake3Digest, Digest},
+};
 
 mod node;
 pub use node::{
@@ -17,7 +20,7 @@ pub use node::{
 };
 use winter_utils::{ByteWriter, DeserializationError, Serializable};
 
-use crate::{AdviceMap, Decorator, DecoratorList, Felt, Operation, Word};
+use crate::{AdviceMap, Decorator, DecoratorList, Felt, Operation, Word, debuginfo::DebugInfo};
 
 mod serialization;
 
@@ -59,6 +62,9 @@ pub struct MastForest {
     /// codes, so they are stored in order to provide a useful message to the user in case a error
     /// code is triggered.
     error_codes: BTreeMap<u64, Arc<str>>,
+
+    /// TODO make option?
+    debug_info: DebugInfo,
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -380,6 +386,34 @@ impl MastForest {
             self.make_root(new_root_id);
         }
     }
+
+    pub fn build_debug_info(&mut self) {
+        self.debug_info.decorators = self.decorators.clone();
+        for (node_id, node) in self.nodes.iter().enumerate() {
+            // std::dbg!(&self.decorators);
+            // std::dbg!(&node);
+            for decorator_id in node.before_enter() {
+                let operation_id = OperationId::new(node_id, 0, 0);
+                self.debug_info.add_decorator_id(operation_id, *decorator_id, true);
+            }
+
+            if let MastNode::Block(basic_block) = node {
+                // Each decorator is accompanied by the operation index specifying the operation
+                // prior to which the decorator should be executed.
+                for (pos, decorator_id) in basic_block.decorators() {
+                    let operation_id = OperationId::new(node_id, 0, *pos);
+                    self.debug_info.add_decorator_id(operation_id, *decorator_id, true);
+                }
+            }
+
+            for decorator_id in node.after_exit() {
+                let operation_id = OperationId::new(node_id, 0, 0);
+                self.debug_info.add_decorator_id(operation_id, *decorator_id, false);
+            }
+        }
+        self.debug_info.error_codes = self.error_codes.clone();
+        // std::dbg!(&self);
+    }
 }
 
 /// Returns the set of nodes that are live, as well as the mapping from "old ID" to "new ID" for all
@@ -507,7 +541,7 @@ impl MastForest {
     /// Given an error code as a Felt, resolves it to its corresponding error message.
     pub fn resolve_error_message(&self, code: Felt) -> Option<Arc<str>> {
         let key = u64::from(code);
-        self.error_codes.get(&key).cloned()
+        self.debug_info.error_codes.get(&key).cloned()
     }
 }
 

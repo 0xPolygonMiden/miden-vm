@@ -133,19 +133,25 @@ impl MastNodeExt for LoopNode {
 // ================================================================================================
 
 impl LoopNode {
-    pub(super) fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
-        LoopNodePrettyPrint { loop_node: self, mast_forest }
+    pub(super) fn to_display<'a>(
+        &'a self,
+        mast_forest: &'a MastForest,
+        node_id: usize,
+    ) -> impl fmt::Display + 'a {
+        LoopNodePrettyPrint { loop_node: self, mast_forest, node_id }
     }
 
     pub(super) fn to_pretty_print<'a>(
         &'a self,
         mast_forest: &'a MastForest,
+        node_id: usize,
     ) -> impl PrettyPrint + 'a {
-        LoopNodePrettyPrint { loop_node: self, mast_forest }
+        LoopNodePrettyPrint { loop_node: self, mast_forest, node_id }
     }
 }
 
 struct LoopNodePrettyPrint<'a> {
+    node_id: usize,
     loop_node: &'a LoopNode,
     mast_forest: &'a MastForest,
 }
@@ -184,7 +190,8 @@ impl crate::prettier::PrettyPrint for LoopNodePrettyPrint<'_> {
             post_decorators
         };
 
-        let loop_body = self.mast_forest[self.loop_node.body].to_pretty_print(self.mast_forest);
+        let loop_body =
+            self.mast_forest[self.loop_node.body].to_pretty_print(self.mast_forest, self.node_id);
 
         pre_decorators
             + indent(4, const_text("while.true") + nl() + loop_body.render())

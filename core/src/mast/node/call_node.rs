@@ -9,7 +9,7 @@ use miden_formatting::{
 
 use super::MastNodeExt;
 use crate::{
-    OPCODE_CALL, OPCODE_SYSCALL,
+    OPCODE_CALL, OPCODE_SYSCALL, OperationId,
     chiplets::hasher,
     mast::{DecoratorId, MastForest, MastForestError, MastNodeId, Remapping},
 };
@@ -206,16 +206,22 @@ impl CallNode {
     pub(super) fn to_pretty_print<'a>(
         &'a self,
         mast_forest: &'a MastForest,
+        node_id: usize,
     ) -> impl PrettyPrint + 'a {
-        CallNodePrettyPrint { node: self, mast_forest }
+        CallNodePrettyPrint { node: self, mast_forest, node_id }
     }
 
-    pub(super) fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
-        CallNodePrettyPrint { node: self, mast_forest }
+    pub(super) fn to_display<'a>(
+        &'a self,
+        mast_forest: &'a MastForest,
+        node_id: usize,
+    ) -> impl fmt::Display + 'a {
+        CallNodePrettyPrint { node: self, mast_forest, node_id }
     }
 }
 
 struct CallNodePrettyPrint<'a> {
+    node_id: usize,
     node: &'a CallNode,
     mast_forest: &'a MastForest,
 }
@@ -225,16 +231,30 @@ impl CallNodePrettyPrint<'_> {
     /// empty, prepends `prepend` and appends `append` to the decorator document.
     fn concatenate_decorators(
         &self,
-        decorator_ids: &[DecoratorId],
+        before: bool,
         prepend: Document,
         append: Document,
     ) -> Document {
-        let decorators = decorator_ids
-            .iter()
-            .map(|&decorator_id| self.mast_forest[decorator_id].render())
-            .reduce(|acc, doc| acc + const_text(" ") + doc)
-            .unwrap_or_default();
+        let op_id = OperationId {
+            node: self.node_id,
+            batch_idx: 0,
+            op_id_in_batch: 0,
+        };
 
+        let decorator_ids = if before {
+            self.mast_forest.debug_info.get_decorator_ids_before(&op_id)
+        } else {
+            self.mast_forest.debug_info.get_decorator_ids_after(&op_id)
+        };
+        let decorators = if let Some(decorator_ids) = decorator_ids {
+            decorator_ids
+                .iter()
+                .map(|&decorator_id| self.mast_forest.debug_info.decorators[decorator_id].render())
+                .reduce(|acc, doc| acc + const_text(" ") + doc)
+                .unwrap_or_default()
+        } else {
+            Document::default()
+        };
         if decorators.is_empty() {
             decorators
         } else {
@@ -243,19 +263,19 @@ impl CallNodePrettyPrint<'_> {
     }
 
     fn single_line_pre_decorators(&self) -> Document {
-        self.concatenate_decorators(self.node.before_enter(), Document::Empty, const_text(" "))
+        self.concatenate_decorators(true, Document::Empty, const_text(" "))
     }
 
     fn single_line_post_decorators(&self) -> Document {
-        self.concatenate_decorators(self.node.after_exit(), const_text(" "), Document::Empty)
+        self.concatenate_decorators(false, const_text(" "), Document::Empty)
     }
 
     fn multi_line_pre_decorators(&self) -> Document {
-        self.concatenate_decorators(self.node.before_enter(), Document::Empty, nl())
+        self.concatenate_decorators(true, Document::Empty, nl())
     }
 
     fn multi_line_post_decorators(&self) -> Document {
-        self.concatenate_decorators(self.node.after_exit(), nl(), Document::Empty)
+        self.concatenate_decorators(false, nl(), Document::Empty)
     }
 }
 

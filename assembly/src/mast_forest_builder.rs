@@ -108,6 +108,8 @@ impl MastForestBuilder {
         let nodes_to_remove = get_nodes_to_remove(self.merged_basic_block_ids, &self.mast_forest);
         let id_remappings = self.mast_forest.remove_nodes(&nodes_to_remove);
 
+        self.mast_forest.build_debug_info();
+        self.mast_forest.clear_debug_info();
         (self.mast_forest, id_remappings)
     }
 }
