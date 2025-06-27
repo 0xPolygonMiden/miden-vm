@@ -94,7 +94,10 @@ impl FastProcessor {
     fn get_evaluation_point(&mut self, op_idx: usize) -> Result<QuadFelt, ExecutionError> {
         let (alpha_0, alpha_1) = {
             let addr = self.stack_get(ALPHA_ADDR_INDEX);
-            let word = self.memory.read_word(self.ctx, addr, self.clk + op_idx)?;
+            let word = self
+                .memory
+                .read_word(self.ctx, addr, self.clk + op_idx)
+                .map_err(ExecutionError::MemoryError)?;
 
             (word[0], word[1])
         };

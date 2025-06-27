@@ -6,7 +6,7 @@ use vm_core::{
     debuginfo::{SourceFile, SourceSpan},
 };
 
-use crate::{ContextId, errors::ErrorContext};
+use crate::{ContextId, ErrorContext};
 
 #[derive(Debug, thiserror::Error, Diagnostic)]
 pub enum MemoryError {

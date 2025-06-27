@@ -77,7 +77,7 @@ pub enum ExecutionError {
         error: Box<dyn Error + Send + Sync + 'static>,
     },
     #[error("failed to execute Ext2Intt operation: {0}")]
-    Ext2InttError(Ext2InttError),
+    Ext2InttError(#[from] Ext2InttError),
     #[error("assertion failed at clock cycle {clk} with error {}",
       match err_msg {
         Some(msg) => format!("message: {msg}"),
@@ -269,12 +269,6 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         error: AceError,
     },
-}
-
-impl From<Ext2InttError> for ExecutionError {
-    fn from(value: Ext2InttError) -> Self {
-        Self::Ext2InttError(value)
-    }
 }
 
 impl ExecutionError {
