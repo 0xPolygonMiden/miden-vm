@@ -5,15 +5,14 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-#[cfg(not(target_family = "wasm"))]
-use alloc::format;
 use alloc::{
+    format,
     string::{String, ToString},
     sync::Arc,
     vec::Vec,
 };
 
-use assembly::{KernelLibrary, Library, Parse};
+use assembly::{KernelLibrary, Library, Parse, diagnostics::reporting::PrintDiagnostic};
 pub use assembly::{LibraryPath, SourceFile, SourceManager, diagnostics::Report};
 pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
 pub use processor::{
@@ -344,15 +343,20 @@ impl Test {
             ExecutionOptions::default().with_debugging(self.in_debug_mode),
         )
         .with_source_manager(self.source_manager.clone());
-        let slow_stack_outputs = process.execute(&program, &mut host)?;
-
-        let trace = ExecutionTrace::new(process, slow_stack_outputs.clone());
-        assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
+        let slow_stack_result = process.execute(&program, &mut host);
 
         // compare fast and slow processors' stack outputs
-        self.assert_outputs_with_fast_processor(slow_stack_outputs);
+        self.assert_result_with_fast_processor(&slow_stack_result);
 
-        Ok(trace)
+        match slow_stack_result {
+            Ok(slow_stack_outputs) => {
+                let trace = ExecutionTrace::new(process, slow_stack_outputs);
+                assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
+
+                Ok(trace)
+            },
+            Err(err) => Err(err),
+        }
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns the
@@ -367,10 +371,13 @@ impl Test {
         )
         .with_source_manager(self.source_manager.clone());
 
-        let stack_outputs = process.execute(&program, &mut host)?;
-        self.assert_outputs_with_fast_processor(stack_outputs);
+        let stack_result = process.execute(&program, &mut host);
+        self.assert_result_with_fast_processor(&stack_result);
 
-        Ok((process, host))
+        match stack_result {
+            Ok(_) => Ok((process, host)),
+            Err(err) => Err(err),
+        }
     }
 
     /// Compiles the test's code into a program, then generates and verifies a proof of execution
@@ -414,13 +421,14 @@ impl Test {
         .with_source_manager(self.source_manager.clone());
         let result = process.execute(&program, &mut host);
 
-        if let Ok(stack_outputs) = &result {
+        self.assert_result_with_fast_processor(&result);
+
+        if result.is_ok() {
             assert_eq!(
                 program.hash(),
                 process.decoder.program_hash().into(),
                 "inconsistent program hash"
             );
-            self.assert_outputs_with_fast_processor(stack_outputs.clone());
         }
         VmStateIterator::new(process, result)
     }
@@ -465,6 +473,42 @@ impl Test {
             slow_stack_outputs, fast_stack_outputs,
             "stack outputs do not match between slow and fast processors"
         );
+    }
+
+    fn assert_result_with_fast_processor(
+        &self,
+        slow_result: &Result<StackOutputs, ExecutionError>,
+    ) {
+        let (program, mut host) = self.get_program_and_host();
+        let stack_inputs: Vec<Felt> = self.stack_inputs.clone().into_iter().rev().collect();
+        let fast_process =
+            FastProcessor::new(&stack_inputs).with_source_manager(self.source_manager.clone());
+        let fast_result = fast_process.execute(&program, &mut host);
+
+        match slow_result {
+            Ok(slow_stack_outputs) => {
+                let fast_stack_outputs = fast_result.unwrap();
+                assert_eq!(
+                    slow_stack_outputs, &fast_stack_outputs,
+                    "stack outputs do not match between slow and fast processors"
+                );
+            },
+            Err(slow_err) => {
+                assert!(fast_result.is_err(), "expected error, but got success");
+                let fast_err = fast_result.unwrap_err();
+
+                // assert that diagnostics match
+                let slow_diagnostic = format!("{}", PrintDiagnostic::new_without_color(slow_err));
+                let fast_diagnostic = format!("{}", PrintDiagnostic::new_without_color(fast_err));
+
+                // Note: This assumes that the tests are run WITHOUT the `no_err_ctx` feature
+                assert_eq!(
+                    slow_diagnostic, fast_diagnostic,
+                    "diagnostics do not match between slow and fast processors:\nSlow: {}\nFast: {}",
+                    slow_diagnostic, fast_diagnostic
+                );
+            },
+        }
     }
 }
 

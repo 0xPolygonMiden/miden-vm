@@ -31,6 +31,7 @@
 - Optimize handling of variable length public inputs in the recursive verifier (#1842).
 - Simplify processing of OOD evaluations in the recursive verifier (#1848).
 - Make `ErrorContext` zero-cost ([#1910](https://github.com/0xMiden/miden-vm/issues/1910))
+- Make `FastProcessor` output rich error diagnostics ([#1914](https://github.com/0xMiden/miden-vm/issues/1914))
 
 #### Fixes
 
