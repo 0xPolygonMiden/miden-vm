@@ -1081,7 +1081,9 @@ dependencies = [
  "log",
  "miden-assembly-syntax",
  "miden-core",
+ "miden-mast-package",
  "pretty_assertions",
+ "proptest",
  "smallvec",
  "thiserror 2.0.12",
 ]
@@ -1172,7 +1174,6 @@ name = "miden-mast-package"
 version = "0.15.0"
 dependencies = [
  "derive_more",
- "miden-assembly",
  "miden-assembly-syntax",
  "miden-core",
  "proptest",

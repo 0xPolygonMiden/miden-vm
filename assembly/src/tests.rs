@@ -1,10 +1,17 @@
 use alloc::{collections::BTreeSet, string::ToString, vec::Vec};
 use core::str::FromStr;
+use std::sync::{Arc, LazyLock};
 
 use miden_core::{
     Program,
     mast::{MastNode, MastNodeId, error_code_from_msg},
     utils::{Deserializable, Serializable},
+};
+use miden_mast_package::{MastArtifact, Package, PackageManifest};
+use pretty_assertions::{assert_eq, assert_str_eq};
+use proptest::{
+    prelude::*,
+    test_runner::{Config, TestRunner},
 };
 
 use crate::{
@@ -16,8 +23,6 @@ use crate::{
 };
 
 type TestResult = Result<(), Report>;
-
-use pretty_assertions::{assert_eq, assert_str_eq};
 
 macro_rules! assert_assembler_diagnostic {
     ($context:ident, $source:expr, $($expected:literal),+) => {{
@@ -3510,4 +3515,89 @@ fn vendoring() -> TestResult {
 #[should_panic]
 fn test_assert_diagnostic_lines() {
     assert_diagnostic_lines!(report!("the error string"), "the error string", "other", "lines");
+}
+
+// PACKAGE SERIALIZATION AND DESERIALIZATION
+// ================================================================================================
+
+prop_compose! {
+    fn any_package()(name in ".*", mast in any::<ArbitraryMastArtifact>(), manifest in any::<PackageManifest>()) -> Package {
+        Package { name, mast: mast.0, manifest, account_component_metadata_bytes: None }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct ArbitraryMastArtifact(MastArtifact);
+
+impl Arbitrary for ArbitraryMastArtifact {
+    type Parameters = ();
+
+    fn arbitrary_with(_args: Self::Parameters) -> Self::Strategy {
+        prop_oneof![Just(Self(LIB_EXAMPLE.clone().into())), Just(Self(PRG_EXAMPLE.clone().into()))]
+            .boxed()
+    }
+
+    type Strategy = BoxedStrategy<Self>;
+}
+
+static LIB_EXAMPLE: LazyLock<Arc<Library>> = LazyLock::new(build_library_example);
+static PRG_EXAMPLE: LazyLock<Arc<Program>> = LazyLock::new(build_program_example);
+
+fn build_library_example() -> Arc<Library> {
+    let context = TestContext::new();
+    // declare foo module
+    let foo = r#"
+        export.foo
+            add
+        end
+        export.foo_mul
+            mul
+        end
+    "#;
+    let foo = parse_module!(&context, "test::foo", foo);
+
+    // declare bar module
+    let bar = r#"
+        export.bar
+            mtree_get
+        end
+        export.bar_mul
+            mul
+        end
+    "#;
+    let bar = parse_module!(&context, "test::bar", bar);
+    let modules = [foo, bar];
+
+    // serialize/deserialize the bundle with locations
+    Assembler::new(context.source_manager())
+        .assemble_library(modules.iter().cloned())
+        .expect("failed to assemble library")
+        .into()
+}
+
+fn build_program_example() -> Arc<Program> {
+    let source = "
+    begin
+        push.1.2
+        add
+        drop
+    end
+    ";
+    let assembler = Assembler::default();
+    assembler.assemble_program(source).unwrap().into()
+}
+
+#[test]
+fn package_serialization_roundtrip() {
+    // since the test is quite expensive, 128 cases should be enough to cover all edge cases
+    // (default is 256)
+    let cases = 128;
+    TestRunner::new(Config::with_cases(cases))
+        .run(&any_package(), move |package| {
+            let bytes = package.to_bytes();
+            let deserialized = Package::read_from_bytes(&bytes).unwrap();
+            prop_assert_eq!(package, deserialized);
+            Ok(())
+        })
+        .unwrap();
 }

@@ -199,7 +199,7 @@ impl FromStr for Ident {
     }
 }
 
-#[cfg(feature = "testing")]
+#[cfg(feature = "arbitrary")]
 pub(crate) mod testing {
     use alloc::string::String;
 

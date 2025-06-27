@@ -23,7 +23,8 @@ std = [
     "miden-core/std",
     "thiserror/std",
 ]
-testing = ["logging", "dep:proptest", "dep:proptest-derive"]
+arbitrary = ["dep:proptest", "dep:proptest-derive"]
+testing = ["arbitrary", "logging"]
 logging = ["dep:env_logger"]
 
 [dependencies]

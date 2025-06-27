@@ -44,9 +44,6 @@ use miden_core::{
 
 use crate::{Dependency, MastArtifact, Package, PackageExport, PackageManifest};
 
-#[cfg(test)]
-mod tests;
-
 // CONSTANTS
 // ================================================================================================
 

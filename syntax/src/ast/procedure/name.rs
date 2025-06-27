@@ -27,10 +27,10 @@ use crate::{
 /// A qualified procedure name can be context-sensitive, i.e. the module path might refer
 /// to an imported
 #[derive(Clone)]
-#[cfg_attr(feature = "testing", derive(proptest_derive::Arbitrary))]
+#[cfg_attr(feature = "arbitrary", derive(proptest_derive::Arbitrary))]
 pub struct QualifiedProcedureName {
     /// The source span associated with this identifier.
-    #[cfg_attr(feature = "testing", proptest(value = "SourceSpan::default()"))]
+    #[cfg_attr(feature = "arbitrary", proptest(value = "SourceSpan::default()"))]
     pub span: SourceSpan,
     /// The module path for this procedure.
     pub module: LibraryPath,
@@ -383,7 +383,7 @@ impl Deserializable for ProcedureName {
 // ARBITRARY IMPLEMENTATION
 // ================================================================================================
 
-#[cfg(any(test, feature = "testing"))]
+#[cfg(any(test, feature = "arbitrary"))]
 impl proptest::prelude::Arbitrary for ProcedureName {
     type Parameters = ();
 

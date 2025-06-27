@@ -12,7 +12,7 @@ use crate::Dependency;
 /// The manifest of a package, containing the set of package dependencies (libraries or packages)
 /// and exported procedures and their signatures, if known.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
+#[cfg_attr(feature = "arbitrary", derive(proptest_derive::Arbitrary))]
 pub struct PackageManifest {
     /// The set of exports in this package.
     pub exports: BTreeSet<PackageExport>,
@@ -24,12 +24,12 @@ pub struct PackageManifest {
 /// A procedure exported by a package, along with its digest and signature (will be added after
 /// MASM type attributes are implemented).
 #[derive(Clone, PartialEq, Eq, Ord, PartialOrd)]
-#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
+#[cfg_attr(feature = "arbitrary", derive(proptest_derive::Arbitrary))]
 pub struct PackageExport {
     /// The fully-qualified name of the procedure exported by this package
     pub name: QualifiedProcedureName,
     /// The digest of the procedure exported by this package
-    #[cfg_attr(test, proptest(value = "Word::default()"))]
+    #[cfg_attr(feature = "arbitrary", proptest(value = "Word::default()"))]
     pub digest: Word,
 }
 

@@ -537,7 +537,7 @@ fn validate_component(component: &str) -> Result<(), PathError> {
 // ARBITRARY IMPLEMENTATION
 // ================================================================================================
 
-#[cfg(any(test, feature = "testing"))]
+#[cfg(any(test, feature = "arbitrary"))]
 impl proptest::prelude::Arbitrary for LibraryPath {
     type Parameters = ();
 

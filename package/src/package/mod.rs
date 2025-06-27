@@ -14,7 +14,6 @@ use crate::MastArtifact;
 
 /// A package containing a [Program]/[Library], and a manifest (exports and dependencies).
 #[derive(Debug, Clone, Eq, PartialEq)]
-#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct Package {
     /// Name of the package
     pub name: String,
@@ -114,74 +113,5 @@ impl Package {
                 "invalid entrypoint: library does not export '{entrypoint}'"
             )))
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::sync::{Arc, LazyLock};
-
-    use miden_assembly::{Assembler, testing::TestContext};
-    use miden_assembly_syntax::{Library, parse_module};
-    use miden_core::Program;
-    use proptest::prelude::*;
-
-    use super::MastArtifact;
-
-    impl Arbitrary for MastArtifact {
-        type Parameters = ();
-
-        fn arbitrary_with(_args: Self::Parameters) -> Self::Strategy {
-            prop_oneof![Just(LIB_EXAMPLE.clone().into()), Just(PRG_EXAMPLE.clone().into())].boxed()
-        }
-
-        type Strategy = BoxedStrategy<Self>;
-    }
-
-    static LIB_EXAMPLE: LazyLock<Arc<Library>> = LazyLock::new(build_library_example);
-    static PRG_EXAMPLE: LazyLock<Arc<Program>> = LazyLock::new(build_program_example);
-
-    fn build_library_example() -> Arc<Library> {
-        let context = TestContext::new();
-        // declare foo module
-        let foo = r#"
-        export.foo
-            add
-        end
-        export.foo_mul
-            mul
-        end
-    "#;
-        let foo = parse_module!(&context, "test::foo", foo);
-
-        // declare bar module
-        let bar = r#"
-        export.bar
-            mtree_get
-        end
-        export.bar_mul
-            mul
-        end
-    "#;
-        let bar = parse_module!(&context, "test::bar", bar);
-        let modules = [foo, bar];
-
-        // serialize/deserialize the bundle with locations
-        Assembler::new(context.source_manager())
-            .assemble_library(modules.iter().cloned())
-            .expect("failed to assemble library")
-            .into()
-    }
-
-    fn build_program_example() -> Arc<Program> {
-        let source = "
-    begin
-        push.1.2
-        add
-        drop
-    end
-    ";
-        let assembler = Assembler::default();
-        assembler.assemble_program(source).unwrap().into()
     }
 }
