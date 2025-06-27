@@ -1,6 +1,5 @@
-//! The [Package] containing a [vm_core::Program] or [assembly::Library] and a manifest(exports and
-//! dependencies).
-
+//! The [Package] containing a [Program] or [Library] and a manifest consisting of its exports and
+//! dependencies.
 #![no_std]
 
 extern crate alloc;

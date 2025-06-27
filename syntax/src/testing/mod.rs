@@ -18,9 +18,9 @@ macro_rules! regex {
     };
 }
 
-/// Construct an [`Arc<SourceFile>`] from a string literal or expression,
-/// such that emitted diagnostics reference the file and line on which
-/// the source file was constructed.
+/// Construct an [`::alloc::sync::Arc<miden_core::debuginfo::SourceFile>`] from a string literal or
+/// expression, such that emitted diagnostics reference the file and line on which the source file
+/// was constructed.
 #[macro_export]
 macro_rules! source_file {
     ($context:expr, $source:literal) => {
