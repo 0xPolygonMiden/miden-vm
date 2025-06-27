@@ -90,7 +90,7 @@ fn test_mstorew_success() {
     processor.execute_impl(&program, &mut host).unwrap();
 
     // Ensure that the memory was correctly modified
-    assert_eq!(processor.memory.read_word(ctx, addr, clk).unwrap(), &word_to_store.into());
+    assert_eq!(processor.memory.read_word(ctx, addr, clk).unwrap(), word_to_store.into());
 }
 
 #[rstest]

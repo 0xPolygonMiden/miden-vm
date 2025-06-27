@@ -91,7 +91,8 @@ pub fn insert_mem_values_into_adv_map(
     advice_provider: &mut AdviceProvider,
     process: ProcessState,
 ) -> Result<(), ExecutionError> {
-    let (start_addr, end_addr) = get_mem_addr_range(process, 4, 5)?;
+    let (start_addr, end_addr) =
+        get_mem_addr_range(process, 4, 5).map_err(ExecutionError::MemoryError)?;
     let ctx = process.ctx();
 
     let mut values = Vec::with_capacity(((end_addr - start_addr) as usize) * WORD_SIZE);
@@ -525,7 +526,8 @@ pub fn push_ext2_intt_result(
     let mut poly = Vec::with_capacity(input_size);
     for addr in ((input_start_ptr as u32)..(input_end_ptr as u32)).step_by(4) {
         let word = process
-            .get_mem_word(process.ctx(), addr)?
+            .get_mem_word(process.ctx(), addr)
+            .map_err(ExecutionError::MemoryError)?
             .ok_or(Ext2InttError::UninitializedMemoryAddress(addr))?;
 
         poly.push(QuadFelt::new(word[0], word[1]));
@@ -721,25 +723,19 @@ fn get_mem_addr_range(
     process: ProcessState,
     start_idx: usize,
     end_idx: usize,
-) -> Result<(u32, u32), ExecutionError> {
+) -> Result<(u32, u32), MemoryError> {
     let start_addr = process.get_stack_item(start_idx).as_int();
     let end_addr = process.get_stack_item(end_idx).as_int();
 
     if start_addr > u32::MAX as u64 {
-        return Err(ExecutionError::MemoryError(MemoryError::address_out_of_bounds(
-            start_addr,
-            &(),
-        )));
+        return Err(MemoryError::address_out_of_bounds(start_addr, &()));
     }
     if end_addr > u32::MAX as u64 {
-        return Err(ExecutionError::MemoryError(MemoryError::address_out_of_bounds(end_addr, &())));
+        return Err(MemoryError::address_out_of_bounds(end_addr, &()));
     }
 
     if start_addr > end_addr {
-        return Err(ExecutionError::MemoryError(MemoryError::InvalidMemoryRange {
-            start_addr,
-            end_addr,
-        }));
+        return Err(MemoryError::InvalidMemoryRange { start_addr, end_addr });
     }
 
     Ok((start_addr as u32, end_addr as u32))
