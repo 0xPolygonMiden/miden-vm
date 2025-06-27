@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, string::ToString, sync::Arc};
+use alloc::{boxed::Box, sync::Arc};
 use core::error::Error;
 
 use miden_air::RowIndex;
@@ -22,20 +22,17 @@ use crate::{MemoryError, host::advice::AdviceError};
 
 #[derive(Debug, thiserror::Error, Diagnostic)]
 pub enum ExecutionError {
-    #[error(
-        "advice provider error at clock cycle {}",
-        .clk.map_or_else(|| "unknown".to_string(), |n| n.to_string()))
-    ]
+    #[error("advice provider error at clock cycle {clk}")]
     #[diagnostic()]
     AdviceError {
         #[label]
         label: SourceSpan,
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
+        clk: RowIndex,
         #[source]
         #[diagnostic_source]
         err: AdviceError,
-        clk: Option<RowIndex>,
     },
     /// This error is caught by the assembler, so we don't need diagnostics here.
     #[error("illegal use of instruction {0} while inside a syscall")]
@@ -281,18 +278,13 @@ impl From<Ext2InttError> for ExecutionError {
 }
 
 impl ExecutionError {
-    pub fn advice_error(err: AdviceError, err_ctx: &impl ErrorContext) -> ExecutionError {
-        let (label, source_file) = err_ctx.label_and_source_file();
-        ExecutionError::AdviceError { label, source_file, err, clk: None }
-    }
-
-    pub fn advice_error_at_clk(
+    pub fn advice_error(
         err: AdviceError,
         clk: RowIndex,
         err_ctx: &impl ErrorContext,
     ) -> ExecutionError {
         let (label, source_file) = err_ctx.label_and_source_file();
-        ExecutionError::AdviceError { label, source_file, err, clk: Some(clk) }
+        ExecutionError::AdviceError { label, source_file, err, clk }
     }
 
     pub fn divide_by_zero(clk: RowIndex, err_ctx: &impl ErrorContext) -> Self {

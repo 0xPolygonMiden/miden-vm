@@ -230,7 +230,7 @@ impl Process {
         let words = host
             .advice_provider_mut()
             .pop_stack_dword()
-            .map_err(|err| ExecutionError::advice_error_at_clk(err, clk, error_ctx))?;
+            .map_err(|err| ExecutionError::advice_error(err, clk, error_ctx))?;
 
         // write the words memory
         self.chiplets
@@ -278,7 +278,7 @@ impl Process {
         let value = host
             .advice_provider_mut()
             .pop_stack()
-            .map_err(|err| ExecutionError::advice_error_at_clk(err, self.system.clk(), err_ctx))?;
+            .map_err(|err| ExecutionError::advice_error(err, self.system.clk(), err_ctx))?;
         self.stack.set(0, value);
         self.stack.shift_right(0);
         Ok(())
@@ -297,7 +297,7 @@ impl Process {
         let word = host
             .advice_provider_mut()
             .pop_stack_word()
-            .map_err(|err| ExecutionError::advice_error_at_clk(err, self.system.clk(), err_ctx))?;
+            .map_err(|err| ExecutionError::advice_error(err, self.system.clk(), err_ctx))?;
 
         self.stack.set(0, word[3]);
         self.stack.set(1, word[2]);

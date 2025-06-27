@@ -2,7 +2,7 @@ use alloc::sync::Arc;
 
 use vm_core::{DebugOptions, Felt, Word, mast::MastForest};
 
-use crate::{AdviceError, ExecutionError, KvMap, ProcessState, errors::ErrorContext};
+use crate::{AdviceError, ExecutionError, KvMap, ProcessState, RowIndex, errors::ErrorContext};
 
 pub(super) mod advice;
 use advice::AdviceProvider;
@@ -12,7 +12,6 @@ mod debug;
 
 mod mast_forest_store;
 pub use mast_forest_store::{MastForestStore, MemMastForestStore};
-
 // HOST TRAIT
 // ================================================================================================
 
@@ -159,6 +158,7 @@ impl DefaultHost {
                             prev_values: stored_values.to_vec(),
                             new_values: values.clone(),
                         },
+                        RowIndex::from(0),
                         &(),
                     ));
                 }

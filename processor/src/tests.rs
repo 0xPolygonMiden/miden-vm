@@ -64,7 +64,7 @@ fn test_diagnostic_advice_map_key_already_present() {
 
     assert_diagnostic_lines!(
         err,
-        "advice provider error at clock cycle unknown",
+        "advice provider error at clock cycle",
         "x value for key 0x0000000000000000000000000000000000000000000000000000000000000000 already present in the advice map",
         "help: previous values at key were '[0]'. Operation would have replaced them with '[1]'"
     );

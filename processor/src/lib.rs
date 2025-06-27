@@ -310,6 +310,7 @@ impl Process {
                             prev_values: stored_values.to_vec(),
                             new_values: values.clone(),
                         },
+                        RowIndex::from(0),
                         &(),
                     ));
                 }
