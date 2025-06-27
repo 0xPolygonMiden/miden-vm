@@ -16,29 +16,29 @@ use crate::{
     report,
 };
 
-// COMPILE OPTIONS
+// PARSE OPTIONS
 // ================================================================================================
 
-/// The set of options which can be used to control the behavior of the [Compile] trait.
+/// The set of options which can be used to control the behavior of the [`Parse`] trait.
 #[derive(Debug, Clone)]
-pub struct Options {
-    /// The kind of [Module] to compile.
+pub struct ParseOptions {
+    /// The kind of [Module] to parse.
     ///
     /// The default kind is executable.
     pub kind: ModuleKind,
     /// When true, promote warning diagnostics to errors
     pub warnings_as_errors: bool,
-    /// The name to give the compiled [Module]
+    /// The name to give the parsed [Module]
     ///
     /// This option overrides `namespace`.
     ///
-    /// If unset, and there is no name associated with the item being compiled (e.g. a file path)
+    /// If unset, and there is no name associated with the item being parsed (e.g. a file path)
     /// then the path will consist of just a namespace; using the value of `namespace` if provided,
     /// or deriving one from `kind`.
     pub path: Option<LibraryPath>,
 }
 
-impl Default for Options {
+impl Default for ParseOptions {
     fn default() -> Self {
         Self {
             kind: ModuleKind::Executable,
@@ -47,8 +47,8 @@ impl Default for Options {
         }
     }
 }
-impl Options {
-    /// Configure a set of [Options] to compile a [Module] with the given `kind` and `path`.
+impl ParseOptions {
+    /// Configure a set of [`ParseOptions`] to parse a [`Module`] with the given `kind` and `path`.
     ///
     /// This is primarily useful when compiling a module from source code that has no meaningful
     /// [LibraryPath] associated with it, such as when compiling from a `str`. This will override
@@ -65,7 +65,7 @@ impl Options {
         })
     }
 
-    /// Get the default [Options] for compiling a library module.
+    /// Get the default [`ParseOptions`] for compiling a library module.
     pub fn for_library() -> Self {
         Self {
             kind: ModuleKind::Library,
@@ -73,7 +73,7 @@ impl Options {
         }
     }
 
-    /// Get the default [Options] for compiling a kernel module.
+    /// Get the default [`ParseOptions`] for compiling a kernel module.
     pub fn for_kernel() -> Self {
         Self {
             kind: ModuleKind::Kernel,
@@ -82,69 +82,69 @@ impl Options {
     }
 }
 
-// COMPILE TRAIT
+// PARSE TRAIT
 // ================================================================================================
 
-/// This trait is meant to be implemented by any type that can be compiled to a [Module],
+/// This trait is meant to be implemented by any type that can be parsed to a [Module],
 /// to allow methods which expect a [Module] to accept things like:
 ///
 /// * A [Module] which was previously parsed or deserialized
 /// * A string representing the source code of a [Module].
 /// * A path to a file containing the source code of a [Module].
 /// * A vector of [crate::ast::Form]s comprising the contents of a [Module].
-pub trait Compile: Sized {
-    /// Compile (or convert) `self` into an executable [Module].
+pub trait Parse: Sized {
+    /// Parse (or convert) `self` into an executable [Module].
     ///
-    /// See [Compile::compile_with_options()] for more details.
+    /// See [`Parse::parse_with_options`] for more details.
     #[inline]
-    fn compile(self, source_manager: &dyn SourceManager) -> Result<Box<Module>, Report> {
-        self.compile_with_options(source_manager, Options::default())
+    fn parse(self, source_manager: &dyn SourceManager) -> Result<Box<Module>, Report> {
+        self.parse_with_options(source_manager, ParseOptions::default())
     }
 
-    /// Compile (or convert) `self` into a [Module] using the provided `options`.
+    /// Parse (or convert) `self` into a [Module] using the provided `options`.
     ///
-    /// Returns a [Report] if compilation fails due to a parsing or semantic analysis error,
+    /// Returns a [Report] if parsing fails due to a parsing or semantic analysis error,
     /// or if the module provided is of the wrong kind (e.g. we expected a library module but got
     /// an executable module).
     ///
-    /// See the documentation for [Options] to see how compilation can be configured.
-    fn compile_with_options(
+    /// See the documentation for [`ParseOptions`] to see how parsing can be configured.
+    fn parse_with_options(
         self,
         source_manager: &dyn SourceManager,
-        options: Options,
+        options: ParseOptions,
     ) -> Result<Box<Module>, Report>;
 }
 
-// COMPILE IMPLEMENTATIONS FOR MODULES
+// PARSE IMPLEMENTATIONS FOR MODULES
 // ------------------------------------------------------------------------------------------------
 
-impl Compile for Module {
+impl Parse for Module {
     #[inline(always)]
-    fn compile_with_options(
+    fn parse_with_options(
         self,
         source_manager: &dyn SourceManager,
-        options: Options,
+        options: ParseOptions,
     ) -> Result<Box<Module>, Report> {
-        Box::new(self).compile_with_options(source_manager, options)
+        Box::new(self).parse_with_options(source_manager, options)
     }
 }
 
-impl Compile for &Module {
+impl Parse for &Module {
     #[inline(always)]
-    fn compile_with_options(
+    fn parse_with_options(
         self,
         source_manager: &dyn SourceManager,
-        options: Options,
+        options: ParseOptions,
     ) -> Result<Box<Module>, Report> {
-        Box::new(self.clone()).compile_with_options(source_manager, options)
+        Box::new(self.clone()).parse_with_options(source_manager, options)
     }
 }
 
-impl Compile for Box<Module> {
-    fn compile_with_options(
+impl Parse for Box<Module> {
+    fn parse_with_options(
         mut self,
         _source_manager: &dyn SourceManager,
-        options: Options,
+        options: ParseOptions,
     ) -> Result<Box<Module>, Report> {
         let actual = self.kind();
         if actual == options.kind {
@@ -161,25 +161,25 @@ impl Compile for Box<Module> {
     }
 }
 
-impl Compile for Arc<Module> {
+impl Parse for Arc<Module> {
     #[inline(always)]
-    fn compile_with_options(
+    fn parse_with_options(
         self,
         source_manager: &dyn SourceManager,
-        options: Options,
+        options: ParseOptions,
     ) -> Result<Box<Module>, Report> {
-        Box::new(Arc::unwrap_or_clone(self)).compile_with_options(source_manager, options)
+        Box::new(Arc::unwrap_or_clone(self)).parse_with_options(source_manager, options)
     }
 }
 
-// COMPILE IMPLEMENTATIONS FOR STRINGS
+// PARSE IMPLEMENTATIONS FOR STRINGS
 // ------------------------------------------------------------------------------------------------
 
-impl Compile for Arc<SourceFile> {
-    fn compile_with_options(
+impl Parse for Arc<SourceFile> {
+    fn parse_with_options(
         self,
         source_manager: &dyn SourceManager,
-        options: Options,
+        options: ParseOptions,
     ) -> Result<Box<Module>, Report> {
         let source_file = source_manager.copy_into(&self);
         let path = match options.path {
@@ -188,7 +188,7 @@ impl Compile for Arc<SourceFile> {
                 .name()
                 .parse::<LibraryPath>()
                 .into_diagnostic()
-                .wrap_err("cannot compile module as it has an invalid path/name")?,
+                .wrap_err("cannot parse module as it has an invalid path/name")?,
         };
         let mut parser = Module::parser(options.kind);
         parser.set_warnings_as_errors(options.warnings_as_errors);
@@ -196,43 +196,43 @@ impl Compile for Arc<SourceFile> {
     }
 }
 
-impl Compile for &str {
+impl Parse for &str {
     #[inline(always)]
-    fn compile_with_options(
+    fn parse_with_options(
         self,
         source_manager: &dyn SourceManager,
-        options: Options,
+        options: ParseOptions,
     ) -> Result<Box<Module>, Report> {
-        self.to_string().into_boxed_str().compile_with_options(source_manager, options)
+        self.to_string().into_boxed_str().parse_with_options(source_manager, options)
     }
 }
 
-impl Compile for &String {
+impl Parse for &String {
     #[inline(always)]
-    fn compile_with_options(
+    fn parse_with_options(
         self,
         source_manager: &dyn SourceManager,
-        options: Options,
+        options: ParseOptions,
     ) -> Result<Box<Module>, Report> {
-        self.clone().into_boxed_str().compile_with_options(source_manager, options)
+        self.clone().into_boxed_str().parse_with_options(source_manager, options)
     }
 }
 
-impl Compile for String {
-    fn compile_with_options(
+impl Parse for String {
+    fn parse_with_options(
         self,
         source_manager: &dyn SourceManager,
-        options: Options,
+        options: ParseOptions,
     ) -> Result<Box<Module>, Report> {
-        self.into_boxed_str().compile_with_options(source_manager, options)
+        self.into_boxed_str().parse_with_options(source_manager, options)
     }
 }
 
-impl Compile for Box<str> {
-    fn compile_with_options(
+impl Parse for Box<str> {
+    fn parse_with_options(
         self,
         source_manager: &dyn SourceManager,
-        options: Options,
+        options: ParseOptions,
     ) -> Result<Box<Module>, Report> {
         let path = options.path.unwrap_or_else(|| {
             LibraryPath::from(match options.kind {
@@ -250,26 +250,26 @@ impl Compile for Box<str> {
     }
 }
 
-impl Compile for Cow<'_, str> {
+impl Parse for Cow<'_, str> {
     #[inline(always)]
-    fn compile_with_options(
+    fn parse_with_options(
         self,
         source_manager: &dyn SourceManager,
-        options: Options,
+        options: ParseOptions,
     ) -> Result<Box<Module>, Report> {
-        self.into_owned().into_boxed_str().compile_with_options(source_manager, options)
+        self.into_owned().into_boxed_str().parse_with_options(source_manager, options)
     }
 }
 
-// COMPILE IMPLEMENTATIONS FOR BYTES
+// PARSE IMPLEMENTATIONS FOR BYTES
 // ------------------------------------------------------------------------------------------------
 
-impl Compile for &[u8] {
+impl Parse for &[u8] {
     #[inline]
-    fn compile_with_options(
+    fn parse_with_options(
         self,
         source_manager: &dyn SourceManager,
-        options: Options,
+        options: ParseOptions,
     ) -> Result<Box<Module>, Report> {
         core::str::from_utf8(self)
             .map_err(|err| {
@@ -277,16 +277,16 @@ impl Compile for &[u8] {
                     .with_source_code(self.to_vec())
             })
             .wrap_err("parsing failed: invalid source code")
-            .and_then(|source| source.compile_with_options(source_manager, options))
+            .and_then(|source| source.parse_with_options(source_manager, options))
     }
 }
 
-impl Compile for Vec<u8> {
+impl Parse for Vec<u8> {
     #[inline]
-    fn compile_with_options(
+    fn parse_with_options(
         self,
         source_manager: &dyn SourceManager,
-        options: Options,
+        options: ParseOptions,
     ) -> Result<Box<Module>, Report> {
         String::from_utf8(self)
             .map_err(|err| {
@@ -297,30 +297,28 @@ impl Compile for Vec<u8> {
                 Report::from(error).with_source_code(err.into_bytes())
             })
             .wrap_err("parsing failed: invalid source code")
-            .and_then(|source| {
-                source.into_boxed_str().compile_with_options(source_manager, options)
-            })
+            .and_then(|source| source.into_boxed_str().parse_with_options(source_manager, options))
     }
 }
-impl Compile for Box<[u8]> {
+impl Parse for Box<[u8]> {
     #[inline(always)]
-    fn compile_with_options(
+    fn parse_with_options(
         self,
         source_manager: &dyn SourceManager,
-        options: Options,
+        options: ParseOptions,
     ) -> Result<Box<Module>, Report> {
-        Vec::from(self).compile_with_options(source_manager, options)
+        Vec::from(self).parse_with_options(source_manager, options)
     }
 }
 
-impl<T> Compile for NamedSource<T>
+impl<T> Parse for NamedSource<T>
 where
     T: SourceCode + AsRef<[u8]>,
 {
-    fn compile_with_options(
+    fn parse_with_options(
         self,
         source_manager: &dyn SourceManager,
-        options: Options,
+        options: ParseOptions,
     ) -> Result<Box<Module>, Report> {
         let path = match options.path {
             Some(path) => path,
@@ -328,7 +326,7 @@ where
                 .name()
                 .parse::<LibraryPath>()
                 .into_diagnostic()
-                .wrap_err("cannot compile module as it has an invalid path/name")?,
+                .wrap_err("cannot parse module as it has an invalid path/name")?,
         };
         let content = core::str::from_utf8(self.inner().as_ref())
             .map_err(|err| {
@@ -345,15 +343,15 @@ where
     }
 }
 
-// COMPILE IMPLEMENTATIONS FOR FILES
+// PARSE IMPLEMENTATIONS FOR FILES
 // ------------------------------------------------------------------------------------------------
 
 #[cfg(feature = "std")]
-impl Compile for &std::path::Path {
-    fn compile_with_options(
+impl Parse for &std::path::Path {
+    fn parse_with_options(
         self,
         source_manager: &dyn SourceManager,
-        options: Options,
+        options: ParseOptions,
     ) -> Result<Box<Module>, Report> {
         use std::path::Component;
 
@@ -405,13 +403,13 @@ impl Compile for &std::path::Path {
 }
 
 #[cfg(feature = "std")]
-impl Compile for std::path::PathBuf {
+impl Parse for std::path::PathBuf {
     #[inline(always)]
-    fn compile_with_options(
+    fn parse_with_options(
         self,
         source_manager: &dyn SourceManager,
-        options: Options,
+        options: ParseOptions,
     ) -> Result<Box<Module>, Report> {
-        self.as_path().compile_with_options(source_manager, options)
+        self.as_path().parse_with_options(source_manager, options)
     }
 }

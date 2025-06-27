@@ -28,7 +28,7 @@ use.std::crypto::stark::utils
 #!   - The following procedure makes use of global memory address beyond 3 * 2^30 and these are
 #!     defined in `constants.masm`.
 #!
-#! Input: [log(trace_length), num_queries, grinding, num_ker_proc, ...]
+#! Input: [log(trace_length), num_queries, grinding,  ...]
 #! Output: [...]
 #!
 #! Cycles:
@@ -51,7 +51,7 @@ export.verify
     #
     # Cycles: 45
     exec.utils::validate_inputs
-    # => [log(trace_length), num_queries, grinding, num_ker_proc, ...]
+    # => [log(trace_length), num_queries, grinding, ...]
 
     # Initialize the seed using proof context
     #

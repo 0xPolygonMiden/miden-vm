@@ -35,7 +35,7 @@ assembly = { package = "miden-assembly", path = "../assembly", version = "0.15",
 vm-core = { package = "miden-core", path = "../core", version = "0.15", default-features = false }
 
 [dev-dependencies]
-blake3 = "1.5"
+blake3 = "1.8"
 criterion = "0.6"
 miden-air = { package = "miden-air", path = "../air", version = "0.15", default-features = false }
 num = "0.4"
@@ -45,6 +45,7 @@ processor = { package = "miden-processor", path = "../processor", version = "0.1
     "testing",
 ] }
 rand = { version = "0.9", default-features = false }
+rand_chacha = { version = "0.9", default-features = false }
 rstest = { version = "0.25" }
 serde_json = "1.0"
 sha2 = "0.10"

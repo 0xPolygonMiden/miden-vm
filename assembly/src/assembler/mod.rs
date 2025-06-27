@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, collections::BTreeMap, string::ToString, sync::Arc, vec::Vec};
+use alloc::{collections::BTreeMap, string::ToString, sync::Arc, vec::Vec};
 
 use basic_block_builder::BasicBlockOrDecorators;
 use linker::{ModuleLink, ProcedureLink};
@@ -10,7 +10,7 @@ use vm_core::{
 };
 
 use crate::{
-    Compile, CompileOptions, LibraryNamespace, LibraryPath, SourceManager, Spanned,
+    LibraryNamespace, LibraryPath, Parse, ParseOptions, SourceManager, Spanned,
     ast::{self, Export, InvocationTarget, InvokeKind, ModuleKind, QualifiedProcedureName},
     diagnostics::{RelatedLabel, Report},
     library::{KernelLibrary, Library},
@@ -168,10 +168,7 @@ impl Assembler {
     ///
     /// The given module must be a library module, or an error will be returned.
     #[inline]
-    pub fn compile_and_statically_link(
-        &mut self,
-        module: impl Compile,
-    ) -> Result<&mut Self, Report> {
+    pub fn compile_and_statically_link(&mut self, module: impl Parse) -> Result<&mut Self, Report> {
         self.compile_and_statically_link_all([module])
     }
 
@@ -181,16 +178,16 @@ impl Assembler {
     /// All of the given modules must be library modules, or an error will be returned.
     pub fn compile_and_statically_link_all(
         &mut self,
-        modules: impl IntoIterator<Item = impl Compile>,
+        modules: impl IntoIterator<Item = impl Parse>,
     ) -> Result<&mut Self, Report> {
         let modules = modules
             .into_iter()
             .map(|module| {
-                module.compile_with_options(
+                module.parse_with_options(
                     &self.source_manager,
-                    CompileOptions {
+                    ParseOptions {
                         warnings_as_errors: self.warnings_as_errors,
-                        ..CompileOptions::for_library()
+                        ..ParseOptions::for_library()
                     },
                 )
             })
@@ -359,23 +356,25 @@ impl Assembler {
     ///
     /// Returns an error if parsing or compilation of the specified modules fails.
     pub fn assemble_library(
-        self,
-        modules: impl IntoIterator<Item = impl Compile>,
+        mut self,
+        modules: impl IntoIterator<Item = impl Parse>,
     ) -> Result<Library, Report> {
         let modules = modules
             .into_iter()
             .map(|module| {
-                module.compile_with_options(
+                module.parse_with_options(
                     &self.source_manager,
-                    CompileOptions {
+                    ParseOptions {
                         warnings_as_errors: self.warnings_as_errors,
-                        ..CompileOptions::for_library()
+                        ..ParseOptions::for_library()
                     },
                 )
             })
             .collect::<Result<Vec<_>, Report>>()?;
 
-        self.assemble_common(modules)
+        let module_indices = self.linker.link(modules)?;
+
+        self.assemble_common(&module_indices)
     }
 
     /// Assembles the provided module into a [KernelLibrary] intended to be used as a Kernel.
@@ -383,27 +382,24 @@ impl Assembler {
     /// # Errors
     ///
     /// Returns an error if parsing or compilation of the specified modules fails.
-    pub fn assemble_kernel(self, module: impl Compile) -> Result<KernelLibrary, Report> {
-        let module = module.compile_with_options(
+    pub fn assemble_kernel(mut self, module: impl Parse) -> Result<KernelLibrary, Report> {
+        let module = module.parse_with_options(
             &self.source_manager,
-            CompileOptions {
+            ParseOptions {
                 path: Some(LibraryPath::new_from_components(LibraryNamespace::Kernel, [])),
                 warnings_as_errors: self.warnings_as_errors,
-                ..CompileOptions::for_kernel()
+                ..ParseOptions::for_kernel()
             },
         )?;
 
-        self.assemble_common([module])
+        let module_indices = self.linker.link_kernel(module)?;
+
+        self.assemble_common(&module_indices)
             .and_then(|lib| KernelLibrary::try_from(lib).map_err(Report::new))
     }
 
     /// Shared code used by both [`Self::assemble_library`] and [`Self::assemble_kernel`].
-    fn assemble_common(
-        mut self,
-        modules: impl IntoIterator<Item = Box<ast::Module>>,
-    ) -> Result<Library, Report> {
-        let module_indices = self.linker.link(modules)?;
-
+    fn assemble_common(mut self, module_indices: &[ModuleIndex]) -> Result<Library, Report> {
         let staticlibs = self.linker.libraries().filter_map(|lib| {
             if matches!(lib.kind, LinkLibraryKind::Static) {
                 Some(lib.library.as_ref())
@@ -415,7 +411,7 @@ impl Assembler {
         let mut exports = {
             let mut exports = BTreeMap::new();
 
-            for module_idx in module_indices {
+            for module_idx in module_indices.iter().copied() {
                 // Note: it is safe to use `unwrap_ast()` here, since all of the modules contained
                 // in `module_indices` are in AST form by definition.
                 let ast_module = self.linker[module_idx].unwrap_ast().clone();
@@ -454,14 +450,14 @@ impl Assembler {
     ///
     /// Returns an error if parsing or compilation of the specified program fails, or if the source
     /// doesn't have an entrypoint.
-    pub fn assemble_program(mut self, source: impl Compile) -> Result<Program, Report> {
-        let options = CompileOptions {
+    pub fn assemble_program(mut self, source: impl Parse) -> Result<Program, Report> {
+        let options = ParseOptions {
             kind: ModuleKind::Executable,
             warnings_as_errors: self.warnings_as_errors,
             path: Some(LibraryPath::from(LibraryNamespace::Exec)),
         };
 
-        let program = source.compile_with_options(&self.source_manager, options)?;
+        let program = source.parse_with_options(&self.source_manager, options)?;
         assert!(program.is_executable());
 
         // Recompute graph with executable module, and start compiling
@@ -570,7 +566,7 @@ impl Assembler {
                         procedure_gid,
                         name,
                         proc.visibility(),
-                        module.is_kernel(),
+                        module.is_in_kernel(),
                         self.source_manager.clone(),
                     )
                     .with_num_locals(num_locals)
@@ -598,7 +594,7 @@ impl Assembler {
                         procedure_gid,
                         name,
                         ast::Visibility::Public,
-                        module.is_kernel(),
+                        module.is_in_kernel(),
                         self.source_manager.clone(),
                     )
                     .with_span(proc_alias.span());

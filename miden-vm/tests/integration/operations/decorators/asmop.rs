@@ -59,7 +59,7 @@ fn asmop_one_span_block_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     push1_loc.clone(),
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     2,
                     "push.1".to_string(),
                     false,
@@ -73,7 +73,7 @@ fn asmop_one_span_block_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     push1_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     2,
                     "push.1".to_string(),
                     false,
@@ -87,7 +87,7 @@ fn asmop_one_span_block_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     push2_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "push.2".to_string(),
                     false,
@@ -99,7 +99,7 @@ fn asmop_one_span_block_test() {
         VmStatePartial {
             clk: RowIndex::from(5),
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new(add_loc, "#exec::#main".to_string(), 1, "add".to_string(), false),
+                AssemblyOp::new(add_loc, "$exec::$main".to_string(), 1, "add".to_string(), false),
                 1,
             )),
             op: Some(Operation::Add),
@@ -109,7 +109,7 @@ fn asmop_one_span_block_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     swap1_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "swap.1".to_string(),
                     false,
@@ -123,7 +123,7 @@ fn asmop_one_span_block_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     drop1_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "drop".to_string(),
                     false,
@@ -137,7 +137,7 @@ fn asmop_one_span_block_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     swap2_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "swap.1".to_string(),
                     false,
@@ -151,7 +151,7 @@ fn asmop_one_span_block_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     drop2_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "drop".to_string(),
                     false,
@@ -227,7 +227,7 @@ fn asmop_with_one_procedure() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     push1_loc.clone(),
-                    "#exec::foo".to_string(),
+                    "$exec::foo".to_string(),
                     2,
                     "push.1".to_string(),
                     false,
@@ -241,7 +241,7 @@ fn asmop_with_one_procedure() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     push1_loc,
-                    "#exec::foo".to_string(),
+                    "$exec::foo".to_string(),
                     2,
                     "push.1".to_string(),
                     false,
@@ -255,7 +255,7 @@ fn asmop_with_one_procedure() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     push2_loc,
-                    "#exec::foo".to_string(),
+                    "$exec::foo".to_string(),
                     1,
                     "push.2".to_string(),
                     false,
@@ -267,7 +267,7 @@ fn asmop_with_one_procedure() {
         VmStatePartial {
             clk: RowIndex::from(5),
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new(add_loc, "#exec::foo".to_string(), 1, "add".to_string(), false),
+                AssemblyOp::new(add_loc, "$exec::foo".to_string(), 1, "add".to_string(), false),
                 1,
             )),
             op: Some(Operation::Add),
@@ -277,7 +277,7 @@ fn asmop_with_one_procedure() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     swap1_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "swap.1".to_string(),
                     false,
@@ -291,7 +291,7 @@ fn asmop_with_one_procedure() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     drop1_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "drop".to_string(),
                     false,
@@ -305,7 +305,7 @@ fn asmop_with_one_procedure() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     swap2_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "swap.1".to_string(),
                     false,
@@ -319,7 +319,7 @@ fn asmop_with_one_procedure() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     drop2_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "drop".to_string(),
                     false,
@@ -396,7 +396,7 @@ fn asmop_repeat_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     push1_loc.clone(),
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     2,
                     "push.1".to_string(),
                     false,
@@ -410,7 +410,7 @@ fn asmop_repeat_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     push1_loc.clone(),
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     2,
                     "push.1".to_string(),
                     false,
@@ -424,7 +424,7 @@ fn asmop_repeat_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     push2_loc.clone(),
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "push.2".to_string(),
                     false,
@@ -438,7 +438,7 @@ fn asmop_repeat_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     add_loc.clone(),
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "add".to_string(),
                     false,
@@ -453,7 +453,7 @@ fn asmop_repeat_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     push1_loc.clone(),
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     2,
                     "push.1".to_string(),
                     false,
@@ -467,7 +467,7 @@ fn asmop_repeat_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     push1_loc.clone(),
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     2,
                     "push.1".to_string(),
                     false,
@@ -481,7 +481,7 @@ fn asmop_repeat_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     push2_loc.clone(),
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "push.2".to_string(),
                     false,
@@ -495,7 +495,7 @@ fn asmop_repeat_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     add_loc.clone(),
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "add".to_string(),
                     false,
@@ -510,7 +510,7 @@ fn asmop_repeat_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     push1_loc.clone(),
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     2,
                     "push.1".to_string(),
                     false,
@@ -524,7 +524,7 @@ fn asmop_repeat_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     push1_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     2,
                     "push.1".to_string(),
                     false,
@@ -538,7 +538,7 @@ fn asmop_repeat_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     push2_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "push.2".to_string(),
                     false,
@@ -550,7 +550,7 @@ fn asmop_repeat_test() {
         VmStatePartial {
             clk: RowIndex::from(13),
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new(add_loc, "#exec::#main".to_string(), 1, "add".to_string(), false),
+                AssemblyOp::new(add_loc, "$exec::$main".to_string(), 1, "add".to_string(), false),
                 1,
             )),
             op: Some(Operation::Add),
@@ -560,7 +560,7 @@ fn asmop_repeat_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     swapdw_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "swapdw".to_string(),
                     false,
@@ -574,7 +574,7 @@ fn asmop_repeat_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     dropw1_loc.clone(),
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     4,
                     "dropw".to_string(),
                     false,
@@ -588,7 +588,7 @@ fn asmop_repeat_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     dropw1_loc.clone(),
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     4,
                     "dropw".to_string(),
                     false,
@@ -602,7 +602,7 @@ fn asmop_repeat_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     dropw1_loc.clone(),
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     4,
                     "dropw".to_string(),
                     false,
@@ -616,7 +616,7 @@ fn asmop_repeat_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     dropw1_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     4,
                     "dropw".to_string(),
                     false,
@@ -630,7 +630,7 @@ fn asmop_repeat_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     dropw2_loc.clone(),
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     4,
                     "dropw".to_string(),
                     false,
@@ -644,7 +644,7 @@ fn asmop_repeat_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     dropw2_loc.clone(),
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     4,
                     "dropw".to_string(),
                     false,
@@ -658,7 +658,7 @@ fn asmop_repeat_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     dropw2_loc.clone(),
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     4,
                     "dropw".to_string(),
                     false,
@@ -672,7 +672,7 @@ fn asmop_repeat_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     dropw2_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     4,
                     "dropw".to_string(),
                     false,
@@ -788,7 +788,7 @@ fn asmop_conditional_execution_test() {
         VmStatePartial {
             clk: RowIndex::from(4),
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new(eq_loc, "#exec::#main".to_string(), 1, "eq".to_string(), false),
+                AssemblyOp::new(eq_loc, "$exec::$main".to_string(), 1, "eq".to_string(), false),
                 1,
             )),
             op: Some(Operation::Eq),
@@ -803,7 +803,7 @@ fn asmop_conditional_execution_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     if_branch_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     0,
                     "if.true".to_string(),
                     false,
@@ -822,7 +822,7 @@ fn asmop_conditional_execution_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     push1_loc.clone(),
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     2,
                     "push.1".to_string(),
                     false,
@@ -836,7 +836,7 @@ fn asmop_conditional_execution_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     push1_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     2,
                     "push.1".to_string(),
                     false,
@@ -850,7 +850,7 @@ fn asmop_conditional_execution_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     push2_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "push.2".to_string(),
                     false,
@@ -862,7 +862,7 @@ fn asmop_conditional_execution_test() {
         VmStatePartial {
             clk: RowIndex::from(11),
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new(add_loc, "#exec::#main".to_string(), 1, "add".to_string(), false),
+                AssemblyOp::new(add_loc, "$exec::$main".to_string(), 1, "add".to_string(), false),
                 1,
             )),
             op: Some(Operation::Add),
@@ -892,7 +892,7 @@ fn asmop_conditional_execution_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     swap1_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "swap.1".to_string(),
                     false,
@@ -906,7 +906,7 @@ fn asmop_conditional_execution_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     drop1_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "drop".to_string(),
                     false,
@@ -920,7 +920,7 @@ fn asmop_conditional_execution_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     swap2_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "swap.1".to_string(),
                     false,
@@ -934,7 +934,7 @@ fn asmop_conditional_execution_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     drop2_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "drop".to_string(),
                     false,
@@ -1030,7 +1030,7 @@ fn asmop_conditional_execution_test() {
         VmStatePartial {
             clk: RowIndex::from(4),
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new(eq_loc, "#exec::#main".to_string(), 1, "eq".to_string(), false),
+                AssemblyOp::new(eq_loc, "$exec::$main".to_string(), 1, "eq".to_string(), false),
                 1,
             )),
             op: Some(Operation::Eq),
@@ -1045,7 +1045,7 @@ fn asmop_conditional_execution_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     else_branch_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     0,
                     "if.true".to_string(),
                     false,
@@ -1064,7 +1064,7 @@ fn asmop_conditional_execution_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     push3_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "push.3".to_string(),
                     false,
@@ -1078,7 +1078,7 @@ fn asmop_conditional_execution_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     push4_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "push.4".to_string(),
                     false,
@@ -1090,7 +1090,7 @@ fn asmop_conditional_execution_test() {
         VmStatePartial {
             clk: RowIndex::from(10),
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new(add_loc, "#exec::#main".to_string(), 1, "add".to_string(), false),
+                AssemblyOp::new(add_loc, "$exec::$main".to_string(), 1, "add".to_string(), false),
                 1,
             )),
             op: Some(Operation::Add),
@@ -1125,7 +1125,7 @@ fn asmop_conditional_execution_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     swap1_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "swap.1".to_string(),
                     false,
@@ -1139,7 +1139,7 @@ fn asmop_conditional_execution_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     drop1_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "drop".to_string(),
                     false,
@@ -1153,7 +1153,7 @@ fn asmop_conditional_execution_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     swap2_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "swap.1".to_string(),
                     false,
@@ -1167,7 +1167,7 @@ fn asmop_conditional_execution_test() {
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new(
                     drop2_loc,
-                    "#exec::#main".to_string(),
+                    "$exec::$main".to_string(),
                     1,
                     "drop".to_string(),
                     false,

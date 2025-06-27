@@ -6,7 +6,7 @@ use vm_core::Program;
 #[cfg(feature = "std")]
 use crate::diagnostics::reporting::set_panic_hook;
 use crate::{
-    Compile, CompileOptions, LibraryPath, Word,
+    LibraryPath, Parse, ParseOptions, Word,
     assembler::Assembler,
     ast::{Form, Module, ModuleKind},
     diagnostics::{
@@ -258,10 +258,10 @@ impl TestContext {
     /// This runs semantic analysis, and the returned module is guaranteed to be syntactically
     /// valid.
     #[track_caller]
-    pub fn parse_program(&self, source: impl Compile) -> Result<Box<Module>, Report> {
-        source.compile_with_options(
+    pub fn parse_program(&self, source: impl Parse) -> Result<Box<Module>, Report> {
+        source.parse_with_options(
             self.source_manager.as_ref(),
-            CompileOptions {
+            ParseOptions {
                 warnings_as_errors: self.assembler.warnings_as_errors(),
                 ..Default::default()
             },
@@ -274,12 +274,12 @@ impl TestContext {
     /// valid.
     #[allow(unused)]
     #[track_caller]
-    pub fn parse_kernel(&self, source: impl Compile) -> Result<Box<Module>, Report> {
-        source.compile_with_options(
+    pub fn parse_kernel(&self, source: impl Parse) -> Result<Box<Module>, Report> {
+        source.parse_with_options(
             self.source_manager.as_ref(),
-            CompileOptions {
+            ParseOptions {
                 warnings_as_errors: self.assembler.warnings_as_errors(),
-                ..CompileOptions::for_kernel()
+                ..ParseOptions::for_kernel()
             },
         )
     }
@@ -289,12 +289,12 @@ impl TestContext {
     /// This runs semantic analysis, and the returned module is guaranteed to be syntactically
     /// valid.
     #[track_caller]
-    pub fn parse_module(&self, source: impl Compile) -> Result<Box<Module>, Report> {
-        source.compile_with_options(
+    pub fn parse_module(&self, source: impl Parse) -> Result<Box<Module>, Report> {
+        source.parse_with_options(
             self.source_manager.as_ref(),
-            CompileOptions {
+            ParseOptions {
                 warnings_as_errors: self.assembler.warnings_as_errors(),
-                ..CompileOptions::for_library()
+                ..ParseOptions::for_library()
             },
         )
     }
@@ -304,13 +304,13 @@ impl TestContext {
     pub fn parse_module_with_path(
         &self,
         path: LibraryPath,
-        source: impl Compile,
+        source: impl Parse,
     ) -> Result<Box<Module>, Report> {
-        source.compile_with_options(
+        source.parse_with_options(
             self.source_manager.as_ref(),
-            CompileOptions {
+            ParseOptions {
                 warnings_as_errors: self.assembler.warnings_as_errors(),
-                ..CompileOptions::new(ModuleKind::Library, path).unwrap()
+                ..ParseOptions::new(ModuleKind::Library, path).unwrap()
             },
         )
     }
@@ -318,7 +318,7 @@ impl TestContext {
     /// Add `module` to the [Assembler] constructed by this context, making it available to
     /// other modules.
     #[track_caller]
-    pub fn add_module(&mut self, module: impl Compile) -> Result<(), Report> {
+    pub fn add_module(&mut self, module: impl Parse) -> Result<(), Report> {
         self.assembler.compile_and_statically_link(module).map(|_| ())
     }
 
@@ -331,13 +331,13 @@ impl TestContext {
     pub fn add_module_from_source(
         &mut self,
         path: LibraryPath,
-        source: impl Compile,
+        source: impl Parse,
     ) -> Result<(), Report> {
-        let module = source.compile_with_options(
+        let module = source.parse_with_options(
             &self.source_manager,
-            CompileOptions {
+            ParseOptions {
                 path: Some(path),
-                ..CompileOptions::for_library()
+                ..ParseOptions::for_library()
             },
         )?;
         self.assembler.compile_and_statically_link(module).map(|_| ())
@@ -354,7 +354,7 @@ impl TestContext {
     /// NOTE: Any modules added by, e.g. `add_module`, will be available to the executable
     /// module represented in `source`.
     #[track_caller]
-    pub fn assemble(&self, source: impl Compile) -> Result<Program, Report> {
+    pub fn assemble(&self, source: impl Parse) -> Result<Program, Report> {
         self.assembler.clone().assemble_program(source)
     }
 
@@ -376,7 +376,7 @@ impl TestContext {
     pub fn assemble_module(
         &self,
         _path: LibraryPath,
-        _module: impl Compile,
+        _module: impl Parse,
     ) -> Result<Vec<Word>, Report> {
         // This API will change after we implement `Assembler::add_library()`
         unimplemented!()
