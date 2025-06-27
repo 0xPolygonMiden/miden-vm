@@ -5,25 +5,27 @@
 
 extern crate alloc;
 
-mod dep;
+mod artifact;
+mod dependency;
 mod package;
 
 #[cfg(test)]
 extern crate std;
 
-pub use assembly::{
+pub use miden_assembly::{
     Library, LibraryPath,
     ast::{ProcedureName, QualifiedProcedureName},
 };
-pub use vm_core::{Program, Word as Digest, mast::MastForest};
+pub use miden_core::{Program, Word, mast::MastForest};
 
 pub use self::{
-    dep::{
+    artifact::MastArtifact,
+    dependency::{
         Dependency, DependencyName,
         resolver::{
             DependencyResolver, LocalResolvedDependency, MemDependencyResolverByDigest,
             ResolvedDependency,
         },
     },
-    package::{MastArtifact, Package, PackageExport, PackageManifest},
+    package::{Package, PackageExport, PackageManifest},
 };

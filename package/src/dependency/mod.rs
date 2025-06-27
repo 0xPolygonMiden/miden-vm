@@ -1,8 +1,10 @@
 use alloc::string::String;
 
-use vm_core::utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
+use miden_core::utils::{
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
+};
 
-use crate::Digest;
+use crate::Word;
 
 pub(crate) mod resolver;
 
@@ -33,8 +35,8 @@ pub struct Dependency {
     pub name: DependencyName,
     /// The digest of the dependency.
     /// Serves as an ultimate source of truth for identifying the dependency.
-    #[cfg_attr(test, proptest(value = "Digest::default()"))]
-    pub digest: Digest,
+    #[cfg_attr(test, proptest(value = "Word::default()"))]
+    pub digest: Word,
 }
 
 impl Serializable for Dependency {
@@ -47,7 +49,7 @@ impl Serializable for Dependency {
 impl Deserializable for Dependency {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let name = DependencyName(String::read_from(source)?);
-        let digest = Digest::read_from(source)?;
+        let digest = Word::read_from(source)?;
         Ok(Self { name, digest })
     }
 }

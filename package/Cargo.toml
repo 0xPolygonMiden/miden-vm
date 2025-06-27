@@ -18,9 +18,9 @@ bench = false
 doctest = false
 
 [dependencies]
-assembly = { package = "miden-assembly", path = "../assembly", version = "0.15", default-features = false }
 derive_more = { version = "2.0.1", features = ["from"] }
-vm-core = { package = "miden-core", path = "../core", version = "0.15", default-features = false }
+miden-assembly = { path = "../assembly", version = "0.15", default-features = false }
+miden-core = { path = "../core", version = "0.15", default-features = false }
 
 [dev-dependencies]
 proptest = "1.6"

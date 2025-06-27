@@ -1,9 +1,8 @@
 use alloc::{collections::BTreeMap, sync::Arc};
 
-use assembly::Library;
+use miden_assembly::Library;
 
-use super::Dependency;
-use crate::{Digest, Package};
+use crate::{Dependency, Package, Word};
 
 // DEPENDENCY RESOLUTION
 // ================================================================================================
@@ -57,11 +56,11 @@ pub trait DependencyResolver {
 
 #[derive(Debug, Default)]
 pub struct MemDependencyResolverByDigest {
-    resolved: BTreeMap<Digest, ResolvedDependency>,
+    resolved: BTreeMap<Word, ResolvedDependency>,
 }
 
 impl MemDependencyResolverByDigest {
-    pub fn add(&mut self, digest: Digest, resolution: ResolvedDependency) {
+    pub fn add(&mut self, digest: Word, resolution: ResolvedDependency) {
         self.resolved.insert(digest, resolution);
     }
 }

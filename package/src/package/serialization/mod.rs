@@ -27,23 +27,22 @@
 //!   - For each export:
 //!     - `export` (`PackageExport`)
 //!       - `name` (`QualifiedProcedureName`)
-//!       - `digest` (`Digest`)
+//!       - `digest` (`Word`)
 //!   - `dependencies_len` (`usize`)
 //!   - For each dependency:
 //!     - `dependency` (`Dependency`)
 //!       - `name` (`String`)
-//!       - `digest` (`Digest`)
+//!       - `digest` (`Word`)
 
 use alloc::{collections::BTreeSet, format, string::String, sync::Arc, vec::Vec};
 
-use assembly::{Library, ast::QualifiedProcedureName};
-use vm_core::{
-    Program,
+use miden_assembly::{Library, ast::QualifiedProcedureName};
+use miden_core::{
+    Program, Word,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
-use super::{Dependency, MastArtifact, Package, PackageExport, PackageManifest};
-use crate::Digest;
+use crate::{Dependency, MastArtifact, Package, PackageExport, PackageManifest};
 
 #[cfg(test)]
 mod tests;
@@ -212,7 +211,7 @@ impl Serializable for PackageExport {
 impl Deserializable for PackageExport {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let name = QualifiedProcedureName::read_from(source)?;
-        let digest = Digest::read_from(source)?;
+        let digest = Word::read_from(source)?;
         Ok(Self { name, digest })
     }
 }

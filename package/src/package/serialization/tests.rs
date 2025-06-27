@@ -1,10 +1,10 @@
 use std::format;
 
+use miden_core::utils::{Deserializable, Serializable};
 use proptest::{
     prelude::*,
     test_runner::{Config, TestRunner},
 };
-use vm_core::utils::{Deserializable, Serializable};
 
 use super::*;
 

@@ -1,97 +1,14 @@
-use alloc::{collections::BTreeSet, format, string::String, sync::Arc, vec::Vec};
-use core::fmt;
-
-use assembly::{Library, Report, ast::QualifiedProcedureName};
-use vm_core::{Program, mast::MastForest, utils::DisplayHex};
-
-use crate::{Dependency, Digest};
-
+mod manifest;
 mod serialization;
 
-// MAST ARTIFACT
-// ================================================================================================
+use alloc::{collections::BTreeSet, format, string::String, sync::Arc, vec::Vec};
 
-/// The artifact produced by lowering a program or library to a Merkelized Abstract Syntax Tree
-///
-/// This type is used in compilation pipelines to abstract over the type of output requested.
-#[derive(Debug, Clone, Eq, PartialEq, derive_more::From)]
-pub enum MastArtifact {
-    /// A MAST artifact which can be executed by the VM directly
-    Executable(Arc<Program>),
-    /// A MAST artifact which can be used as a dependency by a [Program]
-    Library(Arc<Library>),
-}
+use miden_assembly::{Library, Report, ast::QualifiedProcedureName};
+use miden_core::{Program, Word};
 
-impl MastArtifact {
-    /// Get the underlying [Program] for this artifact, or panic if this is a [Library]
-    pub fn unwrap_program(self) -> Arc<Program> {
-        match self {
-            Self::Executable(prog) => prog,
-            Self::Library(_) => panic!("attempted to unwrap 'mast' library as program"),
-        }
-    }
+pub use self::manifest::{PackageExport, PackageManifest};
 
-    /// Get the underlying [Library] for this artifact, or panic if this is a [Program]
-    pub fn unwrap_library(self) -> Arc<Library> {
-        match self {
-            Self::Executable(_) => panic!("attempted to unwrap 'mast' program as library"),
-            Self::Library(lib) => lib,
-        }
-    }
-
-    /// Get the content digest associated with this artifact
-    pub fn digest(&self) -> Digest {
-        match self {
-            Self::Executable(prog) => prog.hash(),
-            Self::Library(lib) => *lib.digest(),
-        }
-    }
-
-    /// Get the underlying [MastForest] for this artifact
-    pub fn mast_forest(&self) -> &MastForest {
-        match self {
-            Self::Executable(prog) => prog.mast_forest(),
-            Self::Library(lib) => lib.mast_forest(),
-        }
-    }
-}
-
-// PACKAGE MANIFEST
-// ================================================================================================
-
-/// The manifest of a package, containing the set of package dependencies (libraries or packages)
-/// and exported procedures and their signatures, if known.
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
-pub struct PackageManifest {
-    /// The set of exports in this package.
-    pub exports: BTreeSet<PackageExport>,
-    /// The libraries (packages) linked against by this package, which must be provided when
-    /// executing the program.
-    pub dependencies: Vec<Dependency>,
-}
-
-/// A procedure exported by a package, along with its digest and signature (will be added after
-/// MASM type attributes are implemented).
-#[derive(Clone, PartialEq, Eq, Ord, PartialOrd)]
-#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
-pub struct PackageExport {
-    /// The fully-qualified name of the procedure exported by this package
-    pub name: QualifiedProcedureName,
-    /// The digest of the procedure exported by this package
-    #[cfg_attr(test, proptest(value = "Digest::default()"))]
-    pub digest: Digest,
-}
-
-impl fmt::Debug for PackageExport {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let Self { name, digest } = self;
-        f.debug_struct("PackageExport")
-            .field("name", &format_args!("{name}"))
-            .field("digest", &format_args!("{}", DisplayHex::new(&digest.as_bytes())))
-            .finish()
-    }
-}
+use crate::MastArtifact;
 
 // PACKAGE
 // ================================================================================================
@@ -114,7 +31,7 @@ pub struct Package {
 
 impl Package {
     /// Returns the digest of the package's MAST artifact
-    pub fn digest(&self) -> Digest {
+    pub fn digest(&self) -> Word {
         self.mast.digest()
     }
 
@@ -205,9 +122,9 @@ impl Package {
 mod tests {
     use std::sync::{Arc, LazyLock};
 
-    use assembly::{Assembler, Library, parse_module, testing::TestContext};
+    use miden_assembly::{Assembler, Library, parse_module, testing::TestContext};
+    use miden_core::Program;
     use proptest::prelude::*;
-    use vm_core::Program;
 
     use super::MastArtifact;
 
