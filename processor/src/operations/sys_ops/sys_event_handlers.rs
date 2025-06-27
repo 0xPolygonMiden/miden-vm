@@ -496,46 +496,31 @@ pub fn push_ext2_intt_result(
     let input_start_ptr = process.get_stack_item(2).as_int();
 
     if input_size <= 1 {
-        return Err(ExecutionError::Ext2InttError(Ext2InttError::DomainSizeTooSmall(
-            input_size as u64,
-        )));
+        return Err(Ext2InttError::DomainSizeTooSmall(input_size as u64).into());
     }
     if !input_size.is_power_of_two() {
-        return Err(ExecutionError::Ext2InttError(Ext2InttError::DomainSizeNotPowerOf2(
-            input_size as u64,
-        )));
+        return Err(Ext2InttError::DomainSizeNotPowerOf2(input_size as u64).into());
     }
     if input_start_ptr >= u32::MAX as u64 {
-        return Err(ExecutionError::Ext2InttError(Ext2InttError::InputStartAddressTooBig(
-            input_start_ptr,
-        )));
+        return Err(Ext2InttError::InputStartAddressTooBig(input_start_ptr).into());
     }
     if input_start_ptr % WORD_SIZE as u64 != 0 {
-        return Err(ExecutionError::Ext2InttError(Ext2InttError::InputStartNotWordAligned(
-            input_start_ptr,
-        )));
+        return Err(Ext2InttError::InputStartNotWordAligned(input_start_ptr).into());
     }
     if input_size > u32::MAX as usize {
-        return Err(ExecutionError::Ext2InttError(Ext2InttError::InputSizeTooBig(
-            input_size as u64,
-        )));
+        return Err(Ext2InttError::InputSizeTooBig(input_size as u64).into());
     }
 
     let input_end_ptr = input_start_ptr + (input_size * 2) as u64;
     if input_end_ptr > u32::MAX as u64 {
-        return Err(ExecutionError::Ext2InttError(Ext2InttError::InputEndAddressTooBig(
-            input_end_ptr,
-        )));
+        return Err(Ext2InttError::InputEndAddressTooBig(input_end_ptr).into());
     }
 
     if output_size == 0 {
-        return Err(ExecutionError::Ext2InttError(Ext2InttError::OutputSizeIsZero));
+        return Err(Ext2InttError::OutputSizeIsZero.into());
     }
     if output_size > input_size {
-        return Err(ExecutionError::Ext2InttError(Ext2InttError::OutputSizeTooBig(
-            output_size,
-            input_size,
-        )));
+        return Err(Ext2InttError::OutputSizeTooBig(output_size, input_size).into());
     }
 
     let mut poly = Vec::with_capacity(input_size);
@@ -543,9 +528,7 @@ pub fn push_ext2_intt_result(
         let word = process
             .get_mem_word(process.ctx(), addr)
             .map_err(ExecutionError::MemoryError)?
-            .ok_or(ExecutionError::Ext2InttError(Ext2InttError::UninitializedMemoryAddress(
-                addr,
-            )))?;
+            .ok_or(Ext2InttError::UninitializedMemoryAddress(addr))?;
 
         poly.push(QuadFelt::new(word[0], word[1]));
         poly.push(QuadFelt::new(word[2], word[3]));
