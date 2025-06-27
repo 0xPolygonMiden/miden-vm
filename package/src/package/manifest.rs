@@ -1,7 +1,7 @@
 use alloc::{collections::BTreeSet, vec::Vec};
 use core::fmt;
 
-use miden_assembly::ast::QualifiedProcedureName;
+use miden_assembly_syntax::ast::QualifiedProcedureName;
 use miden_core::{Word, utils::DisplayHex};
 
 use crate::Dependency;

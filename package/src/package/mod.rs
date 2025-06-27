@@ -3,11 +3,10 @@ mod serialization;
 
 use alloc::{collections::BTreeSet, format, string::String, sync::Arc, vec::Vec};
 
-use miden_assembly::{Library, Report, ast::QualifiedProcedureName};
+use miden_assembly_syntax::{Library, Report, ast::QualifiedProcedureName};
 use miden_core::{Program, Word};
 
 pub use self::manifest::{PackageExport, PackageManifest};
-
 use crate::MastArtifact;
 
 // PACKAGE
@@ -122,7 +121,8 @@ impl Package {
 mod tests {
     use std::sync::{Arc, LazyLock};
 
-    use miden_assembly::{Assembler, Library, parse_module, testing::TestContext};
+    use miden_assembly::{Assembler, testing::TestContext};
+    use miden_assembly_syntax::{Library, parse_module};
     use miden_core::Program;
     use proptest::prelude::*;
 

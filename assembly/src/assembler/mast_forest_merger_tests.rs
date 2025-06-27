@@ -1,7 +1,10 @@
-use miette::{IntoDiagnostic, Report};
-use vm_core::mast::{MastForest, MastForestRootMap};
+use miden_core::mast::{MastForest, MastForestRootMap};
 
-use crate::{Assembler, testing::TestContext};
+use crate::{
+    Assembler,
+    diagnostics::{IntoDiagnostic, Report},
+    testing::TestContext,
+};
 
 #[allow(clippy::type_complexity)]
 fn merge_programs(

@@ -1,4 +1,4 @@
-use assembly::regex;
+use assembly::testing::regex;
 use processor::{ExecutionError, RowIndex};
 use test_utils::{
     Felt, FieldElement, ONE, StarkField, WORD_SIZE, ZERO, assert_assembler_diagnostic,

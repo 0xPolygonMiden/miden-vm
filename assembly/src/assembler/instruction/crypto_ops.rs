@@ -1,4 +1,4 @@
-use vm_core::{Felt, Operation::*, ZERO, sys_events::SystemEvent};
+use miden_core::{Felt, Operation::*, ZERO, sys_events::SystemEvent};
 
 use super::BasicBlockBuilder;
 use crate::Report;

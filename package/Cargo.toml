@@ -19,9 +19,10 @@ doctest = false
 
 [dependencies]
 derive_more = { version = "2.0.1", features = ["from"] }
-miden-assembly = { path = "../assembly", version = "0.15", default-features = false }
+miden-assembly-syntax = { path = "../syntax", version = "0.15", default-features = false }
 miden-core = { path = "../core", version = "0.15", default-features = false }
 
 [dev-dependencies]
+miden-assembly = { path = "../assembly", version = "0.15", default-features = false }
 proptest = "1.6"
 proptest-derive = "0.5"

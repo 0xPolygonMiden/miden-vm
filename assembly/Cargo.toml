@@ -19,55 +19,23 @@ doctest = false
 
 [features]
 default = ["std"]
-std = [
-    "aho-corasick/std",
-    "miette/fancy",
-    "miette/std",
-    "vm-core/std",
-    "thiserror/std",
-]
-testing = ["dep:regex", "dep:proptest", "dep:proptest-derive", "logging"]
+std = ["miden-assembly-syntax/std", "miden-core/std", "thiserror/std"]
+testing = ["logging", "miden-assembly-syntax/testing"]
 logging = ["dep:env_logger"]
 
 [dependencies]
-aho-corasick = { version = "1.1", default-features = false }
 env_logger = { version = "0.11", optional = true }
-lalrpop-util = { version = "0.22", default-features = false }
 log = "0.4"
-miette = { package = "miden-miette", version = "8.0", default-features = false, features = [
-    "fancy-no-syscall",
-    "derive",
+miden-core = { path = "../core", version = "0.15", default-features = false, features = [
+    "diagnostics",
 ] }
-proptest = { version = "1.6", optional = true, default-features = false, features = [
-    "no_std",
-    "alloc",
-] }
-proptest-derive = { version = "0.5", optional = true, default-features = false }
-regex = { version = "1.10", optional = true, default-features = false, features = [
-    "unicode",
-    "perf",
-] }
+miden-assembly-syntax = { path = "../syntax", version = "0.15", default-features = false }
 smallvec = { version = "1.13", features = [
     "union",
     "const_generics",
     "const_new",
 ] }
-thiserror = { workspace = true }
-tracing = { version = "0.1", default-features = false, features = [
-    "attributes",
-] }
-unicode-width = { version = "0.2", features = ["no_std"] }
-vm-core = { package = "miden-core", path = "../core", version = "0.15", default-features = false, features = [
-    "diagnostics",
-] }
+thiserror.workspace = true
 
 [dev-dependencies]
 pretty_assertions = "1.4"
-regex = { version = "1.10", default-features = false, features = [
-    "unicode",
-    "perf",
-] }
-
-[build-dependencies]
-lalrpop = { version = "0.22", default-features = false }
-rustc_version = "0.4"

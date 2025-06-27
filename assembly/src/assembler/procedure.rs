@@ -1,10 +1,10 @@
 use alloc::sync::Arc;
 
-use vm_core::mast::MastNodeId;
+use miden_core::{Word, mast::MastNodeId};
 
 use super::GlobalProcedureIndex;
 use crate::{
-    LibraryPath, Word,
+    LibraryPath,
     ast::{ProcedureName, QualifiedProcedureName, Visibility},
     diagnostics::{SourceManager, SourceSpan, Spanned},
 };

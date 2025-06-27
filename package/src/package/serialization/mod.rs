@@ -36,7 +36,7 @@
 
 use alloc::{collections::BTreeSet, format, string::String, sync::Arc, vec::Vec};
 
-use miden_assembly::{Library, ast::QualifiedProcedureName};
+use miden_assembly_syntax::{Library, ast::QualifiedProcedureName};
 use miden_core::{
     Program, Word,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},

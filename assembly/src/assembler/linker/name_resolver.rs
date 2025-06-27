@@ -1,9 +1,7 @@
 use alloc::{borrow::Cow, collections::BTreeSet, vec::Vec};
 
-use super::{Linker, ModuleLink, PreLinkModule};
-use crate::{
+use miden_assembly_syntax::{
     SourceSpan, Span, Spanned, Word,
-    assembler::{GlobalProcedureIndex, LinkerError, ModuleIndex},
     ast::{
         Ident, InvocationTarget, InvokeKind, ProcedureName, QualifiedProcedureName,
         ResolvedProcedure,
@@ -11,6 +9,9 @@ use crate::{
     diagnostics::RelatedLabel,
     library::{LibraryNamespace, LibraryPath},
 };
+
+use super::{Linker, ModuleLink, PreLinkModule};
+use crate::assembler::{GlobalProcedureIndex, LinkerError, ModuleIndex};
 
 // HELPER STRUCTS
 // ================================================================================================

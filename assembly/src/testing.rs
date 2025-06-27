@@ -1,191 +1,24 @@
-use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
-use core::fmt;
+use alloc::{boxed::Box, sync::Arc, vec::Vec};
 
-use vm_core::Program;
+use miden_assembly_syntax::{
+    Library, LibraryPath, Parse, ParseOptions, Word,
+    ast::{Form, Module, ModuleKind},
+};
+pub use miden_assembly_syntax::{
+    assert_diagnostic, assert_diagnostic_lines, parse_module, parser, regex, source_file,
+    testing::Pattern,
+};
+use miden_core::Program;
 
 #[cfg(feature = "std")]
 use crate::diagnostics::reporting::set_panic_hook;
 use crate::{
-    LibraryPath, Parse, ParseOptions, Word,
     assembler::Assembler,
-    ast::{Form, Module, ModuleKind},
     diagnostics::{
-        Report, SourceFile, SourceManager,
+        DefaultSourceManager, Report, SourceFile, SourceManager,
         reporting::{ReportHandlerOpts, set_hook},
     },
-    library::Library,
 };
-
-/// Represents a pattern for matching text abstractly
-/// for use in asserting contents of complex diagnostics
-#[derive(Debug)]
-pub enum Pattern {
-    /// Searches for an exact match of the given literal in the input string
-    Literal(alloc::borrow::Cow<'static, str>),
-    /// Searches for a match of the given regular expression in the input string
-    Regex(regex::Regex),
-}
-impl Pattern {
-    /// Construct a [Pattern] representing the given regular expression
-    #[track_caller]
-    pub fn regex(pattern: impl AsRef<str>) -> Self {
-        Self::Regex(regex::Regex::new(pattern.as_ref()).expect("invalid regex"))
-    }
-
-    /// Check if this pattern matches `input`
-    pub fn is_match(&self, input: impl AsRef<str>) -> bool {
-        match self {
-            Self::Literal(pattern) => input.as_ref().contains(pattern.as_ref()),
-            Self::Regex(regex) => regex.is_match(input.as_ref()),
-        }
-    }
-
-    /// Assert that this pattern matches `input`.
-    ///
-    /// This behaves like `assert_eq!` or `assert_matches!`, i.e. it
-    /// will produce a helpful panic message on failure that renders
-    /// the difference between what the pattern expected, and what
-    /// it actually was matched against.
-    #[track_caller]
-    pub fn assert_match(&self, input: impl AsRef<str>) {
-        let input = input.as_ref();
-        if !self.is_match(input) {
-            panic!(
-                r"expected string was not found in emitted diagnostics:
-expected input to {expected}
-matched against: `{actual}`
-",
-                expected = self,
-                actual = input
-            );
-        }
-    }
-
-    /// Like [Pattern::assert_match], but renders additional context
-    /// in the case of failure to aid in troubleshooting.
-    #[track_caller]
-    pub fn assert_match_with_context(&self, input: impl AsRef<str>, context: impl AsRef<str>) {
-        let input = input.as_ref();
-        let context = context.as_ref();
-        if !self.is_match(input) {
-            panic!(
-                r"expected string was not found in emitted diagnostics:
-expected input to {expected}
-matched against: `{actual}`
-full output: `{context}`
-",
-                expected = self,
-                actual = input
-            );
-        }
-    }
-}
-
-impl fmt::Display for Pattern {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Literal(lit) => write!(f, "contain `{lit}`"),
-            Self::Regex(pat) => write!(f, "match regular expression `{}`", pat.as_str()),
-        }
-    }
-}
-
-impl From<&'static str> for Pattern {
-    fn from(s: &'static str) -> Self {
-        Self::Literal(alloc::borrow::Cow::Borrowed(s.trim()))
-    }
-}
-
-impl From<String> for Pattern {
-    fn from(s: String) -> Self {
-        Self::Literal(alloc::borrow::Cow::Owned(s))
-    }
-}
-
-impl From<regex::Regex> for Pattern {
-    fn from(pat: regex::Regex) -> Self {
-        Self::Regex(pat)
-    }
-}
-
-/// Create a [Pattern::Regex] from the given input
-#[macro_export]
-macro_rules! regex {
-    ($source:literal) => {
-        $crate::testing::Pattern::regex($source)
-    };
-
-    ($source:expr) => {
-        $crate::testing::Pattern::regex($source)
-    };
-}
-
-/// Construct an [`Arc<SourceFile>`] from a string literal or expression,
-/// such that emitted diagnostics reference the file and line on which
-/// the source file was constructed.
-#[macro_export]
-macro_rules! source_file {
-    ($context:expr, $source:literal) => {
-        $context.source_manager().load(concat!("test", line!()), $source.to_string())
-    };
-    ($context:expr, $source:expr) => {
-        $context.source_manager().load(concat!("test", line!()), $source.to_string())
-    };
-}
-
-/// Assert that the given diagnostic/error value, when rendered to stdout,
-/// contains the given pattern
-#[macro_export]
-macro_rules! assert_diagnostic {
-    ($diagnostic:expr, $expected:literal) => {{
-        let actual = format!("{}", PrintDiagnostic::new_without_color($diagnostic));
-        Pattern::from($expected).assert_match(actual);
-    }};
-
-    ($diagnostic:expr, $expected:expr) => {{
-        let actual = format!("{}", PrintDiagnostic::new_without_color($diagnostic));
-        Pattern::from($expected).assert_match(actual);
-    }};
-}
-
-/// Like [assert_diagnostic], but matches each non-empty line of the rendered output to a
-/// corresponding pattern.
-///
-/// So if the output has 3 lines, the second of which is empty, and you provide 2 patterns, the
-/// assertion passes if the first line matches the first pattern, and the third line matches the
-/// second pattern - the second line is ignored because it is empty.
-#[macro_export]
-macro_rules! assert_diagnostic_lines {
-    ($diagnostic:expr, $($expected_lines:expr),+) => {{
-        let full_output = format!("{}", $crate::diagnostics::reporting::PrintDiagnostic::new_without_color($diagnostic));
-        let lines: Vec<_> = full_output.lines().filter(|l| !l.trim().is_empty()).collect();
-        let patterns = [$($crate::testing::Pattern::from($expected_lines)),*];
-        if lines.len() != patterns.len() {
-            panic!(
-                "expected {} lines, but got {}:\n{}",
-                patterns.len(),
-                lines.len(),
-                full_output
-            );
-        }
-        let lines_and_patterns = lines.into_iter().zip(patterns.into_iter());
-        for (actual_line, expected_pattern) in lines_and_patterns {
-            expected_pattern.assert_match_with_context(actual_line, &full_output);
-        }
-    }};
-}
-
-#[macro_export]
-macro_rules! parse_module {
-    ($context:expr, $path:literal, $source:expr) => {{
-        let path = $crate::LibraryPath::new($path).expect("invalid library path");
-        let source_file = $context
-            .source_manager()
-            .load(concat!("test", line!()), alloc::string::String::from($source));
-        $crate::ast::Module::parse(path, $crate::ast::ModuleKind::Library, source_file)
-            .expect("failed to parse module")
-    }};
-}
 
 /// A [TestContext] provides common functionality for all tests which interact with an [Assembler].
 ///
@@ -226,7 +59,7 @@ impl TestContext {
         {
             let _ = set_hook(Box::new(|_| Box::new(ReportHandlerOpts::new().build())));
         }
-        let source_manager = Arc::new(crate::DefaultSourceManager::default());
+        let source_manager = Arc::new(DefaultSourceManager::default());
         // Note: we do not set debug mode by default because we do not want AsmOp decorators to be
         // inserted in our programs
         let assembler = Assembler::new(source_manager.clone()).with_warnings_as_errors(true);
@@ -249,8 +82,7 @@ impl TestContext {
     /// forms, and is largely intended for low-level testing of the parser.
     #[track_caller]
     pub fn parse_forms(&self, source: Arc<SourceFile>) -> Result<Vec<Form>, Report> {
-        crate::parser::parse_forms(source.clone())
-            .map_err(|err| Report::new(err).with_source_code(source))
+        parser::parse_forms(source.clone()).map_err(|err| Report::new(err).with_source_code(source))
     }
 
     /// Parse the given source file into an executable [Module].

@@ -1,7 +1,7 @@
 use std::{env, path::Path};
 
 use assembly::{
-    Assembler, Library, LibraryNamespace,
+    Assembler, Library, LibraryExt, LibraryNamespace,
     diagnostics::{IntoDiagnostic, Result},
 };
 

@@ -1,12 +1,12 @@
 use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
 
-use vm_core::{FieldElement, utils::to_hex};
-
-use crate::{
+use miden_assembly_syntax::{
     Felt, LibraryPath, SourceSpan,
     ast::QualifiedProcedureName,
-    diagnostics::{Diagnostic, RelatedLabel, SourceFile},
+    diagnostics::{Diagnostic, RelatedLabel, SourceFile, miette},
 };
+use miden_core::{FieldElement, utils::to_hex};
+
 // LINKER ERROR
 // ================================================================================================
 

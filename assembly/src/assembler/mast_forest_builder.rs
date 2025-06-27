@@ -5,7 +5,7 @@ use alloc::{
 };
 use core::ops::{Index, IndexMut};
 
-use vm_core::{
+use miden_core::{
     AdviceMap, Decorator, DecoratorList, Felt, Operation, Word,
     mast::{
         DecoratorFingerprint, DecoratorId, MastForest, MastNode, MastNodeFingerprint, MastNodeId,

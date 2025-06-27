@@ -3,18 +3,16 @@ use alloc::{collections::BTreeMap, string::ToString, sync::Arc, vec::Vec};
 use basic_block_builder::BasicBlockOrDecorators;
 use linker::{ModuleLink, ProcedureLink};
 use mast_forest_builder::MastForestBuilder;
-use vm_core::{
+use miden_assembly_syntax::{
+    self as syntax, DefaultSourceManager, KernelLibrary, Library, LibraryNamespace, LibraryPath,
+    Parse, ParseOptions, SemanticAnalysisError, SourceManager, Spanned,
+    ast::{self, Export, InvocationTarget, InvokeKind, ModuleKind, QualifiedProcedureName},
+    diagnostics::{RelatedLabel, Report},
+};
+use miden_core::{
     AssemblyOp, Decorator, DecoratorList, Felt, Kernel, Operation, Program, WORD_SIZE, Word,
     debuginfo::SourceSpan,
     mast::{DecoratorId, MastNodeId},
-};
-
-use crate::{
-    LibraryNamespace, LibraryPath, Parse, ParseOptions, SourceManager, Spanned,
-    ast::{self, Export, InvocationTarget, InvokeKind, ModuleKind, QualifiedProcedureName},
-    diagnostics::{RelatedLabel, Report},
-    library::{KernelLibrary, Library},
-    sema::SemanticAnalysisError,
 };
 
 mod basic_block_builder;
@@ -102,7 +100,7 @@ pub struct Assembler {
 
 impl Default for Assembler {
     fn default() -> Self {
-        let source_manager = Arc::new(crate::DefaultSourceManager::default());
+        let source_manager = Arc::new(DefaultSourceManager::default());
         let linker = Linker::new(source_manager.clone());
         Self {
             source_manager,
@@ -222,7 +220,7 @@ impl Assembler {
         namespace: crate::LibraryNamespace,
         dir: &std::path::Path,
     ) -> Result<(), Report> {
-        let modules = crate::parser::read_modules_from_dir(namespace, dir, &self.source_manager)?;
+        let modules = syntax::parser::read_modules_from_dir(namespace, dir, &self.source_manager)?;
         self.linker.link_modules(modules)?;
         Ok(())
     }
@@ -262,7 +260,7 @@ impl Assembler {
     /// at runtime when executing the assembled artifact.
     ///
     /// Internally, calls to procedures exported from `library` will be lowered to a
-    /// [`vm_core::mast::ExternalNode`] in the resulting MAST. These nodes represent an indirect
+    /// [`miden_core::mast::ExternalNode`] in the resulting MAST. These nodes represent an indirect
     /// reference to the root MAST node of the referenced procedure. These indirect references
     /// are resolved at runtime by the processor when executed.
     ///
@@ -416,7 +414,7 @@ impl Assembler {
                 // in `module_indices` are in AST form by definition.
                 let ast_module = self.linker[module_idx].unwrap_ast().clone();
 
-                mast_forest_builder.merge_advice_map(&ast_module.advice_map)?;
+                mast_forest_builder.merge_advice_map(ast_module.advice_map())?;
 
                 for (proc_idx, fqn) in ast_module.exported_procedures() {
                     let gid = module_idx + proc_idx;
@@ -481,7 +479,8 @@ impl Assembler {
         });
         let mut mast_forest_builder = MastForestBuilder::new(staticlibs)?;
 
-        mast_forest_builder.merge_advice_map(&self.linker[module_index].unwrap_ast().advice_map)?;
+        mast_forest_builder
+            .merge_advice_map(self.linker[module_index].unwrap_ast().advice_map())?;
 
         self.compile_subgraph(entrypoint, &mut mast_forest_builder)?;
         let entry_node_id = mast_forest_builder

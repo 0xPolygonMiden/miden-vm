@@ -1,6 +1,6 @@
 use std::{path::Path, time::Duration};
 
-use assembly::{Assembler, Library, LibraryNamespace};
+use assembly::{Assembler, Library, LibraryExt, LibraryNamespace};
 use criterion::{Criterion, criterion_group, criterion_main};
 
 fn stdlib_compilation(c: &mut Criterion) {

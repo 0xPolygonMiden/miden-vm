@@ -1,6 +1,6 @@
 use alloc::{collections::BTreeMap, sync::Arc};
 
-use miden_assembly::Library;
+use miden_assembly_syntax::Library;
 
 use crate::{Dependency, Package, Word};
 

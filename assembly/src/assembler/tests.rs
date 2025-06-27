@@ -1,10 +1,10 @@
 use alloc::vec::Vec;
 
-use pretty_assertions::assert_eq;
-use vm_core::{
+use miden_core::{
     Program, Word, assert_matches,
     mast::{MastForest, MastNode},
 };
+use pretty_assertions::assert_eq;
 
 use super::{Assembler, Operation};
 use crate::{

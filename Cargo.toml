@@ -8,6 +8,7 @@ members = [
     "processor",
     "prover",
     "stdlib",
+    "syntax",
     "test-utils",
     "verifier",
 ]

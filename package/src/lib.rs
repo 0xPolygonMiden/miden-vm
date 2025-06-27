@@ -12,7 +12,7 @@ mod package;
 #[cfg(test)]
 extern crate std;
 
-pub use miden_assembly::{
+pub use miden_assembly_syntax::{
     Library, LibraryPath,
     ast::{ProcedureName, QualifiedProcedureName},
 };

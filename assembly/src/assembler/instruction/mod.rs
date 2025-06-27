@@ -1,15 +1,16 @@
-use vm_core::{Decorator, ONE, WORD_SIZE, ZERO, debuginfo::Spanned, mast::MastNodeId};
-
-use super::{Assembler, BasicBlockBuilder, Felt, Operation, ProcedureContext, ast::InvokeKind};
-use crate::{
+use miden_assembly_syntax::{
     Span,
     ast::Instruction,
     diagnostics::{RelatedLabel, Report},
     parser::IntValue,
 };
+use miden_core::{Decorator, ONE, WORD_SIZE, ZERO, debuginfo::Spanned, mast::MastNodeId};
+
+use super::{Assembler, BasicBlockBuilder, Felt, Operation, ProcedureContext, ast::InvokeKind};
 
 mod adv_ops;
 mod crypto_ops;
+mod debug;
 mod env_ops;
 mod ext2_ops;
 mod field_ops;
@@ -539,7 +540,9 @@ impl Assembler {
 
             Instruction::Debug(options) => {
                 if self.in_debug_mode() {
-                    block_builder.push_decorator(Decorator::Debug(options.compile(proc_ctx)?))?;
+                    block_builder.push_decorator(Decorator::Debug(debug::compile_options(
+                        options, proc_ctx,
+                    )?))?;
                 }
             },
 

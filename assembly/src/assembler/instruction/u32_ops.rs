@@ -1,4 +1,8 @@
-use vm_core::{
+use miden_assembly_syntax::{
+    ParsingError, Span,
+    diagnostics::{RelatedLabel, Report, SourceSpan},
+};
+use miden_core::{
     Felt,
     Operation::{self, *},
     ZERO,
@@ -6,11 +10,7 @@ use vm_core::{
 };
 
 use super::{BasicBlockBuilder, field_ops::append_pow2_op, push_u32_value};
-use crate::{
-    MAX_U32_ROTATE_VALUE, MAX_U32_SHIFT_VALUE, Span,
-    assembler::ProcedureContext,
-    diagnostics::{RelatedLabel, Report, SourceSpan},
-};
+use crate::{MAX_U32_ROTATE_VALUE, MAX_U32_SHIFT_VALUE, assembler::ProcedureContext};
 
 /// This enum is intended to determine the mode of operation passed to the parsing function
 #[derive(PartialEq, Eq)]
@@ -403,7 +403,7 @@ fn handle_division(
         if imm == 0 {
             let imm_span = imm.span();
             let source_file = proc_ctx.source_manager().get(imm_span.source_id()).ok();
-            let error = Report::new(crate::parser::ParsingError::DivisionByZero { span: imm_span });
+            let error = Report::new(ParsingError::DivisionByZero { span: imm_span });
             return if let Some(source_file) = source_file {
                 Err(error.with_source_code(source_file))
             } else {

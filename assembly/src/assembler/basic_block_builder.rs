@@ -1,13 +1,13 @@
 use alloc::{borrow::Borrow, string::ToString, sync::Arc, vec::Vec};
 
-use vm_core::{
+use miden_assembly_syntax::{Span, ast::Instruction, diagnostics::Report};
+use miden_core::{
     AssemblyOp, Decorator, Felt, Operation,
     mast::{DecoratorId, MastNodeId},
     sys_events::SystemEvent,
 };
 
 use super::{BodyWrapper, DecoratorList, ProcedureContext, mast_forest_builder::MastForestBuilder};
-use crate::{Span, ast::Instruction, diagnostics::Report};
 
 // BASIC BLOCK BUILDER
 // ================================================================================================

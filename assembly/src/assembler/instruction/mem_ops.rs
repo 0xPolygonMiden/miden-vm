@@ -1,4 +1,4 @@
-use vm_core::{Felt, Operation::*, debuginfo::SourceSpan};
+use miden_core::{Felt, Operation::*, debuginfo::SourceSpan};
 
 use super::{BasicBlockBuilder, push_felt, push_u32_value};
 use crate::{

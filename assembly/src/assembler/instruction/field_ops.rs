@@ -1,11 +1,11 @@
-use vm_core::{FieldElement, Operation::*, sys_events::SystemEvent};
-
-use super::BasicBlockBuilder;
-use crate::{
-    Felt, MAX_EXP_BITS, ONE, Span, ZERO,
-    assembler::ProcedureContext,
+use miden_assembly_syntax::{
+    Felt, ParsingError, Span,
     diagnostics::{RelatedError, RelatedLabel, Report, SourceSpan},
 };
+use miden_core::{FieldElement, Operation::*, sys_events::SystemEvent};
+
+use super::BasicBlockBuilder;
+use crate::{MAX_EXP_BITS, ONE, ZERO, assembler::ProcedureContext};
 
 /// Field element representing TWO in the base field of the VM.
 const TWO: Felt = Felt::new(2);
@@ -96,7 +96,7 @@ pub fn div_imm(
     if imm == ZERO {
         let source_span = imm.span();
         let source_file = proc_ctx.source_manager().get(source_span.source_id()).ok();
-        let error = Report::new(crate::parser::ParsingError::DivisionByZero { span: source_span });
+        let error = Report::new(ParsingError::DivisionByZero { span: source_span });
         return Err(if let Some(source_file) = source_file {
             RelatedError::new(error.with_source_code(source_file)).into()
         } else {

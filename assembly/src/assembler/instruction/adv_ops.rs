@@ -1,4 +1,4 @@
-use vm_core::Operation;
+use miden_core::Operation;
 
 use super::BasicBlockBuilder;
 use crate::{

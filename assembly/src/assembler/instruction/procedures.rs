@@ -1,13 +1,13 @@
-use smallvec::SmallVec;
-use vm_core::mast::MastNodeId;
-
-use super::{Assembler, BasicBlockBuilder, Operation};
-use crate::{
+use miden_assembly_syntax::{
     Word,
-    assembler::{ProcedureContext, mast_forest_builder::MastForestBuilder},
     ast::{InvocationTarget, InvokeKind},
     diagnostics::Report,
 };
+use miden_core::mast::MastNodeId;
+use smallvec::SmallVec;
+
+use super::{Assembler, BasicBlockBuilder, Operation};
+use crate::assembler::{ProcedureContext, mast_forest_builder::MastForestBuilder};
 
 /// Procedure Invocation
 impl Assembler {

@@ -1077,6 +1077,19 @@ dependencies = [
 name = "miden-assembly"
 version = "0.15.0"
 dependencies = [
+ "env_logger",
+ "log",
+ "miden-assembly-syntax",
+ "miden-core",
+ "pretty_assertions",
+ "smallvec",
+ "thiserror 2.0.12",
+]
+
+[[package]]
+name = "miden-assembly-syntax"
+version = "0.15.0"
+dependencies = [
  "aho-corasick",
  "env_logger",
  "lalrpop",
@@ -1092,7 +1105,6 @@ dependencies = [
  "smallvec",
  "thiserror 2.0.12",
  "tracing",
- "unicode-width 0.2.1",
 ]
 
 [[package]]
@@ -1161,6 +1173,7 @@ version = "0.15.0"
 dependencies = [
  "derive_more",
  "miden-assembly",
+ "miden-assembly-syntax",
  "miden-core",
  "proptest",
  "proptest-derive",

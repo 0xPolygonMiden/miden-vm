@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
 
-use miden_assembly::Library;
+use miden_assembly_syntax::Library;
 use miden_core::{Program, Word, mast::MastForest};
 
 // MAST ARTIFACT
