@@ -300,23 +300,9 @@ impl Process {
             return Err(ExecutionError::ProgramAlreadyExecuted);
         }
 
-        // Load the program's advice data into the advice provider
-        for (digest, values) in program.mast_forest().advice_map().iter() {
-            if let Ok(stored_values) = host.advice_provider().get_mapped_values(digest) {
-                if stored_values != values {
-                    return Err(ExecutionError::advice_error(
-                        AdviceError::MapKeyAlreadyPresent {
-                            key: *digest,
-                            prev_values: stored_values.to_vec(),
-                            new_values: values.clone(),
-                        },
-                        RowIndex::from(0),
-                        &(),
-                    ));
-                }
-            }
-            host.advice_provider_mut().insert_into_map(*digest, values.clone())
-        }
+        host.advice_provider_mut()
+            .merge_advice_map(program.mast_forest().advice_map())
+            .map_err(|err| ExecutionError::advice_error(err, RowIndex::from(0), &()))?;
 
         self.execute_mast_node(program.entrypoint(), &program.mast_forest().clone(), host)?;
 

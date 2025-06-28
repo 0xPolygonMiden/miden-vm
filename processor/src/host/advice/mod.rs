@@ -1,7 +1,7 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use vm_core::{
-    Felt, Word,
+    AdviceMap, Felt, Word,
     crypto::merkle::{MerklePath, MerkleStore, NodeIndex, StoreNode},
 };
 
@@ -18,7 +18,6 @@ pub use errors::AdviceError;
 // ================================================================================================
 
 type SimpleMerkleMap = BTreeMap<Word, StoreNode>;
-type SimpleAdviceMap = BTreeMap<Word, Vec<Felt>>;
 
 // ADVICE PROVIDER
 // ================================================================================================
@@ -41,7 +40,7 @@ type SimpleAdviceMap = BTreeMap<Word, Vec<Felt>>;
 #[derive(Debug, Clone, Default)]
 pub struct AdviceProvider {
     pub stack: Vec<Felt>,
-    pub map: SimpleAdviceMap,
+    pub map: AdviceMap,
     pub store: MerkleStore<SimpleMerkleMap>,
 }
 
@@ -134,10 +133,7 @@ impl AdviceProvider {
 
     /// Returns a reference to the value(s) associated with the specified key in the advice map.
     pub fn get_mapped_values(&self, key: &Word) -> Result<&[Felt], AdviceError> {
-        self.map
-            .get(key)
-            .map(|v| v.as_slice())
-            .ok_or(AdviceError::MapKeyNotFound { key: *key })
+        self.map.get(key).ok_or(AdviceError::MapKeyNotFound { key: *key })
     }
 
     /// Inserts the provided value into the advice map under the specified key.
@@ -148,6 +144,18 @@ impl AdviceProvider {
     /// Returns an error if the specified key is already present in the advice map.
     pub fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) {
         self.map.insert(key, values);
+    }
+
+    /// Merges all entries from the given [`AdviceMap`] into the current advice map.
+    ///
+    /// Returns an error if any new entry already exists with the same key but a different value
+    /// than the one currently stored. The current map remains unchanged.
+    pub fn merge_advice_map(&mut self, other: &AdviceMap) -> Result<(), AdviceError> {
+        self.map
+            .merge_advice_map(other)
+            .map_or(Ok(()), |((key, prev_values), new_values)| {
+                Err(AdviceError::MapKeyAlreadyPresent { key, prev_values, new_values })
+            })
     }
 
     // MERKLE STORE

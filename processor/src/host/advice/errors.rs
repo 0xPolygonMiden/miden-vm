@@ -1,10 +1,8 @@
 use alloc::vec::Vec;
 
-use miette::Diagnostic;
-
 use crate::{Felt, Word, crypto::MerkleError};
 
-#[derive(Debug, thiserror::Error, Diagnostic)]
+#[derive(Debug, thiserror::Error, miette::Diagnostic)]
 pub enum AdviceError {
     #[error("value for key {} already present in the advice map", key.to_hex())]
     #[diagnostic(help(

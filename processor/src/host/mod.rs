@@ -2,7 +2,7 @@ use alloc::sync::Arc;
 
 use vm_core::{DebugOptions, Felt, Word, mast::MastForest};
 
-use crate::{AdviceError, ExecutionError, KvMap, ProcessState, RowIndex, errors::ErrorContext};
+use crate::{ExecutionError, ProcessState, RowIndex, errors::ErrorContext};
 
 pub(super) mod advice;
 use advice::AdviceProvider;
@@ -148,23 +148,9 @@ impl DefaultHost {
 
     pub fn load_mast_forest(&mut self, mast_forest: Arc<MastForest>) -> Result<(), ExecutionError> {
         // Load the MAST's advice data into the advice provider.
-
-        for (digest, values) in mast_forest.advice_map().iter() {
-            if let Ok(stored_values) = self.advice_provider().get_mapped_values(digest) {
-                if stored_values != values {
-                    return Err(ExecutionError::advice_error(
-                        AdviceError::MapKeyAlreadyPresent {
-                            key: *digest,
-                            prev_values: stored_values.to_vec(),
-                            new_values: values.clone(),
-                        },
-                        RowIndex::from(0),
-                        &(),
-                    ));
-                }
-            }
-            self.advice_provider_mut().insert_into_map(*digest, values.clone())
-        }
+        self.adv_provider
+            .merge_advice_map(mast_forest.advice_map())
+            .map_err(|err| ExecutionError::advice_error(err, RowIndex::from(0), &()))?;
 
         self.store.insert(mast_forest);
         Ok(())
