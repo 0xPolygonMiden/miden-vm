@@ -501,12 +501,12 @@ impl Process {
             return Err(ExecutionError::CallInSyscall("dyncall"));
         }
 
-        let error_ctx = err_ctx!(program, node, self.source_manager.clone());
+        let err_ctx = err_ctx!(program, node, self.source_manager.clone());
 
         let callee_hash = if node.is_dyncall() {
-            self.start_dyncall_node(node, &error_ctx)?
+            self.start_dyncall_node(node, &err_ctx)?
         } else {
-            self.start_dyn_node(node, program, host, &error_ctx)?
+            self.start_dyn_node(node, program, host, &err_ctx)?
         };
 
         // if the callee is not in the program's MAST forest, try to find a MAST forest for it in
@@ -515,9 +515,9 @@ impl Process {
         match program.find_procedure_root(callee_hash) {
             Some(callee_id) => self.execute_mast_node(callee_id, program, host)?,
             None => {
-                let mast_forest = host.get_mast_forest(&callee_hash).ok_or_else(|| {
-                    ExecutionError::dynamic_node_not_found(callee_hash, &error_ctx)
-                })?;
+                let mast_forest = host
+                    .get_mast_forest(&callee_hash)
+                    .ok_or_else(|| ExecutionError::dynamic_node_not_found(callee_hash, &err_ctx))?;
 
                 // We limit the parts of the program that can be called externally to procedure
                 // roots, even though MAST doesn't have that restriction.
@@ -530,7 +530,7 @@ impl Process {
         }
 
         if node.is_dyncall() {
-            self.end_dyncall_node(node, program, host, &error_ctx)
+            self.end_dyncall_node(node, program, host, &err_ctx)
         } else {
             self.end_dyn_node(node, program, host)
         }
@@ -629,10 +629,10 @@ impl Process {
             }
 
             // decode and execute the operation
-            let error_ctx =
+            let err_ctx =
                 err_ctx!(program, basic_block, self.source_manager.clone(), i + op_offset);
             self.decoder.execute_user_op(op, op_idx);
-            self.execute_op_with_error_ctx(op, program, host, &error_ctx)?;
+            self.execute_op_with_error_ctx(op, program, host, &err_ctx)?;
 
             // if the operation carries an immediate value, the value is stored at the next group
             // pointer; so, we advance the pointer to the following group

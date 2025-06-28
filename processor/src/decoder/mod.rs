@@ -320,7 +320,7 @@ impl Process {
         dyn_node: &DynNode,
         program: &MastForest,
         host: &mut H,
-        error_ctx: &impl ErrorContext,
+        err_ctx: &impl ErrorContext,
     ) -> Result<Word, ExecutionError> {
         debug_assert!(!dyn_node.is_dyncall());
 
@@ -330,7 +330,7 @@ impl Process {
         let callee_hash = self
             .chiplets
             .memory
-            .read_word(self.system.ctx(), mem_addr, self.system.clk(), error_ctx)
+            .read_word(self.system.ctx(), mem_addr, self.system.clk(), err_ctx)
             .map_err(ExecutionError::MemoryError)?;
 
         let (addr, hashed_block) = self.chiplets.hasher.hash_control_block(
@@ -358,7 +358,7 @@ impl Process {
     pub(super) fn start_dyncall_node(
         &mut self,
         dyn_node: &DynNode,
-        error_ctx: &impl ErrorContext,
+        err_ctx: &impl ErrorContext,
     ) -> Result<Word, ExecutionError> {
         debug_assert!(dyn_node.is_dyncall());
 
@@ -368,7 +368,7 @@ impl Process {
         let callee_hash = self
             .chiplets
             .memory
-            .read_word(self.system.ctx(), mem_addr, self.system.clk(), error_ctx)
+            .read_word(self.system.ctx(), mem_addr, self.system.clk(), err_ctx)
             .map_err(ExecutionError::MemoryError)?;
 
         // Note: other functions end in "executing a Noop", which

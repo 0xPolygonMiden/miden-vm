@@ -234,13 +234,13 @@ fn verify_eval_circuit(circuit: &EncodedCircuit, inputs: &[QuadFelt]) {
     let ptr = Felt::ZERO;
     let clk = RowIndex::from(0);
     let mut mem = Memory::default();
-    let error_ctx = ();
+    let err_ctx = ();
 
     let circuit_mem = generate_memory(circuit, inputs);
 
     let mut ptr_curr = ptr;
     for word in circuit_mem {
-        mem.write_word(ctx, ptr_curr, clk, word, &error_ctx).unwrap();
+        mem.write_word(ctx, ptr_curr, clk, word, &err_ctx).unwrap();
         ptr_curr += Felt::from(4u8);
     }
 
@@ -251,7 +251,7 @@ fn verify_eval_circuit(circuit: &EncodedCircuit, inputs: &[QuadFelt]) {
         Felt::from(circuit.num_vars() as u32),
         Felt::from(circuit.num_eval() as u32),
         &mut mem,
-        &error_ctx,
+        &err_ctx,
     )
     .unwrap();
 }

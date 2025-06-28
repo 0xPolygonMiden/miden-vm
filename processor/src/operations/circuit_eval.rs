@@ -21,7 +21,7 @@ impl Process {
     /// [ptr, num_read_rows, num_eval_rows, ...] -> [ptr, num_read_rows, num_eval_rows, ...]
     pub fn arithmetic_circuit_eval(
         &mut self,
-        error_ctx: &impl ErrorContext,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         let num_eval_rows = self.stack.get(2);
         let num_read_rows = self.stack.get(1);
@@ -35,7 +35,7 @@ impl Process {
             num_read_rows,
             num_eval_rows,
             &mut self.chiplets.memory,
-            error_ctx,
+            err_ctx,
         )?;
         self.chiplets.ace.add_circuit_evaluation(clk, circuit_evaluation);
 
