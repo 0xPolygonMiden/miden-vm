@@ -55,8 +55,8 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         clk: RowIndex,
     },
-    #[error("failed to execute the dynamic code block provided by the stack with root 0x{hex}; the block could not be found",
-      hex = to_hex(.digest.as_bytes())
+    #[error("failed to execute the dynamic code block provided by the stack with root {hex}; the block could not be found",
+      hex = .digest.to_hex()
     )]
     #[diagnostic()]
     DynamicNodeNotFound {
