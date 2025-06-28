@@ -17,7 +17,7 @@ pub enum AdviceError {
     },
     #[error("value for key {} not present in the advice map", .key.to_hex())]
     MapKeyNotFound { key: Word },
-    #[error("stack read failed")]
+    #[error("advice stack read failed")]
     StackReadFailed,
     #[error(
         "provided merkle tree {depth} is out of bounds and cannot be represented as an unsigned 8-bit integer"
