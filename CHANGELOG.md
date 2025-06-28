@@ -39,6 +39,7 @@
 - Modules can now be provided in any order to the `Assembler`, see #1669 (#1881)
 - Addressed bug which caused references to re-exported procedures whose definition internally referred to an aliased module import, to produce an "undefined module" error, see #1451 (#1892)
 - The special identifiers for kernel, executable, and anonymous namespaces were not valid MASM syntax (#1893)
+- `AdviceProvider`: replace `SimpleAdviceMap` with `AdviceMap` struct from `miden-core` & add `merge_advice_map` to `AdviceProvider` ([#1924](https://github.com/0xMiden/miden-vm/issues/1924) & [#1922](https://github.com/0xMiden/miden-vm/issues/1922))
 
 ## 0.15.0 (2025-06-06)
 

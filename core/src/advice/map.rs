@@ -19,6 +19,9 @@ use crate::utils::{ByteReader, ByteWriter, Deserializable, DeserializationError,
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct AdviceMap(BTreeMap<Word, Vec<Felt>>);
 
+/// Pair representing a key-value entry in an [`AdviceMap`]
+type MapEntry = (Word, Vec<Felt>);
+
 impl AdviceMap {
     /// Creates a new advice map.
     pub fn new() -> Self {
@@ -48,6 +51,28 @@ impl AdviceMap {
     /// Returns true if the advice map is empty.
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
+    }
+
+    /// Merges all entries from the given [`AdviceMap`] into the current advice map.
+    ///
+    /// If an entry from the new map already exists with the same key but different value,
+    /// the existing entry is returned along with the value that would replace it.
+    /// The current map remains unchanged.
+    pub fn merge_advice_map(&mut self, other: &AdviceMap) -> Option<(MapEntry, Vec<Felt>)> {
+        // Check if any values are already present and different from those we are merging.
+        for (key, value) in other.iter() {
+            if let Some(existing) = self.get(key) {
+                if existing != value {
+                    return Some(((*key, existing.to_vec()), value.to_vec()));
+                }
+            }
+        }
+
+        // Insert all other values, overwriting existing ones which we have checked are the same.
+        for (key, value) in other.iter() {
+            self.insert(*key, value.clone());
+        }
+        None
     }
 }
 
