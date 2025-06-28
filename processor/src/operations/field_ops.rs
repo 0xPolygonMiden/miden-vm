@@ -1,6 +1,6 @@
 use vm_core::{ONE, Operation, ZERO};
 
-use super::{ExecutionError, Felt, FieldElement, Process, utils::assert_binary_with_ctx};
+use super::{ExecutionError, Felt, FieldElement, Process, utils::assert_binary};
 use crate::ErrorContext;
 
 // FIELD OPERATIONS
@@ -72,8 +72,8 @@ impl Process {
     /// Returns an error if either of the two elements on the top of the stack is not a binary
     /// value.
     pub(super) fn op_and(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
-        let b = assert_binary_with_ctx(self.stack.get(0), err_ctx)?;
-        let a = assert_binary_with_ctx(self.stack.get(1), err_ctx)?;
+        let b = assert_binary(self.stack.get(0), err_ctx)?;
+        let a = assert_binary(self.stack.get(1), err_ctx)?;
         if a == ONE && b == ONE {
             self.stack.set(0, ONE);
         } else {
@@ -90,8 +90,8 @@ impl Process {
     /// Returns an error if either of the two elements on the top of the stack is not a binary
     /// value.
     pub(super) fn op_or(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
-        let b = assert_binary_with_ctx(self.stack.get(0), err_ctx)?;
-        let a = assert_binary_with_ctx(self.stack.get(1), err_ctx)?;
+        let b = assert_binary(self.stack.get(0), err_ctx)?;
+        let a = assert_binary(self.stack.get(1), err_ctx)?;
         if a == ONE || b == ONE {
             self.stack.set(0, ONE);
         } else {
@@ -107,7 +107,7 @@ impl Process {
     /// # Errors
     /// Returns an error if the value on the top of the stack is not a binary value.
     pub(super) fn op_not(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
-        let a = assert_binary_with_ctx(self.stack.get(0), err_ctx)?;
+        let a = assert_binary(self.stack.get(0), err_ctx)?;
         self.stack.set(0, ONE - a);
         self.stack.copy_state(1);
         Ok(())

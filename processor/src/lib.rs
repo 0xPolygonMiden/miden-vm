@@ -836,7 +836,9 @@ impl<'a> ProcessState<'a> {
     pub fn get_mem_word(&self, ctx: ContextId, addr: u32) -> Result<Option<Word>, MemoryError> {
         match self {
             ProcessState::Slow(state) => state.chiplets.memory.get_word(ctx, addr),
-            ProcessState::Fast(state) => state.processor.memory.read_word_impl(ctx, addr, None),
+            ProcessState::Fast(state) => {
+                state.processor.memory.read_word_impl(ctx, addr, None, &())
+            },
         }
     }
 
@@ -884,7 +886,7 @@ impl<'a> From<&'a mut Process> for ProcessState<'a> {
 
 /// For errors generated from processing an `ExternalNode`, returns the same error except with
 /// proper error context.
-fn add_error_ctx_to_external_error(
+pub(crate) fn add_error_ctx_to_external_error(
     result: Result<(), ExecutionError>,
     err_ctx: impl ErrorContext,
 ) -> Result<(), ExecutionError> {

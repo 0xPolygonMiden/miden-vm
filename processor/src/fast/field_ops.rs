@@ -1,7 +1,7 @@
 use vm_core::{Felt, FieldElement, ONE, ZERO};
 
 use super::{ExecutionError, FastProcessor};
-use crate::operations::utils::assert_binary;
+use crate::{ErrorContext, operations::utils::assert_binary};
 
 const TWO: Felt = Felt::new(2);
 
@@ -24,10 +24,15 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_inv`.
-    pub fn op_inv(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
+    #[inline(always)]
+    pub fn op_inv(
+        &mut self,
+        op_idx: usize,
+        err_ctx: &impl ErrorContext,
+    ) -> Result<(), ExecutionError> {
         let top = self.stack_get_mut(0);
         if (*top) == ZERO {
-            return Err(ExecutionError::divide_by_zero(self.clk + op_idx, &()));
+            return Err(ExecutionError::divide_by_zero(self.clk + op_idx, err_ctx));
         }
         *top = top.inv();
         Ok(())
@@ -40,34 +45,37 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_and`.
-    pub fn op_and(&mut self) -> Result<(), ExecutionError> {
+    #[inline(always)]
+    pub fn op_and(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         self.pop2_applyfn_push(|a, b| {
-            assert_binary(b)?;
-            assert_binary(a)?;
+            assert_binary(b, err_ctx)?;
+            assert_binary(a, err_ctx)?;
 
             if a == ONE && b == ONE { Ok(ONE) } else { Ok(ZERO) }
         })
     }
 
     /// Analogous to `Process::op_or`.
-    pub fn op_or(&mut self) -> Result<(), ExecutionError> {
+    #[inline(always)]
+    pub fn op_or(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         self.pop2_applyfn_push(|a, b| {
-            assert_binary(b)?;
-            assert_binary(a)?;
+            assert_binary(b, err_ctx)?;
+            assert_binary(a, err_ctx)?;
 
             if a == ONE || b == ONE { Ok(ONE) } else { Ok(ZERO) }
         })
     }
 
     /// Analogous to `Process::op_not`.
-    pub fn op_not(&mut self) -> Result<(), ExecutionError> {
+    #[inline(always)]
+    pub fn op_not(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         let top = self.stack_get_mut(0);
         if *top == ZERO {
             *top = ONE;
         } else if *top == ONE {
             *top = ZERO;
         } else {
-            return Err(ExecutionError::not_binary_value_op(*top, &()));
+            return Err(ExecutionError::not_binary_value_op(*top, err_ctx));
         }
         Ok(())
     }
