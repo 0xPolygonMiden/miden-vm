@@ -23,6 +23,7 @@
 - [BREAKING] Convert `AdviceProvider` into a struct ([#1904](https://github.com/0xMiden/miden-vm/issues/1904), [#1905](https://github.com/0xMiden/miden-vm/issues/1905))
 - [BREAKING] `Host::get_mast_forest` takes `&mut self` ([#1902](https://github.com/0xMiden/miden-vm/issues/1902)
 - [BREAKING] `ProcessState` returns `MemoryError` instead of `ExecutionError` ([#1912](https://github.com/0xMiden/miden-vm/issues/1912)
+- [BREAKING] `AdviceProvider` should return its own error type ([#1907](https://github.com/0xMiden/miden-vm/issues/1907)
 
 #### Enhancements
 
@@ -38,7 +39,6 @@
 - Modules can now be provided in any order to the `Assembler`, see #1669 (#1881)
 - Addressed bug which caused references to re-exported procedures whose definition internally referred to an aliased module import, to produce an "undefined module" error, see #1451 (#1892)
 - The special identifiers for kernel, executable, and anonymous namespaces were not valid MASM syntax (#1893)
-
 
 ## 0.15.0 (2025-06-06)
 

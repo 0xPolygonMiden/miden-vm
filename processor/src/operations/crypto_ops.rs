@@ -82,7 +82,10 @@ impl Process {
 
         // get a Merkle path from the advice provider for the specified root and node index.
         // the path is expected to be of the specified depth.
-        let path = host.advice_provider_mut().get_merkle_path(root, &depth, &index, err_ctx)?;
+        let path = host
+            .advice_provider_mut()
+            .get_merkle_path(root, &depth, &index)
+            .map_err(|err| ExecutionError::advice_error(err, self.system.clk(), err_ctx))?;
 
         // use hasher to compute the Merkle root of the path
         let (addr, computed_root) = self.chiplets.hasher.build_merkle_root(node, &path, index);
@@ -159,7 +162,8 @@ impl Process {
         // whole sub-tree to this node.
         let (path, _) = host
             .advice_provider_mut()
-            .update_merkle_node(old_root, &depth, &index, new_node, err_ctx)?;
+            .update_merkle_node(old_root, &depth, &index, new_node)
+            .map_err(|err| ExecutionError::advice_error(err, self.system.clk(), err_ctx))?;
 
         assert_eq!(path.len(), depth.as_int() as usize);
 

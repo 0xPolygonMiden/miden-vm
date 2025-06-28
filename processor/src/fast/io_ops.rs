@@ -1,5 +1,5 @@
 use super::{DOUBLE_WORD_SIZE, ExecutionError, FastProcessor, Felt, WORD_SIZE_FELT};
-use crate::{ErrorContext, Host, ProcessState};
+use crate::{ErrorContext, Host};
 
 impl FastProcessor {
     /// Analogous to `Process::op_push`.
@@ -18,7 +18,8 @@ impl FastProcessor {
     ) -> Result<(), ExecutionError> {
         let value = host
             .advice_provider_mut()
-            .pop_stack(ProcessState::new_fast(self, op_idx), err_ctx)?;
+            .pop_stack()
+            .map_err(|err| ExecutionError::advice_error(err, self.clk + op_idx, err_ctx))?;
         self.increment_stack_size();
         self.stack_write(0, value);
         Ok(())
@@ -34,7 +35,8 @@ impl FastProcessor {
     ) -> Result<(), ExecutionError> {
         let word = host
             .advice_provider_mut()
-            .pop_stack_word(ProcessState::new_fast(self, op_idx), err_ctx)?;
+            .pop_stack_word()
+            .map_err(|err| ExecutionError::advice_error(err, self.clk + op_idx, err_ctx))?;
         self.stack_write_word(0, &word);
 
         Ok(())
@@ -155,7 +157,8 @@ impl FastProcessor {
         // pop two words from the advice stack
         let words = host
             .advice_provider_mut()
-            .pop_stack_dword(ProcessState::new_fast(self, op_idx), err_ctx)?;
+            .pop_stack_dword()
+            .map_err(|err| ExecutionError::advice_error(err, self.clk + op_idx, err_ctx))?;
 
         // write the words to memory
         self.memory

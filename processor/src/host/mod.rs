@@ -2,7 +2,7 @@ use alloc::sync::Arc;
 
 use vm_core::{DebugOptions, Felt, Word, mast::MastForest};
 
-use crate::{ExecutionError, KvMap, ProcessState, errors::ErrorContext};
+use crate::{AdviceError, ExecutionError, KvMap, ProcessState, RowIndex, errors::ErrorContext};
 
 pub(super) mod advice;
 use advice::AdviceProvider;
@@ -12,7 +12,6 @@ mod debug;
 
 mod mast_forest_store;
 pub use mast_forest_store::{MastForestStore, MemMastForestStore};
-
 // HOST TRAIT
 // ================================================================================================
 
@@ -151,17 +150,20 @@ impl DefaultHost {
         // Load the MAST's advice data into the advice provider.
 
         for (digest, values) in mast_forest.advice_map().iter() {
-            if let Some(stored_values) = self.advice_provider().get_mapped_values(digest) {
+            if let Ok(stored_values) = self.advice_provider().get_mapped_values(digest) {
                 if stored_values != values {
-                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent {
-                        key: *digest,
-                        prev_values: stored_values.to_vec(),
-                        new_values: values.clone(),
-                    });
+                    return Err(ExecutionError::advice_error(
+                        AdviceError::MapKeyAlreadyPresent {
+                            key: *digest,
+                            prev_values: stored_values.to_vec(),
+                            new_values: values.clone(),
+                        },
+                        RowIndex::from(0),
+                        &(),
+                    ));
                 }
-            } else {
-                self.advice_provider_mut().insert_into_map(*digest, values.clone());
             }
+            self.advice_provider_mut().insert_into_map(*digest, values.clone())
         }
 
         self.store.insert(mast_forest);

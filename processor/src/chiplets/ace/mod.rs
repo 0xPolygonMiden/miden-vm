@@ -296,7 +296,7 @@ pub fn eval_circuit(
     num_vars: Felt,
     num_eval: Felt,
     mem: &mut Memory,
-    error_ctx: &impl ErrorContext,
+    err_ctx: &impl ErrorContext,
 ) -> Result<CircuitEvaluation, ExecutionError> {
     let num_vars = num_vars.as_int();
     let num_eval = num_eval.as_int();
@@ -304,7 +304,7 @@ pub fn eval_circuit(
     let num_wires = num_vars + num_eval;
     if num_wires > MAX_NUM_ACE_WIRES as u64 {
         return Err(ExecutionError::failed_arithmetic_evaluation(
-            error_ctx,
+            err_ctx,
             AceError::TooManyWires(num_wires),
         ));
     }
@@ -314,13 +314,13 @@ pub fn eval_circuit(
     // Hence we can pack 2 variables and 4 instructions per word.
     if num_vars % 2 != 0 || num_vars == 0 {
         return Err(ExecutionError::failed_arithmetic_evaluation(
-            error_ctx,
+            err_ctx,
             AceError::NumVarIsNotWordAlignedOrIsEmpty(num_vars),
         ));
     }
     if num_eval % 4 != 0 || num_eval == 0 {
         return Err(ExecutionError::failed_arithmetic_evaluation(
-            error_ctx,
+            err_ctx,
             AceError::NumEvalIsNotWordAlignedOrIsEmpty(num_eval),
         ));
     }
@@ -334,22 +334,21 @@ pub fn eval_circuit(
     let mut ptr = ptr;
     // perform READ operations
     for _ in 0..num_read_rows {
-        let word = mem.read_word(ctx, ptr, clk, error_ctx).map_err(ExecutionError::MemoryError)?;
+        let word = mem.read_word(ctx, ptr, clk, err_ctx).map_err(ExecutionError::MemoryError)?;
         evaluation_context.do_read(ptr, word)?;
         ptr += PTR_OFFSET_WORD;
     }
     // perform EVAL operations
     for _ in 0..num_eval_rows {
-        let instruction =
-            mem.read(ctx, ptr, clk, error_ctx).map_err(ExecutionError::MemoryError)?;
-        evaluation_context.do_eval(ptr, instruction, error_ctx)?;
+        let instruction = mem.read(ctx, ptr, clk, err_ctx).map_err(ExecutionError::MemoryError)?;
+        evaluation_context.do_eval(ptr, instruction, err_ctx)?;
         ptr += PTR_OFFSET_ELEM;
     }
 
     // Ensure the circuit evaluated to zero.
     if !evaluation_context.output_value().is_some_and(|eval| eval == QuadFelt::ZERO) {
         return Err(ExecutionError::failed_arithmetic_evaluation(
-            error_ctx,
+            err_ctx,
             AceError::CircuitNotEvaluateZero,
         ));
     }
