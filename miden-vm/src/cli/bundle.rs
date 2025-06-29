@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use assembly::{
-    Assembler, KernelLibrary, KernelLibraryExt, Library, LibraryExt, LibraryNamespace,
+    Assembler, Library, LibraryNamespace,
     diagnostics::{IntoDiagnostic, Report},
 };
 use clap::Parser;
@@ -64,7 +64,7 @@ impl BundleCmd {
                     return Err(Report::msg("`kernel` must be a file"));
                 };
                 assembler.link_dynamic_library(StdLibrary::default())?;
-                let library = KernelLibrary::from_dir(kernel, Some(&self.dir), assembler)?;
+                let library = assembler.assemble_kernel_from_dir(kernel, Some(&self.dir))?;
                 library.write_to_file(output_file).into_diagnostic()?;
                 println!(
                     "Built kernel module {} with library {}",
@@ -79,7 +79,7 @@ impl BundleCmd {
                 };
                 let library_namespace = namespace.parse::<LibraryNamespace>()?;
                 assembler.link_dynamic_library(StdLibrary::default())?;
-                let library = Library::from_dir(&self.dir, library_namespace, assembler)?;
+                let library = assembler.assemble_library_from_dir(&self.dir, library_namespace)?;
                 library.write_to_file(output_file).into_diagnostic()?;
                 println!("Built library {namespace}");
             },

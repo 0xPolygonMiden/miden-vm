@@ -28,7 +28,6 @@ pub use self::{
     },
     parser::{ModuleParser, ParsingError},
 };
-
 pub use self::{
     parse::{Parse, ParseOptions},
     sema::SemanticAnalysisError,

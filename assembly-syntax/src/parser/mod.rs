@@ -175,7 +175,7 @@ fn parse_forms_internal(
 #[cfg(feature = "std")]
 pub fn read_modules_from_dir(
     namespace: crate::LibraryNamespace,
-    dir: &std::path::Path,
+    dir: impl AsRef<std::path::Path>,
     source_manager: &dyn SourceManager,
 ) -> Result<impl Iterator<Item = Box<ast::Module>>, Report> {
     use std::collections::{BTreeMap, btree_map::Entry};
@@ -187,6 +187,7 @@ pub fn read_modules_from_dir(
         report,
     };
 
+    let dir = dir.as_ref();
     if !dir.is_dir() {
         return Err(report!("the provided path '{}' is not a valid directory", dir.display()));
     }

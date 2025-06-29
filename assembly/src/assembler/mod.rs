@@ -218,7 +218,7 @@ impl Assembler {
     pub fn compile_and_statically_link_from_dir(
         &mut self,
         namespace: crate::LibraryNamespace,
-        dir: &std::path::Path,
+        dir: impl AsRef<std::path::Path>,
     ) -> Result<(), Report> {
         let modules = syntax::parser::read_modules_from_dir(namespace, dir, &self.source_manager)?;
         self.linker.link_modules(modules)?;
@@ -375,6 +375,44 @@ impl Assembler {
         self.assemble_common(&module_indices)
     }
 
+    /// Assemble a [Library] from a standard Miden Assembly project layout.
+    ///
+    /// The standard layout dictates that a given path is the root of a namespace, and the
+    /// directory hierarchy corresponds to the namespace hierarchy. A `.masm` file found in a
+    /// given subdirectory of the root, will be parsed with its [LibraryPath] set based on
+    /// where it resides in the directory structure.
+    ///
+    /// This function recursively parses the entire directory structure under `path`, ignoring
+    /// any files which do not have the `.masm` extension.
+    ///
+    /// For example, let's say I call this function like so:
+    ///
+    /// ```rust
+    /// use miden_assembly::{Assembler, LibraryNamespace};
+    ///
+    /// Assembler::default().assemble_from_dir("~/masm/std", LibraryNamespace::new("std").unwrap());
+    /// ```
+    ///
+    /// Here's how we would handle various files under this path:
+    ///
+    /// - ~/masm/std/sys.masm            -> Parsed as "std::sys"
+    /// - ~/masm/std/crypto/hash.masm    -> Parsed as "std::crypto::hash"
+    /// - ~/masm/std/math/u32.masm       -> Parsed as "std::math::u32"
+    /// - ~/masm/std/math/u64.masm       -> Parsed as "std::math::u64"
+    /// - ~/masm/std/math/README.md      -> Ignored
+    #[cfg(feature = "std")]
+    pub fn assemble_library_from_dir(
+        self,
+        path: impl AsRef<std::path::Path>,
+        namespace: LibraryNamespace,
+    ) -> Result<Library, Report> {
+        let path = path.as_ref();
+
+        let source_manager = self.source_manager.clone();
+        let modules = syntax::parser::read_modules_from_dir(namespace, path, &source_manager)?;
+        self.assemble_library(modules)
+    }
+
     /// Assembles the provided module into a [KernelLibrary] intended to be used as a Kernel.
     ///
     /// # Errors
@@ -394,6 +432,33 @@ impl Assembler {
 
         self.assemble_common(&module_indices)
             .and_then(|lib| KernelLibrary::try_from(lib).map_err(Report::new))
+    }
+
+    /// Assemble a [KernelLibrary] from a standard Miden Assembly kernel project layout.
+    ///
+    /// The kernel library will export procedures defined by the module at `sys_module_path`.
+    ///
+    /// If the optional `lib_dir` is provided, all modules under this directory will be available
+    /// from the kernel module under the `$kernel` namespace. For example, if `lib_dir` is set to
+    /// "~/masm/lib", the files will be accessible in the kernel module as follows:
+    ///
+    /// - ~/masm/lib/foo.masm        -> Can be imported as "$kernel::foo"
+    /// - ~/masm/lib/bar/baz.masm    -> Can be imported as "$kernel::bar::baz"
+    ///
+    /// Note: this is a temporary structure which will likely change once
+    /// <https://github.com/0xMiden/miden-vm/issues/1436> is implemented.
+    #[cfg(feature = "std")]
+    pub fn assemble_kernel_from_dir(
+        mut self,
+        sys_module_path: impl AsRef<std::path::Path>,
+        lib_dir: Option<impl AsRef<std::path::Path>>,
+    ) -> Result<KernelLibrary, Report> {
+        // if library directory is provided, add modules from this directory to the assembler
+        if let Some(lib_dir) = lib_dir {
+            self.compile_and_statically_link_from_dir(LibraryNamespace::Kernel, lib_dir)?;
+        }
+
+        self.assemble_kernel(sys_module_path.as_ref())
     }
 
     /// Shared code used by both [`Self::assemble_library`] and [`Self::assemble_kernel`].

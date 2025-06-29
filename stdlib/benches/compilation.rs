@@ -1,6 +1,6 @@
 use std::{path::Path, time::Duration};
 
-use assembly::{Assembler, Library, LibraryExt, LibraryNamespace};
+use assembly::{Assembler, LibraryNamespace};
 use criterion::{Criterion, criterion_group, criterion_main};
 
 fn stdlib_compilation(c: &mut Criterion) {
@@ -15,7 +15,7 @@ fn stdlib_compilation(c: &mut Criterion) {
             let manifest_dir = env!("CARGO_MANIFEST_DIR");
             let asm_dir = Path::new(manifest_dir).join("asm");
             let namespace = "std".parse::<LibraryNamespace>().expect("invalid base namespace");
-            Library::from_dir(asm_dir, namespace, assembler).unwrap();
+            assembler.assemble_library_from_dir(asm_dir, namespace).unwrap();
         });
     });
 
