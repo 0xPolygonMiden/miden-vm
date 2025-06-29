@@ -54,7 +54,7 @@ pub(crate) fn split_u32_into_u16(value: u64) -> (u16, u16) {
 /// [`crate::fast::FastProcessor`] resolve external nodes in the same way.
 pub(crate) fn resolve_external_node(
     external_node: &ExternalNode,
-    host: &mut impl Host,
+    host: &impl Host,
 ) -> Result<(MastNodeId, Arc<MastForest>), ExecutionError> {
     let node_digest = external_node.digest();
     let mast_forest = host
