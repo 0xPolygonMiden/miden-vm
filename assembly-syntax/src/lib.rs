@@ -16,6 +16,7 @@ pub mod parser;
 mod sema;
 pub mod testing;
 
+#[doc(hidden)]
 pub use self::{
     diagnostics::{
         DefaultSourceManager, Report, SourceFile, SourceId, SourceManager, SourceSpan, Span,
@@ -25,7 +26,10 @@ pub use self::{
         KernelLibrary, Library, LibraryError, LibraryNamespace, LibraryPath, LibraryPathComponent,
         PathError, Version, VersionError,
     },
-    parse::{Parse, ParseOptions},
     parser::{ModuleParser, ParsingError},
+};
+
+pub use self::{
+    parse::{Parse, ParseOptions},
     sema::SemanticAnalysisError,
 };
