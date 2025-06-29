@@ -374,7 +374,8 @@ impl Assembler {
     /// ```rust
     /// use miden_assembly::{Assembler, LibraryNamespace};
     ///
-    /// Assembler::default().assemble_from_dir("~/masm/std", LibraryNamespace::new("std").unwrap());
+    /// Assembler::default()
+    ///     .assemble_library_from_dir("~/masm/std", LibraryNamespace::new("std").unwrap());
     /// ```
     ///
     /// Here's how we would handle various files under this path:
