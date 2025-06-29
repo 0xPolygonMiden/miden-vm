@@ -22,12 +22,15 @@ fn main() -> Result<()> {
     println!("cargo:rerun-if-changed=asm");
     println!("cargo:rerun-if-changed=../assembly/src");
 
+    // Enable debug tracing to stderr via the MIDEN_LOG environment variable, if present
+    env_logger::Builder::from_env("MIDEN_LOG").format_timestamp(None).init();
+
     let manifest_dir = env!("CARGO_MANIFEST_DIR");
     let asm_dir = Path::new(manifest_dir).join(ASM_DIR_PATH);
 
     let assembler = Assembler::default().with_debug_mode(cfg!(feature = "with-debug-info"));
     let namespace = "std".parse::<LibraryNamespace>().expect("invalid base namespace");
-    let stdlib = Library::from_dir(asm_dir, namespace, assembler)?;
+    let stdlib = assembler.assemble_library_from_dir(asm_dir, namespace)?;
 
     // write the masl output
     let build_dir = env::var("OUT_DIR").unwrap();

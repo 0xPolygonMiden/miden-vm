@@ -98,7 +98,7 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_cswap`.
-    pub fn op_cswap(&mut self) -> Result<(), ExecutionError> {
+    pub fn op_cswap(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         let condition = self.stack_get(0);
         self.decrement_stack_size();
 
@@ -110,10 +110,7 @@ impl FastProcessor {
                 self.stack_swap(0, 1);
             },
             _ => {
-                return Err(ExecutionError::not_binary_value_op(
-                    condition,
-                    &ErrorContext::default(),
-                ));
+                return Err(ExecutionError::not_binary_value_op(condition, err_ctx));
             },
         }
 
@@ -121,7 +118,7 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_cswapw`.
-    pub fn op_cswapw(&mut self) -> Result<(), ExecutionError> {
+    pub fn op_cswapw(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         let condition = self.stack_get(0);
         self.decrement_stack_size();
 
@@ -136,10 +133,7 @@ impl FastProcessor {
                 self.stack_swap(3, 7);
             },
             _ => {
-                return Err(ExecutionError::not_binary_value_op(
-                    condition,
-                    &ErrorContext::default(),
-                ));
+                return Err(ExecutionError::not_binary_value_op(condition, err_ctx));
             },
         }
 

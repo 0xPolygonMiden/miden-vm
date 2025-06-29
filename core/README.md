@@ -9,9 +9,8 @@ This crate contains core components used by Miden VM. These components include:
 * Constants describing the shape of the VM's execution trace.
 * Various minor utility functions used by other VM crates.
 
-## License
-This project is [MIT licensed](../LICENSE).
-
 ## Acknowledgements
-
 The `racy_lock` module found under `core/src/utils/sync` is based on the [once_cell](https://crates.io/crates/once_cell) crate's implementation of `race::OnceBox`.
+
+## License
+This project is dual-licensed under the [MIT](http://opensource.org/licenses/MIT) and [Apache 2.0](https://opensource.org/license/apache-2-0) licenses.

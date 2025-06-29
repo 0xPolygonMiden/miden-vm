@@ -1,5 +1,51 @@
 # Changelog
 
+## 0.16.0 (TBD)
+
+#### Changes
+
+- Removed the obsolete `RpoFalcon512` decorator and associated structs (#1872).
+- Licensed the project under the Apache 2.0 license (in addition to the MIT) (#1882).
+- [BREAKING] Renamed `Assembler::add_module` to `Assembler::compile_and_statically_link` (#1881)
+- [BREAKING] Renamed `Assembler::add_modules` to `Assembler::compile_and_statically_link_all` (#1881)
+- [BREAKING] Renamed `Assembler::add_modules_from_dir` to `Assembler::compile_and_statically_link_from_dir` (#1881)
+- [BREAKING] Removed `Assembler::add_module_with_options` (#1881)
+- [BREAKING] Removed `Assembler::add_modules_with_options` (#1881)
+- [BREAKING] Renamed `Assembler::add_library` to `Assembler::link_dynamic_library` (#1881)
+- [BREAKING] Renamed `Assembler::add_vendored_library` to `Assembler::link_static_library` (#1881)
+- [BREAKING] `AssemblyError` was removed, and all uses replaced with `Report` (#1881).
+- [BREAKING] `Compile` trait was renamed to `Parse`
+- [BREAKING] `CompileOptions` was renamed to `ParseOptions`
+- Licensed the project under the Apache 2.0 license (in addition to the MIT) (#1840).
+- Uniform chiplet bus message flag encoding (#1887).
+- [BREAKING] Updated dependencies Winterfell to v0.13 and Crypto to v0.15 (#1896).
+- Fixed instructions with errors print without quotes (#1882).
+- [BREAKING] Convert `AdviceProvider` into a struct ([#1904](https://github.com/0xMiden/miden-vm/issues/1904), [#1905](https://github.com/0xMiden/miden-vm/issues/1905))
+- [BREAKING] `Host::get_mast_forest` takes `&mut self` ([#1902](https://github.com/0xMiden/miden-vm/issues/1902)
+- [BREAKING] `ProcessState` returns `MemoryError` instead of `ExecutionError` ([#1912](https://github.com/0xMiden/miden-vm/issues/1912)
+- [BREAKING] `AdviceProvider` should return its own error type ([#1907](https://github.com/0xMiden/miden-vm/issues/1907)
+- Split out the syntax-related aspects of the `miden-assembly` crate into a new crate called `miden-assembly-syntax` ([#1921](https://github.com/0xMiden/miden-vm/pull/1921))
+- Removed the dependency on `miden-assembly` from `miden-mast-package` ([#1921](https://github.com/0xMiden/miden-vm/pull/1921))
+- [BREAKING] Removed `Library::from_dir` in favor of `Assembler::assemble_library_from_dir` ([#1921](https://github.com/0xMiden/miden-vm/pull/1921))
+- [BREAKING] Removed `KernelLibrary::from_dir` in favor of `Assembler::assemble_kernel_from_dir` ([#1921](https://github.com/0xMiden/miden-vm/pull/1921))
+- [BREAKING] Fixed incorrect namespace being set on modules parsed using the `lib_dir` parameter of `KernelLibrary::from_dir`. Previously, modules would be namespaced under `kernel`, but this should have been `$kernel`. Downstream kernels using this option should make sure that any references to the `kernel` namespace are replaced with `$kernel` instead. ([#1921](https://github.com/0xMiden/miden-vm/pull/1921))
+
+#### Enhancements
+
+- The documentation for the `Assembler` and its APIs was improved, to better explain how each affects the final assembled artifact (#1881).
+- It is now possible to assemble kernels with multiple modules while allowing those modules to perform kernel-like actions, such as using the `caller` instruction. (#1893)
+- Optimize handling of variable length public inputs in the recursive verifier (#1842).
+- Simplify processing of OOD evaluations in the recursive verifier (#1848).
+- Make `ErrorContext` zero-cost ([#1910](https://github.com/0xMiden/miden-vm/issues/1910))
+- Make `FastProcessor` output rich error diagnostics ([#1914](https://github.com/0xMiden/miden-vm/issues/1914))
+
+#### Fixes
+
+- Modules can now be provided in any order to the `Assembler`, see #1669 (#1881)
+- Addressed bug which caused references to re-exported procedures whose definition internally referred to an aliased module import, to produce an "undefined module" error, see #1451 (#1892)
+- The special identifiers for kernel, executable, and anonymous namespaces were not valid MASM syntax (#1893)
+- `AdviceProvider`: replace `SimpleAdviceMap` with `AdviceMap` struct from `miden-core` & add `merge_advice_map` to `AdviceProvider` ([#1924](https://github.com/0xMiden/miden-vm/issues/1924) & [#1922](https://github.com/0xMiden/miden-vm/issues/1922))
+
 ## 0.15.0 (2025-06-06)
 
 #### Enhancements
@@ -10,9 +56,12 @@
 - Add support for setting debugger breakpoints via `breakpoint` instruction (#1860)
 - Improve error messages for some procedure locals-related errors (#1863)
 - Add range checks to the `push_falcon_mod_result` advice injector to make sure that the inputs are `u32` (#1819).
+- Allow constants to be declared as words and to be arguments of the `push` instruction (#1855).
+- Allow definition of Advice Map data in MASM programs. The data is loaded by the host before execution (#1862).
 
 #### Changes
 
+- [BREAKING] Rename `miden` executable to `miden-vm`
 - Improve error messages for some assembler instruction (#1785)
 - Remove `idx` column from Kernel ROM chiplet and use chiplet bus for initialization. (#1818)
 - [BREAKING] Make `Assembler::source_manager()` be `Send + Sync` (#1822)
@@ -20,11 +69,13 @@
 - Simplify and optimize the recursive verifier (#1801).
 - Simplify auxiliary randomness generation (#1810).
 - Add handling of variable length public inputs to the recursive verifier (#1813).
+- Update lalrpop dependency to 0.22 (#1865)
 
 #### Fixes
 
 - `miden debug` rewind command no longer panics at clock 0 (#1751)
 - Prevent overflow in ACE circuit evaluation (#1820)
+- `debug.local` decorators no longer panic or print incorrect values (#1859)
 
 ## 0.14.0 (2025-05-07)
 

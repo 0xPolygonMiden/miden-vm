@@ -2,8 +2,9 @@
 members = [
     "air",
     "assembly",
+    "assembly-syntax",
     "core",
-    "miden",
+    "miden-vm",
     "package",
     "processor",
     "prover",
@@ -16,7 +17,7 @@ resolver = "2"
 [workspace.package]
 edition = "2024"
 rust-version = "1.86"
-license = "MIT"
+license = "MIT OR Apache-2.0"
 readme = "README.md"
 authors = ["Miden contributors"]
 homepage = "https://polygon.technology/polygon-miden"

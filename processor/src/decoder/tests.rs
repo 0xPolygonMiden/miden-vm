@@ -13,7 +13,7 @@ use miden_air::trace::{
 use rstest::rstest;
 use test_utils::rand::rand_value;
 use vm_core::{
-    EMPTY_WORD, ONE, Program, ZERO, assert_matches,
+    EMPTY_WORD, ONE, Program, WORD_SIZE, ZERO, assert_matches,
     mast::{BasicBlockNode, MastForest, MastNode, MastNodeId, OP_BATCH_SIZE},
 };
 
@@ -70,7 +70,7 @@ fn basic_block_one_group() {
     check_op_decoding(&trace, 5, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
-    let program_hash: Word = program.hash().into();
+    let program_hash = program.hash();
     check_hasher_state(
         &trace,
         vec![
@@ -129,7 +129,7 @@ fn basic_block_small() {
     check_op_decoding(&trace, 8, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
-    let program_hash: Word = program.hash().into();
+    let program_hash = program.hash();
 
     check_hasher_state(
         &trace,
@@ -182,7 +182,7 @@ fn basic_block_small_with_emit() {
     check_op_decoding(&trace, 6, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
-    let program_hash: Word = program.hash().into();
+    let program_hash = program.hash();
     check_hasher_state(
         &trace,
         vec![
@@ -262,7 +262,7 @@ fn basic_block() {
     check_op_decoding(&trace, 18, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
-    let program_hash: Word = program.hash().into();
+    let program_hash = program.hash();
     check_hasher_state(
         &trace,
         vec![
@@ -375,7 +375,7 @@ fn span_block_with_respan() {
     check_op_decoding(&trace, 23, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
-    let program_hash: Word = program.hash().into();
+    let program_hash = program.hash();
 
     check_hasher_state(
         &trace,
@@ -454,8 +454,8 @@ fn join_node() {
     // --- check hasher state columns -------------------------------------------------------------
 
     // in the first row, the hasher state is set to hashes of both child nodes
-    let span1_hash: Word = basic_block1.digest().into();
-    let span2_hash: Word = basic_block2.digest().into();
+    let span1_hash = basic_block1.digest();
+    let span2_hash = basic_block2.digest();
     assert_eq!(span1_hash, get_hasher_state1(&trace, 0));
     assert_eq!(span2_hash, get_hasher_state2(&trace, 0));
 
@@ -468,7 +468,7 @@ fn join_node() {
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 6));
 
     // at the end of the program, the hasher state is set to the hash of the entire program
-    let program_hash: Word = program.hash().into();
+    let program_hash = program.hash();
     assert_eq!(program_hash, get_hasher_state1(&trace, 7));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 7));
 
@@ -514,8 +514,8 @@ fn split_node_true() {
     // --- check hasher state columns -------------------------------------------------------------
 
     // in the first row, the hasher state is set to hashes of both child nodes
-    let span1_hash: Word = basic_block1.digest().into();
-    let span2_hash: Word = basic_block2.digest().into();
+    let span1_hash = basic_block1.digest();
+    let span2_hash = basic_block2.digest();
     assert_eq!(span1_hash, get_hasher_state1(&trace, 0));
     assert_eq!(span2_hash, get_hasher_state2(&trace, 0));
 
@@ -524,7 +524,7 @@ fn split_node_true() {
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 3));
 
     // at the end of the program, the hasher state is set to the hash of the entire program
-    let program_hash: Word = program.hash().into();
+    let program_hash = program.hash();
     assert_eq!(program_hash, get_hasher_state1(&trace, 4));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 4));
 
@@ -567,8 +567,8 @@ fn split_node_false() {
     // --- check hasher state columns -------------------------------------------------------------
 
     // in the first row, the hasher state is set to hashes of both child nodes
-    let span1_hash: Word = basic_block1.digest().into();
-    let span2_hash: Word = basic_block2.digest().into();
+    let span1_hash = basic_block1.digest();
+    let span2_hash = basic_block2.digest();
     assert_eq!(span1_hash, get_hasher_state1(&trace, 0));
     assert_eq!(span2_hash, get_hasher_state2(&trace, 0));
 
@@ -577,7 +577,7 @@ fn split_node_false() {
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 3));
 
     // at the end of the program, the hasher state is set to the hash of the entire program
-    let program_hash: Word = program.hash().into();
+    let program_hash = program.hash();
     assert_eq!(program_hash, get_hasher_state1(&trace, 4));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 4));
 
@@ -621,20 +621,20 @@ fn loop_node() {
     // --- check hasher state columns -------------------------------------------------------------
 
     // in the first row, the hasher state is set to the hash of the loop's body
-    let loop_body_hash: Word = loop_body.digest().into();
+    let loop_body_hash = loop_body.digest();
     assert_eq!(loop_body_hash, get_hasher_state1(&trace, 0));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 0));
 
     // at the end of the SPAN block, the hasher state is also set to the hash of the loops body,
     // and is_loop_body flag is also set to ONE
     assert_eq!(loop_body_hash, get_hasher_state1(&trace, 4));
-    assert_eq!([ONE, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 4));
+    assert_eq!(Word::from([ONE, ZERO, ZERO, ZERO]), get_hasher_state2(&trace, 4));
 
     // the hash of the program is located in the last END row; this row should also have is_loop
     // flag set to ONE
-    let program_hash: Word = program.hash().into();
+    let program_hash = program.hash();
     assert_eq!(program_hash, get_hasher_state1(&trace, 5));
-    assert_eq!([ZERO, ONE, ZERO, ZERO], get_hasher_state2(&trace, 5));
+    assert_eq!(Word::from([ZERO, ONE, ZERO, ZERO]), get_hasher_state2(&trace, 5));
 
     // HALT opcode and program hash gets propagated to the last row
     for i in 7..trace_len {
@@ -668,13 +668,13 @@ fn loop_node_skip() {
     // --- check hasher state columns -------------------------------------------------------------
 
     // in the first row, the hasher state is set to the hash of the loop's body
-    let loop_body_hash: Word = loop_body.digest().into();
+    let loop_body_hash = loop_body.digest();
     assert_eq!(loop_body_hash, get_hasher_state1(&trace, 0));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 0));
 
     // the hash of the program is located in the last END row; is_loop is not set to ONE because
     // we didn't enter the loop's body
-    let program_hash: Word = program.hash().into();
+    let program_hash = program.hash();
     assert_eq!(program_hash, get_hasher_state1(&trace, 1));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 1));
 
@@ -723,29 +723,29 @@ fn loop_node_repeat() {
     // --- check hasher state columns -------------------------------------------------------------
 
     // in the first row, the hasher state is set to the hash of the loop's body
-    let loop_body_hash: Word = loop_body.digest().into();
+    let loop_body_hash = loop_body.digest();
     assert_eq!(loop_body_hash, get_hasher_state1(&trace, 0));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 0));
 
     // at the end of the first iteration, the hasher state is also set to the hash of the loops
     // body, and is_loop_body flag is also set to ONE
     assert_eq!(loop_body_hash, get_hasher_state1(&trace, 4));
-    assert_eq!([ONE, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 4));
+    assert_eq!(Word::from([ONE, ZERO, ZERO, ZERO]), get_hasher_state2(&trace, 4));
 
     // at the RESPAN row hasher state is copied over from the previous row
     assert_eq!(loop_body_hash, get_hasher_state1(&trace, 5));
-    assert_eq!([ONE, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 5));
+    assert_eq!(Word::from([ONE, ZERO, ZERO, ZERO]), get_hasher_state2(&trace, 5));
 
     // at the end of the second iteration, the hasher state is again set to the hash of the loops
     // body, and is_loop_body flag is also set to ONE
     assert_eq!(loop_body_hash, get_hasher_state1(&trace, 9));
-    assert_eq!([ONE, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 9));
+    assert_eq!(Word::from([ONE, ZERO, ZERO, ZERO]), get_hasher_state2(&trace, 9));
 
     // the hash of the program is located in the last END row; this row should also have is_loop
     // flag set to ONE
-    let program_hash: Word = program.hash().into();
+    let program_hash = program.hash();
     assert_eq!(program_hash, get_hasher_state1(&trace, 10));
-    assert_eq!([ZERO, ONE, ZERO, ZERO], get_hasher_state2(&trace, 10));
+    assert_eq!(Word::from([ZERO, ONE, ZERO, ZERO]), get_hasher_state2(&trace, 10));
 
     // HALT opcode and program hash gets propagated to the last row
     for i in 12..trace_len {
@@ -846,14 +846,14 @@ fn call_block() {
 
     // --- check hasher state columns -------------------------------------------------------------
     // in the first row, the hasher state is set to hashes of (join1, span3)
-    let join1_hash: Word = join1_node.digest().into();
-    let last_basic_block_hash: Word = last_basic_block.digest().into();
+    let join1_hash = join1_node.digest();
+    let last_basic_block_hash = last_basic_block.digest();
     assert_eq!(join1_hash, get_hasher_state1(&dec_trace, 0));
     assert_eq!(last_basic_block_hash, get_hasher_state2(&dec_trace, 0));
 
     // in the second row, the hasher state is set to hashes of (span1, fn_block)
-    let first_span_hash: Word = first_basic_block.digest().into();
-    let foo_call_hash: Word = foo_call_node.digest().into();
+    let first_span_hash = first_basic_block.digest();
+    let foo_call_hash = foo_call_node.digest();
     assert_eq!(first_span_hash, get_hasher_state1(&dec_trace, 1));
     assert_eq!(foo_call_hash, get_hasher_state2(&dec_trace, 1));
 
@@ -862,7 +862,7 @@ fn call_block() {
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 6));
 
     // in the 7th row, we start the CALL block which has basic_block2 as its only child
-    let foo_root_hash: Word = foo_root_node.digest().into();
+    let foo_root_hash = foo_root_node.digest();
     assert_eq!(foo_root_hash, get_hasher_state1(&dec_trace, 7));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 7));
 
@@ -873,7 +873,7 @@ fn call_block() {
     // CALL block ends in the 12th row; the second to last element of the hasher state
     // is set to ONE because we are exiting the CALL block
     assert_eq!(foo_call_hash, get_hasher_state1(&dec_trace, 12));
-    assert_eq!([ZERO, ZERO, ONE, ZERO], get_hasher_state2(&dec_trace, 12));
+    assert_eq!(Word::from([ZERO, ZERO, ONE, ZERO]), get_hasher_state2(&dec_trace, 12));
 
     // internal JOIN block ends in the 13th row
     assert_eq!(join1_hash, get_hasher_state1(&dec_trace, 13));
@@ -884,7 +884,7 @@ fn call_block() {
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 18));
 
     // the program ends in the 19th row
-    let program_hash: Word = program.hash().into();
+    let program_hash = program.hash();
     assert_eq!(program_hash, get_hasher_state1(&dec_trace, 19));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 19));
 
@@ -1098,14 +1098,14 @@ fn syscall_block() {
 
     // --- check hasher state columns -------------------------------------------------------------
     // in the first row, the hasher state is set to hashes of (inner_join, last_span)
-    let inner_join_hash: Word = inner_join_node.digest().into();
-    let last_span_hash: Word = last_basic_block.digest().into();
+    let inner_join_hash = inner_join_node.digest();
+    let last_span_hash = last_basic_block.digest();
     assert_eq!(inner_join_hash, get_hasher_state1(&dec_trace, 0));
     assert_eq!(last_span_hash, get_hasher_state2(&dec_trace, 0));
 
     // in the second row, the hasher state is set to hashes of (first_span, bar_call)
-    let first_span_hash: Word = first_basic_block.digest().into();
-    let bar_call_hash: Word = bar_call_node.digest().into();
+    let first_span_hash = first_basic_block.digest();
+    let bar_call_hash = bar_call_node.digest();
     assert_eq!(first_span_hash, get_hasher_state1(&dec_trace, 1));
     assert_eq!(bar_call_hash, get_hasher_state2(&dec_trace, 1));
 
@@ -1114,13 +1114,13 @@ fn syscall_block() {
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 6));
 
     // in the 7th row, we start the CALL block which has bar_join as its only child
-    let bar_root_hash: Word = bar_root_node.digest().into();
+    let bar_root_hash = bar_root_node.digest();
     assert_eq!(bar_root_hash, get_hasher_state1(&dec_trace, 7));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 7));
 
     // in the 8th row, the hasher state is set to hashes of (bar_span, foo_call)
-    let bar_span_hash: Word = bar_basic_block.digest().into();
-    let foo_call_hash: Word = foo_call_node.digest().into();
+    let bar_span_hash = bar_basic_block.digest();
+    let foo_call_hash = foo_call_node.digest();
     assert_eq!(bar_span_hash, get_hasher_state1(&dec_trace, 8));
     assert_eq!(foo_call_hash, get_hasher_state2(&dec_trace, 8));
 
@@ -1129,7 +1129,7 @@ fn syscall_block() {
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 12));
 
     // in the 13th row, we start the SYSCALL block which has foo_span as its only child
-    let foo_root_hash: Word = foo_root.digest().into();
+    let foo_root_hash = foo_root.digest();
     assert_eq!(foo_root_hash, get_hasher_state1(&dec_trace, 13));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 13));
 
@@ -1140,7 +1140,7 @@ fn syscall_block() {
     // SYSCALL block ends in the 18th row; the last element of the hasher state
     // is set to ONE because we are exiting a SYSCALL block
     assert_eq!(foo_call_hash, get_hasher_state1(&dec_trace, 18));
-    assert_eq!([ZERO, ZERO, ZERO, ONE], get_hasher_state2(&dec_trace, 18));
+    assert_eq!(Word::from([ZERO, ZERO, ZERO, ONE]), get_hasher_state2(&dec_trace, 18));
 
     // internal bar_join block ends in the 19th row
     assert_eq!(bar_root_hash, get_hasher_state1(&dec_trace, 19));
@@ -1149,7 +1149,7 @@ fn syscall_block() {
     // CALL block ends in the 20th row; the second to last element of the hasher state
     // is set to ONE because we are exiting a CALL block
     assert_eq!(bar_call_hash, get_hasher_state1(&dec_trace, 20));
-    assert_eq!([ZERO, ZERO, ONE, ZERO], get_hasher_state2(&dec_trace, 20));
+    assert_eq!(Word::from([ZERO, ZERO, ONE, ZERO]), get_hasher_state2(&dec_trace, 20));
 
     // internal JOIN block ends in the 21st row
     assert_eq!(inner_join_hash, get_hasher_state1(&dec_trace, 21));
@@ -1160,7 +1160,7 @@ fn syscall_block() {
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 26));
 
     // the program ends in the 27th row
-    let program_hash: Word = program_root_node.digest().into();
+    let program_hash = program_root_node.digest();
     assert_eq!(program_hash, get_hasher_state1(&dec_trace, 27));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 27));
 
@@ -1371,44 +1371,44 @@ fn dyn_block() {
     // --- check hasher state columns -------------------------------------------------------------
 
     // in the first row, the hasher state is set to hashes of both child nodes
-    let join_hash: Word = join_node.digest().into();
-    let dyn_hash: Word = dyn_node.digest().into();
+    let join_hash = join_node.digest();
+    let dyn_hash = dyn_node.digest();
     assert_eq!(join_hash, get_hasher_state1(&trace, 0));
     assert_eq!(dyn_hash, get_hasher_state2(&trace, 0));
 
     // in the second row, the hasher set is set to hashes of both child nodes of the inner JOIN
-    let mul_bb_node_hash: Word = mstorew_node.digest().into();
-    let save_bb_node_hash: Word = push_node.digest().into();
+    let mul_bb_node_hash = mstorew_node.digest();
+    let save_bb_node_hash = push_node.digest();
     assert_eq!(mul_bb_node_hash, get_hasher_state1(&trace, 1));
     assert_eq!(save_bb_node_hash, get_hasher_state2(&trace, 1));
 
     // at the end of the first SPAN, the hasher state is set to the hash of the first child
     assert_eq!(mul_bb_node_hash, get_hasher_state1(&trace, 4));
-    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 4));
+    assert_eq!(Word::from([ZERO, ZERO, ZERO, ZERO]), get_hasher_state2(&trace, 4));
 
     // at the end of the second SPAN, the hasher state is set to the hash of the second child
     assert_eq!(save_bb_node_hash, get_hasher_state1(&trace, 8));
-    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 8));
+    assert_eq!(Word::from([ZERO, ZERO, ZERO, ZERO]), get_hasher_state2(&trace, 8));
 
     // at the end of the inner JOIN, the hasher set is set to the hash of the JOIN
     assert_eq!(join_hash, get_hasher_state1(&trace, 9));
-    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 9));
+    assert_eq!(Word::from([ZERO, ZERO, ZERO, ZERO]), get_hasher_state2(&trace, 9));
 
     // at the start of the DYN block, the hasher state is set to foo digest
-    let foo_hash: Word = foo_root_node.digest().into();
+    let foo_hash = foo_root_node.digest();
     assert_eq!(foo_hash, get_hasher_state1(&trace, 10));
 
     // at the end of the DYN SPAN, the hasher state is set to the hash of the foo span
     assert_eq!(foo_hash, get_hasher_state1(&trace, 14));
-    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 14));
+    assert_eq!(Word::from([ZERO, ZERO, ZERO, ZERO]), get_hasher_state2(&trace, 14));
 
     // at the end of the DYN block, the hasher state is set to the hash of the DYN node
     assert_eq!(dyn_hash, get_hasher_state1(&trace, 15));
 
     // at the end of the program, the hasher state is set to the hash of the entire program
-    let program_hash: Word = program_root_node.digest().into();
+    let program_hash = program_root_node.digest();
     assert_eq!(program_hash, get_hasher_state1(&trace, 16));
-    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 16));
+    assert_eq!(Word::from([ZERO, ZERO, ZERO, ZERO]), get_hasher_state2(&trace, 16));
 
     // the HALT opcode and program hash get propagated to the last row
     for i in 17..trace_len {
@@ -1485,7 +1485,7 @@ fn set_user_op_helpers_many() {
     let quot = dividend / divisor;
     let rem = dividend - quot * divisor;
     let check_1 = dividend - quot;
-    let check_2 = divisor - rem - 1;
+    let check_2 = divisor as i128 - rem as i128 - 1; // note that `check2` is non-negative
     let expected = build_expected_hasher_state(&[
         ZERO,
         ZERO,
@@ -1628,12 +1628,12 @@ fn build_op_batch_flags(num_groups: usize) -> [Felt; NUM_OP_BATCH_FLAGS] {
 // ------------------------------------------------------------------------------------------------
 
 fn get_fn_hash(trace: &SystemTrace, row_idx: usize) -> Word {
-    let mut result = EMPTY_WORD;
+    let mut result = [ZERO; WORD_SIZE];
     let trace = &trace[FN_HASH_RANGE];
     for (element, column) in result.iter_mut().zip(trace) {
         *element = column[row_idx];
     }
-    result
+    result.into()
 }
 
 // HASHER STATE
@@ -1655,19 +1655,19 @@ fn get_hasher_state(trace: &DecoderTrace, row_idx: usize) -> [Felt; NUM_HASHER_C
 }
 
 fn get_hasher_state1(trace: &DecoderTrace, row_idx: usize) -> Word {
-    let mut result = EMPTY_WORD;
+    let mut result = [ZERO; WORD_SIZE];
     for (result, column) in result.iter_mut().zip(trace[HASHER_STATE_RANGE].iter()) {
         *result = column[row_idx];
     }
-    result
+    result.into()
 }
 
 fn get_hasher_state2(trace: &DecoderTrace, row_idx: usize) -> Word {
-    let mut result = EMPTY_WORD;
+    let mut result = [ZERO; WORD_SIZE];
     for (result, column) in result.iter_mut().zip(trace[HASHER_STATE_RANGE].iter().skip(4)) {
         *result = column[row_idx];
     }
-    result
+    result.into()
 }
 
 fn build_expected_hasher_state(values: &[Felt]) -> [Felt; NUM_HASHER_COLUMNS] {

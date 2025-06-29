@@ -1,6 +1,6 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
-use miden_crypto::{hash::blake::Blake3Digest, utils::collections::KvMap};
+use miden_crypto::hash::blake::Blake3Digest;
 
 use crate::mast::{
     DecoratorId, MastForest, MastForestError, MastNode, MastNodeFingerprint, MastNodeId,
@@ -171,16 +171,12 @@ impl MastForestMerger {
     }
 
     fn merge_advice_map(&mut self, other_forest: &MastForest) -> Result<(), MastForestError> {
-        for (digest, values) in other_forest.advice_map.iter() {
-            if let Some(stored_values) = self.mast_forest.advice_map().get(digest) {
-                if stored_values != values {
-                    return Err(MastForestError::AdviceMapKeyCollisionOnMerge(*digest));
-                }
-            } else {
-                self.mast_forest.advice_map_mut().insert(*digest, values.clone());
-            }
-        }
-        Ok(())
+        self.mast_forest
+            .advice_map
+            .merge_advice_map(&other_forest.advice_map)
+            .map_or(Ok(()), |((key, _prev), _new)| {
+                Err(MastForestError::AdviceMapKeyCollisionOnMerge(key))
+            })
     }
 
     fn merge_error_codes(&mut self, other_forest: &MastForest) -> Result<(), MastForestError> {

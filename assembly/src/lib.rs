@@ -1,5 +1,4 @@
 #![no_std]
-#![cfg_attr(all(nightly, not(feature = "std")), feature(error_in_core))]
 
 #[macro_use]
 extern crate alloc;
@@ -7,47 +6,39 @@ extern crate alloc;
 #[cfg(any(test, feature = "std"))]
 extern crate std;
 
-use vm_core::{
-    Felt, ONE, Word, ZERO,
-    crypto::hash::RpoDigest,
-    prettier,
-    utils::{
-        ByteReader, ByteWriter, Deserializable, DeserializationError, DisplayHex, Serializable,
-    },
-};
+use miden_core::{ONE, ZERO};
 
 mod assembler;
-pub mod ast;
-mod compile;
-pub mod diagnostics;
-mod errors;
-mod library;
-mod parser;
-mod sema;
+mod basic_block_builder;
+mod id;
+mod instruction;
+pub mod linker;
+mod mast_forest_builder;
+mod procedure;
+
+#[cfg(test)]
+mod mast_forest_merger_tests;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 #[cfg(test)]
 mod tests;
 
 // Re-exported for downstream crates
-
+pub use miden_assembly_syntax::{
+    DefaultSourceManager, KernelLibrary, Library, LibraryNamespace, LibraryPath, ModuleParser,
+    Parse, ParseOptions, Report, SourceFile, SourceId, SourceManager, SourceSpan, Span, Spanned,
+    ast, diagnostics, library, report,
+};
+/// Syntax components for the Miden Assembly AST
 /// Merkelized abstract syntax tree (MAST) components defining Miden VM programs.
-pub use vm_core::mast;
-pub use vm_core::utils;
+pub use miden_core::{mast, utils};
 
+#[doc(hidden)]
+pub use self::linker::{LinkLibraryKind, LinkerError};
 pub use self::{
     assembler::Assembler,
-    compile::{Compile, Options as CompileOptions},
-    diagnostics::{
-        DefaultSourceManager, Report, SourceFile, SourceId, SourceManager, SourceSpan, Span,
-        Spanned,
-    },
-    errors::AssemblyError,
-    library::{
-        KernelLibrary, Library, LibraryError, LibraryNamespace, LibraryPath, LibraryPathComponent,
-        PathError, Version, VersionError,
-    },
-    parser::ModuleParser,
+    id::{GlobalProcedureIndex, ModuleIndex},
+    procedure::{Procedure, ProcedureContext},
 };
 
 // CONSTANTS

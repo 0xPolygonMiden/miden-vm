@@ -1,12 +1,12 @@
 use alloc::collections::BTreeMap;
 
-use processor::Digest;
 use test_utils::{Felt, StarkField, crypto::MerkleStore};
 
 mod channel;
 
 pub(crate) mod verifier_fri_e2f4;
 pub use verifier_fri_e2f4::*;
+use vm_core::Word;
 
 mod remainder;
 
@@ -46,7 +46,7 @@ fn fri_fold4_ext2_remainder64() {
         remainder,
     );
 
-    let advice_map: BTreeMap<Digest, Vec<Felt>> = BTreeMap::from_iter(advice_maps);
+    let advice_map: BTreeMap<Word, Vec<Felt>> = BTreeMap::from_iter(advice_maps);
     let domain_generator = Felt::get_root_of_unity(domain_size.ilog2()).as_int();
 
     let mut store = MerkleStore::new();
@@ -94,7 +94,7 @@ fn fri_fold4_ext2_remainder128() {
         remainder,
     );
 
-    let advice_map: BTreeMap<Digest, Vec<Felt>> = BTreeMap::from_iter(advice_maps);
+    let advice_map: BTreeMap<Word, Vec<Felt>> = BTreeMap::from_iter(advice_maps);
     let domain_generator = Felt::get_root_of_unity(domain_size.ilog2()).as_int();
 
     let mut store = MerkleStore::new();

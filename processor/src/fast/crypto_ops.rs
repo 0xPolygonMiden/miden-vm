@@ -3,7 +3,7 @@ use vm_core::{
 };
 
 use super::FastProcessor;
-use crate::{AdviceProvider, ErrorContext, ExecutionError, Host};
+use crate::{ErrorContext, ExecutionError, Host};
 
 impl FastProcessor {
     /// Applies a permutation of the Rpo256 hash function to the top 12 elements of the stack.
@@ -29,6 +29,7 @@ impl FastProcessor {
         err_code: Felt,
         host: &mut impl Host,
         program: &MastForest,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         // read node value, depth, index and root value from the stack
         let node = self.stack_get_word(0);
@@ -37,32 +38,29 @@ impl FastProcessor {
         let root = self.stack_get_word(6);
 
         // get a Merkle path from the advice provider for the specified root and node index
-        let path = host.advice_provider_mut().get_merkle_path(
-            root,
-            &depth,
-            &index,
-            &ErrorContext::default(),
-        )?;
+        let path = host
+            .advice_provider_mut()
+            .get_merkle_path(root, &depth, &index)
+            .map_err(|err| ExecutionError::advice_error(err, self.clk, err_ctx))?;
 
         // verify the path
-        match path.verify(index.as_int(), node.into(), &root.into()) {
+        match path.verify(index.as_int(), node, &root) {
             Ok(_) => Ok(()),
             Err(_) => {
                 let err_msg = program.resolve_error_message(err_code);
                 Err(ExecutionError::merkle_path_verification_failed(
-                    node,
-                    index,
-                    root.into(),
-                    err_code,
-                    err_msg,
-                    &ErrorContext::default(),
+                    node, index, root, err_code, err_msg, err_ctx,
                 ))
             },
         }
     }
 
     /// Analogous to `Process::op_mrupdate`.
-    pub fn op_mrupdate(&mut self, host: &mut impl Host) -> Result<(), ExecutionError> {
+    pub fn op_mrupdate(
+        &mut self,
+        host: &mut impl Host,
+        err_ctx: &impl ErrorContext,
+    ) -> Result<(), ExecutionError> {
         // read old node value, depth, index, tree root and new node values from the stack
         let old_node = self.stack_get_word(0);
         let depth = self.stack_get(4);
@@ -74,25 +72,17 @@ impl FastProcessor {
         // get a Merkle path to it. The length of the returned path is expected to match the
         // specified depth. If the new node is the root of a tree, this instruction will append the
         // whole sub-tree to this node.
-        let (path, new_root) = host.advice_provider_mut().update_merkle_node(
-            old_root,
-            &depth,
-            &index,
-            new_node,
-            &ErrorContext::default(),
-        )?;
+        let (path, new_root) = host
+            .advice_provider_mut()
+            .update_merkle_node(old_root, &depth, &index, new_node)
+            .map_err(|err| ExecutionError::advice_error(err, self.clk, err_ctx))?;
 
         assert_eq!(path.len(), depth.as_int() as usize);
 
         // verify that the old node is consistent with the Merkle path
-        if path.verify(index.as_int(), old_node.into(), &old_root.into()).is_err() {
+        if path.verify(index.as_int(), old_node, &old_root).is_err() {
             return Err(ExecutionError::merkle_path_verification_failed(
-                old_node,
-                index,
-                old_root.into(),
-                ZERO,
-                None,
-                &ErrorContext::default(),
+                old_node, index, old_root, ZERO, None, err_ctx,
             ));
         }
 

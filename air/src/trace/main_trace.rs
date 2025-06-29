@@ -125,7 +125,7 @@ impl MainTrace {
         for (col, s) in state.iter_mut().enumerate() {
             *s = self.columns.get_column(DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET + col)[i];
         }
-        state
+        state.into()
     }
 
     /// Returns the second half of the hasher state at row i.
@@ -138,7 +138,7 @@ impl MainTrace {
                 .get_column(DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET + SECOND_WORD_OFFSET + col)
                 [i];
         }
-        state
+        state.into()
     }
 
     /// Returns a specific element from the hasher state at row i.

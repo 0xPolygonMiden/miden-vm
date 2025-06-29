@@ -76,7 +76,7 @@ impl Printer {
 
     /// Prints length items from the top of the  advice stack. If length is 0 it returns the whole
     /// stack.
-    fn print_vm_adv_stack(&self, advice_provider: &impl AdviceProvider, length: usize) {
+    fn print_vm_adv_stack(&self, advice_provider: &AdviceProvider, length: usize) {
         let stack = advice_provider.peek_stack(length);
 
         // we may have less elements than requested
@@ -141,33 +141,34 @@ impl Printer {
     }
 
     /// Prints locals in provided indexes interval.
+    ///
+    /// The interval given is inclusive on *both* ends.
     fn print_local_interval(&self, process: ProcessState, interval: (u32, u32), num_locals: u32) {
-        let mut local_mem_interval = Vec::new();
-        let local_memory_offset = self.fmp - num_locals + 1;
+        let local_memory_offset = self.fmp - num_locals;
 
-        // in case start index is 0 and end index is 2^16, we should print all available locals.
-        let (start, end) = if interval.0 == 0 && interval.1 == u16::MAX as u32 {
+        let (start, end) = interval;
+        // Account for a case where start is 0 and end is 2^16. In that case we should simply print
+        // all available locals.
+        let (start, end) = if start == 0 && end == u16::MAX as u32 {
             (0, num_locals - 1)
         } else {
-            interval
+            (start, end)
         };
-        for index in start..end + 1 {
-            local_mem_interval
-                .push((index, process.get_mem_value(self.ctx, index + local_memory_offset)))
-        }
 
-        if interval.0 == 0 && interval.1 == u16::MAX as u32 {
-            println!("State of procedure locals before step {}:", self.clk)
-        } else if interval.0 == interval.1 {
-            println!("State of procedure local at index {} before step {}:", interval.0, self.clk,)
+        let locals: Vec<(u32, Option<Felt>)> = (start..=end)
+            .map(|local_idx| {
+                let addr = local_memory_offset + local_idx;
+                let value = process.get_mem_value(self.ctx, addr);
+                (local_idx, value)
+            })
+            .collect();
+
+        if start != end {
+            println!("State of procedure locals [{start}, {end}] before step {}:", self.clk);
         } else {
-            println!(
-                "State of procedure locals [{}, {}] before step {}:",
-                interval.0, interval.1, self.clk,
-            )
-        };
-
-        print_interval(local_mem_interval, true);
+            println!("State of procedure local {start} before step {}:", self.clk);
+        }
+        print_interval(locals, true);
     }
 }
 

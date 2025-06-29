@@ -4,11 +4,14 @@ use miden_air::ProcessorAir;
 use processor::crypto::RpoRandomCoin;
 use test_utils::{
     MIN_STACK_DEPTH, VerifierError,
-    crypto::{MerkleStore, RandomCoin, Rpo256, RpoDigest},
+    crypto::{MerkleStore, RandomCoin, Rpo256},
     math::{FieldElement, QuadExtension, ToElements},
 };
-use vm_core::{Felt, WORD_SIZE};
-use winter_air::{Air, proof::Proof};
+use vm_core::{Felt, WORD_SIZE, Word};
+use winter_air::{
+    Air,
+    proof::{Proof, merge_ood_evaluations},
+};
 use winter_fri::VerifierChannel as FriVerifierChannel;
 
 mod channel;
@@ -21,7 +24,7 @@ pub struct VerifierData {
     pub initial_stack: Vec<u64>,
     pub advice_stack: Vec<u64>,
     pub store: MerkleStore,
-    pub advice_map: Vec<(RpoDigest, Vec<Felt>)>,
+    pub advice_map: Vec<(Word, Vec<Felt>)>,
 }
 
 pub fn generate_advice_inputs(
@@ -35,13 +38,16 @@ pub fn generate_advice_inputs(
     // 2. The output operand stack (16 field elements),
     // 3. The program hash (4 field elements).
     let pub_inputs_elements = pub_inputs.to_elements();
-    let digests_elements = pub_inputs_elements.len() - MIN_STACK_DEPTH * 2 - WORD_SIZE;
+    let num_elements_pi = pub_inputs_elements.len();
+    // note that since we are padding the fixed length inputs, in our case the program digest, to
+    // be double-word aligned, we have to subtract `2 * WORD_SIZE` instead of `WORD_SIZE` for
+    // the program digest
+    let digests_elements = num_elements_pi - MIN_STACK_DEPTH * 2 - 2 * WORD_SIZE;
     assert_eq!(digests_elements % WORD_SIZE, 0);
-    let num_kernel_procedures_digests = digests_elements / WORD_SIZE;
+    let num_kernel_procedures_digests = digests_elements / (2 * WORD_SIZE);
 
     // we need to provide the following instance specific data through the operand stack
     let initial_stack = vec![
-        num_kernel_procedures_digests as u64,
         proof.context.options().grinding_factor() as u64,
         proof.context.options().num_queries() as u64,
         proof.context.trace_info().length().ilog2() as u64,
@@ -50,24 +56,25 @@ pub fn generate_advice_inputs(
     // build a seed for the public coin; the initial seed is the hash of public inputs and proof
     // context, but as the protocol progresses, the coin will be reseeded with the info received
     // from the prover
-    let mut advice_stack = vec![];
+    let mut advice_stack = vec![digests_elements as u64];
     let mut public_coin_seed = proof.context.to_elements();
-    public_coin_seed.append(&mut pub_inputs.to_elements());
+    public_coin_seed.extend_from_slice(&pub_inputs_elements);
 
     // add the public inputs, which is nothing but the input and output stacks to the VM as well as
     // the digests of the procedures making up the kernel against which the program was compiled,
     // to the advice tape
-    let pub_inputs_int: Vec<u64> = pub_inputs.to_elements().iter().map(|a| a.as_int()).collect();
-    advice_stack.extend_from_slice(&pub_inputs_int[..]);
+    let pub_inputs_int: Vec<u64> = pub_inputs_elements.iter().map(|a| a.as_int()).collect();
+    advice_stack.extend_from_slice(&pub_inputs_int);
 
     // add a placeholder for the auxiliary randomness
     let aux_rand_insertion_index = advice_stack.len();
     advice_stack.extend_from_slice(&[0, 0, 0, 0]);
+    advice_stack.push(num_kernel_procedures_digests as u64);
 
     // create AIR instance for the computation specified in the proof
     let air = ProcessorAir::new(proof.trace_info().to_owned(), pub_inputs, proof.options().clone());
     let seed_digest = Rpo256::hash_elements(&public_coin_seed);
-    let mut public_coin: RpoRandomCoin = RpoRandomCoin::new(seed_digest.into());
+    let mut public_coin: RpoRandomCoin = RpoRandomCoin::new(seed_digest);
     let mut channel = VerifierChannel::new(&air, proof)?;
 
     // 1 ----- main segment trace -----------------------------------------------------------------
@@ -118,43 +125,18 @@ pub fn generate_advice_inputs(
     // read the main and auxiliary segments' OOD frames and add them to advice tape
     let ood_trace_frame = channel.read_ood_trace_frame();
     let ood_constraint_evaluations = channel.read_ood_constraint_evaluations();
-    let ood_trace_hash = ood_trace_frame.hash::<Rpo256>();
-    let ood_constraints_hash = ood_constraint_evaluations.hash::<Rpo256>();
-
-    let ood_main_trace_frame = ood_trace_frame.main_frame();
-    let ood_aux_trace_frame = ood_trace_frame.aux_frame();
-
-    // the expected layout is:
-    // [main_current, aux_current, constraint_current, main_next, aux_next, constraint_next]
-    let mut ood_current = ood_main_trace_frame.current().to_vec();
-    ood_current.extend_from_slice(
-        ood_aux_trace_frame
-            .as_ref()
-            .expect("execution trace should have an auxiliary segment")
-            .current(),
-    );
-    ood_current.extend_from_slice(ood_constraint_evaluations.current_row());
-
-    let mut ood_next = ood_main_trace_frame.next().to_vec();
-    ood_next.extend_from_slice(
-        ood_aux_trace_frame
-            .as_ref()
-            .expect("execution trace should have an auxiliary segment")
-            .next(),
-    );
-    ood_next.extend_from_slice(ood_constraint_evaluations.next_row());
+    let ood_evals = merge_ood_evaluations(&ood_trace_frame, &ood_constraint_evaluations);
 
     // placeholder for the alpha_deep
     let alpha_deep_index = advice_stack.len();
     advice_stack.extend_from_slice(&[0, 0]);
 
     // add OOD evaluations to advice stack
-    advice_stack.extend_from_slice(&to_int_vec(&ood_current));
-    advice_stack.extend_from_slice(&to_int_vec(&ood_next));
+    advice_stack.extend_from_slice(&to_int_vec(&ood_evals));
 
-    // reseed with the digests of the OOD evaluations
-    public_coin.reseed(ood_trace_hash);
-    public_coin.reseed(ood_constraints_hash);
+    // reseed with the digest of the OOD evaluations
+    let ood_digest = Rpo256::hash_elements(&ood_evals);
+    public_coin.reseed(ood_digest);
 
     // 5 ----- FRI  -------------------------------------------------------------------------------
 
@@ -236,7 +218,7 @@ pub fn generate_advice_inputs(
 // HELPER FUNCTIONS
 // ================================================================================================
 
-pub fn digest_to_int_vec(digest: &[RpoDigest]) -> Vec<u64> {
+pub fn digest_to_int_vec(digest: &[Word]) -> Vec<u64> {
     digest
         .iter()
         .flat_map(|digest| digest.as_elements().iter().map(|e| e.as_int()))

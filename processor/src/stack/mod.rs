@@ -169,6 +169,7 @@ impl Stack {
             self.get(offset + 1),
             self.get(offset),
         ]
+        .into()
     }
 
     /// Sets the value at the specified position on the stack at the next clock cycle.

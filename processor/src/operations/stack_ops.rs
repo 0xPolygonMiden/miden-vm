@@ -1,5 +1,3 @@
-use vm_core::mast::MastNodeExt;
-
 use super::{ExecutionError, MIN_STACK_DEPTH, Process};
 use crate::{ErrorContext, ZERO};
 
@@ -230,10 +228,7 @@ impl Process {
     ///
     /// # Errors
     /// Returns an error if the top element of the stack is neither 0 nor 1.
-    pub(super) fn op_cswap(
-        &mut self,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Result<(), ExecutionError> {
+    pub(super) fn op_cswap(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         let c = self.stack.get(0);
         let b = self.stack.get(1);
         let a = self.stack.get(2);
@@ -259,10 +254,7 @@ impl Process {
     ///
     /// # Errors
     /// Returns an error if the top element of the stack is neither 0 nor 1.
-    pub(super) fn op_cswapw(
-        &mut self,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Result<(), ExecutionError> {
+    pub(super) fn op_cswapw(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         let c = self.stack.get(0);
         let b0 = self.stack.get(1);
         let b1 = self.stack.get(2);

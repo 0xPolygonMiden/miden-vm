@@ -198,8 +198,8 @@ Instructions for moving data between the stack and other sources like program co
 | Instruction         | Stack Input        | Stack Output      | Notes                                                                                                                      |
 | ------------------- | ------------------ | ----------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | `adv.insert_mem`    | `[K, a, b, ... ]`  | `[K, a, b, ... ]` | `advice_map[K] <- mem[a..b]`.                                                                                              |
-| `adv.insert_hdword` | `[B, A, ... ]`     | `[B, A, ... ]`    | `K <- hash(A || B, domain=0)`. `advice_map[K] <- [A,B]`.                                                                  |
-| `adv.insert_hdword_d` | `[B, A, d, ... ]`| `[B, A, d, ... ]` | `K <- hash(A || B, domain=d)`. `advice_map[K] <- [A,B]`.                                                                  |
+| `adv.insert_hdword` | `[B, A, ... ]`     | `[B, A, ... ]`    | `K <- hash(A \|\| B, domain=0)`. `advice_map[K] <- [A,B]`.                                                                  |
+| `adv.insert_hdword_d` | `[B, A, d, ... ]`| `[B, A, d, ... ]` | `K <- hash(A \|\| B, domain=d)`. `advice_map[K] <- [A,B]`.                                                                  |
 | `adv.insert_hperm`  | `[B, A, C, ...]`   | `[B, A, C, ...]`  | `K <- permute(C,A,B).digest`. `advice_map[K] <- [A,B]`.                                                                   |
 
 ### Random Access Memory
@@ -236,7 +236,7 @@ Common cryptographic operations, including hashing and Merkle tree manipulations
 | Instruction     | Stack Input         | Stack Output      | Cycles | Notes                                                                                                                                                                                          |
 | --------------- | ------------------- | ----------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `hash`          | `[A, ...]`          | `[B, ...]`        | 20     | `B <- hash(A)`. 1-to-1 Rescue Prime Optimized hash.                                                                                                                                            |
-| `hperm`         | `[C, B, A, ...]`    | `[F, E, D, ...]`  | 1      | `D,E,F <- permute(A,B,C)`. Rescue Prime Optimized permutation. `A`=capacity, `B,C`=rate, `E`=digest.                                                                                             |
+| `hperm`         | `[B, A, C, ...]`    | `[F, E, D, ...]`  | 1      | `D,E,F <- permute(C,A,B)`. Rescue Prime Optimized permutation. `C`=capacity, `A,B`=rate, `E`=digest.                                                                                             |
 | `hmerge`        | `[B, A, ...]`       | `[C, ...]`        | 16     | `C <- hash(A,B)`. 2-to-1 Rescue Prime Optimized hash.                                                                                                                                          |
 | `mtree_get`     | `[d, i, R, ...]`    | `[V, R, ...]`     | 9      | Verifies Merkle path for node `V` at depth `d`, index `i` for tree `R` (from advice provider), returns `V`.                                                                                      |
 | `mtree_set`     | `[d, i, R, V', ...]`| `[V, R', ...]`    | 29     | Updates node in tree `R` at `d,i` to `V'`. Returns old value `V` and new root `R'`. Both trees in advice provider.                                                                              |

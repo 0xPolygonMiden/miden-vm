@@ -1,9 +1,8 @@
 use alloc::collections::BTreeMap;
 
 use miden_air::{RowIndex, trace::chiplets::kernel_rom::TRACE_WIDTH};
-use vm_core::mast::MastNodeExt;
 
-use super::{Digest, ExecutionError, Felt, Kernel, TraceFragment, Word};
+use super::{ExecutionError, Felt, Kernel, TraceFragment, Word as Digest};
 use crate::ErrorContext;
 
 #[cfg(test)]
@@ -77,7 +76,7 @@ impl KernelRom {
     pub fn access_proc(
         &mut self,
         proc_hash: Digest,
-        err_ctx: &ErrorContext<impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         let proc_hash_bytes: ProcHashBytes = proc_hash.into();
         let access_info = self
@@ -128,17 +127,14 @@ impl KernelRom {
 /// Procedure access information for a given kernel procedure.
 #[derive(Debug)]
 struct ProcAccessInfo {
-    proc_hash: Word,
+    proc_hash: Digest,
     num_accesses: usize,
 }
 
 impl ProcAccessInfo {
     /// Returns a new [ProcAccessInfo] for the specified procedure with `num_accesses` set to 0.
     pub fn new(proc_hash: Digest) -> Self {
-        Self {
-            proc_hash: proc_hash.into(),
-            num_accesses: 0,
-        }
+        Self { proc_hash, num_accesses: 0 }
     }
 
     /// Writes a single row into the provided trace fragment for this procedure access entry.

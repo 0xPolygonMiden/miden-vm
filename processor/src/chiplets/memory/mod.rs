@@ -10,7 +10,7 @@ use miden_air::{
         MEMORY_WRITE, V_COL_RANGE, WORD_COL_IDX,
     },
 };
-use vm_core::{WORD_SIZE, ZERO, mast::MastNodeExt};
+use vm_core::{WORD_SIZE, ZERO};
 
 use super::{
     EMPTY_WORD, Felt, FieldElement, ONE, RangeChecker, TraceFragment, Word,
@@ -166,12 +166,12 @@ impl Memory {
         ctx: ContextId,
         addr: Felt,
         clk: RowIndex,
-        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<Felt, MemoryError> {
         let addr: u32 = addr
             .as_int()
             .try_into()
-            .map_err(|_| MemoryError::address_out_of_bounds(addr.as_int(), error_ctx))?;
+            .map_err(|_| MemoryError::address_out_of_bounds(addr.as_int(), err_ctx))?;
         self.num_trace_rows += 1;
         self.trace.entry(ctx).or_default().read(ctx, addr, Felt::from(clk))
     }
@@ -190,14 +190,14 @@ impl Memory {
         ctx: ContextId,
         addr: Felt,
         clk: RowIndex,
-        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<Word, MemoryError> {
         let addr: u32 = addr
             .as_int()
             .try_into()
-            .map_err(|_| MemoryError::address_out_of_bounds(addr.as_int(), error_ctx))?;
+            .map_err(|_| MemoryError::address_out_of_bounds(addr.as_int(), err_ctx))?;
         if addr % WORD_SIZE as u32 != 0 {
-            return Err(MemoryError::unaligned_word_access(addr, ctx, clk.into(), error_ctx));
+            return Err(MemoryError::unaligned_word_access(addr, ctx, clk.into(), err_ctx));
         }
 
         self.num_trace_rows += 1;
@@ -215,12 +215,12 @@ impl Memory {
         addr: Felt,
         clk: RowIndex,
         value: Felt,
-        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), MemoryError> {
         let addr: u32 = addr
             .as_int()
             .try_into()
-            .map_err(|_| MemoryError::address_out_of_bounds(addr.as_int(), error_ctx))?;
+            .map_err(|_| MemoryError::address_out_of_bounds(addr.as_int(), err_ctx))?;
         self.num_trace_rows += 1;
         self.trace.entry(ctx).or_default().write(ctx, addr, Felt::from(clk), value)
     }
@@ -237,14 +237,14 @@ impl Memory {
         addr: Felt,
         clk: RowIndex,
         value: Word,
-        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), MemoryError> {
         let addr: u32 = addr
             .as_int()
             .try_into()
-            .map_err(|_| MemoryError::address_out_of_bounds(addr.as_int(), error_ctx))?;
+            .map_err(|_| MemoryError::address_out_of_bounds(addr.as_int(), err_ctx))?;
         if addr % WORD_SIZE as u32 != 0 {
-            return Err(MemoryError::unaligned_word_access(addr, ctx, clk.into(), error_ctx));
+            return Err(MemoryError::unaligned_word_access(addr, ctx, clk.into(), err_ctx));
         }
 
         self.num_trace_rows += 1;

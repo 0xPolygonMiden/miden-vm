@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 use core::fmt;
 
-use miden_crypto::{Felt, hash::rpo::RpoDigest};
+use miden_crypto::{Felt, Word};
 use miden_formatting::prettier::PrettyPrint;
 
 use super::MastNodeExt;
@@ -23,7 +23,7 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SplitNode {
     branches: [MastNodeId; 2],
-    digest: RpoDigest,
+    digest: Word,
     before_enter: Vec<DecoratorId>,
     after_exit: Vec<DecoratorId>,
 }
@@ -63,7 +63,7 @@ impl SplitNode {
 
     /// Returns a new [`SplitNode`] from values that are assumed to be correct.
     /// Should only be used when the source of the inputs is trusted (e.g. deserialization).
-    pub fn new_unsafe(branches: [MastNodeId; 2], digest: RpoDigest) -> Self {
+    pub fn new_unsafe(branches: [MastNodeId; 2], digest: Word) -> Self {
         Self {
             branches,
             digest,
@@ -81,12 +81,12 @@ impl SplitNode {
     /// domain defined by [Self::DOMAIN] - i..e,:
     /// ```
     /// # use miden_core::mast::SplitNode;
-    /// # use miden_crypto::{hash::rpo::{RpoDigest as Digest, Rpo256 as Hasher}};
-    /// # let on_true_digest = Digest::default();
-    /// # let on_false_digest = Digest::default();
+    /// # use miden_crypto::{Word, hash::rpo::Rpo256 as Hasher};
+    /// # let on_true_digest = Word::default();
+    /// # let on_false_digest = Word::default();
     /// Hasher::merge_in_domain(&[on_true_digest, on_false_digest], SplitNode::DOMAIN);
     /// ```
-    pub fn digest(&self) -> RpoDigest {
+    pub fn digest(&self) -> Word {
         self.digest
     }
 

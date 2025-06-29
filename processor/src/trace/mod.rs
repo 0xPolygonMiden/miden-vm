@@ -6,13 +6,12 @@ use miden_air::trace::{
     decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
     main_trace::MainTrace,
 };
-use vm_core::{ProgramInfo, StackInputs, StackOutputs, ZERO, stack::MIN_STACK_DEPTH};
+use vm_core::{ProgramInfo, StackInputs, StackOutputs, Word, ZERO, stack::MIN_STACK_DEPTH};
 use winter_prover::{EvaluationFrame, Trace, TraceInfo, crypto::RandomCoin};
 
 use super::{
-    ColMatrix, Digest, Felt, FieldElement, Process,
-    chiplets::AuxTraceBuilder as ChipletsAuxTraceBuilder, crypto::RpoRandomCoin,
-    decoder::AuxTraceBuilder as DecoderAuxTraceBuilder,
+    ColMatrix, Felt, FieldElement, Process, chiplets::AuxTraceBuilder as ChipletsAuxTraceBuilder,
+    crypto::RpoRandomCoin, decoder::AuxTraceBuilder as DecoderAuxTraceBuilder,
     range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
     stack::AuxTraceBuilder as StackAuxTraceBuilder,
 };
@@ -75,12 +74,12 @@ impl ExecutionTrace {
         // to inject random values at the end of the trace; using program hash here is OK because
         // we are using random values only to stabilize constraint degrees, and not to achieve
         // perfect zero knowledge.
-        let program_hash = process.decoder.program_hash();
+        let program_hash = process.decoder.program_hash().into();
         let rng = RpoRandomCoin::new(program_hash);
 
         // create a new program info instance with the underlying kernel
         let kernel = process.kernel().clone();
-        let program_info = ProgramInfo::new(program_hash.into(), kernel);
+        let program_info = ProgramInfo::new(program_hash, kernel);
         let (main_trace, aux_trace_builders, trace_len_summary) = finalize_trace(process, rng);
         let trace_info = TraceInfo::new_multi_segment(
             PADDED_TRACE_WIDTH,
@@ -110,7 +109,7 @@ impl ExecutionTrace {
     }
 
     /// Returns hash of the program execution of which resulted in this execution trace.
-    pub fn program_hash(&self) -> &Digest {
+    pub fn program_hash(&self) -> &Word {
         self.program_info.program_hash()
     }
 
@@ -225,7 +224,7 @@ impl ExecutionTrace {
             .collect::<Vec<_>>();
 
         // inject random values into the last rows of the trace
-        let mut rng = RpoRandomCoin::new(self.program_hash().into());
+        let mut rng = RpoRandomCoin::new(*self.program_hash());
         for i in self.length() - NUM_RAND_ROWS..self.length() {
             for column in aux_columns.iter_mut() {
                 column[i] = rng.draw().expect("failed to draw a random value");

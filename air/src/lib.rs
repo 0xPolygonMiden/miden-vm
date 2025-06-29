@@ -10,7 +10,7 @@ extern crate std;
 use alloc::vec::Vec;
 
 use vm_core::{
-    ExtensionOf, ONE, ProgramInfo, StackInputs, StackOutputs, ZERO,
+    ExtensionOf, ONE, ProgramInfo, QuadExtension, StackInputs, StackOutputs, ZERO,
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
 };
 use winter_air::{
@@ -36,8 +36,12 @@ mod options;
 mod proof;
 
 mod utils;
+
+pub type QuadExt = QuadExtension<Felt>;
+
 // RE-EXPORTS
 // ================================================================================================
+
 pub use errors::ExecutionOptionsError;
 pub use options::{ExecutionOptions, ProvingOptions};
 pub use proof::{ExecutionProof, HashFunction};

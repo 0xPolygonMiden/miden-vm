@@ -20,7 +20,7 @@ mod join_node;
 pub use join_node::JoinNode;
 
 mod split_node;
-use miden_crypto::{Felt, hash::rpo::RpoDigest};
+use miden_crypto::{Felt, Word};
 use miden_formatting::prettier::{Document, PrettyPrint};
 pub use split_node::SplitNode;
 
@@ -101,7 +101,7 @@ impl MastNode {
         Self::Dyn(DynNode::new_dyncall())
     }
 
-    pub fn new_external(mast_root: RpoDigest) -> Self {
+    pub fn new_external(mast_root: Word) -> Self {
         Self::External(ExternalNode::new(mast_root))
     }
 
@@ -218,7 +218,7 @@ impl MastNode {
         }
     }
 
-    pub fn digest(&self) -> RpoDigest {
+    pub fn digest(&self) -> Word {
         match self {
             MastNode::Block(node) => node.digest(),
             MastNode::Join(node) => node.digest(),

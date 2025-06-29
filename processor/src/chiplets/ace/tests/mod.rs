@@ -10,7 +10,7 @@ use miden_air::{
         V_2_0_IDX, V_2_1_IDX,
     },
 };
-use vm_core::{ZERO, mast::BasicBlockNode};
+use vm_core::{WORD_SIZE, ZERO};
 
 use crate::{
     ContextId, Felt, QuadFelt, Word,
@@ -49,7 +49,7 @@ fn test_var_plus_one() {
     }
 
     let valid_input = &[-QuadFelt::ONE, QuadFelt::ZERO];
-    let err_ctx = ErrorContext::default();
+    let err_ctx = ();
     let encoded_circuit = verify_encoded_circuit_eval(&circuit, valid_input, &err_ctx);
     verify_eval_circuit(&encoded_circuit, valid_input);
 }
@@ -81,7 +81,7 @@ fn test_bool_check() {
             [x, result]
         })
         .collect();
-    let err_ctx = ErrorContext::default();
+    let err_ctx = ();
     for input in &inputs {
         verify_circuit_eval(&circuit, input, |_| QuadFelt::ZERO);
         let encoded_circuit = verify_encoded_circuit_eval(&circuit, input, &err_ctx);
@@ -191,7 +191,7 @@ fn verify_circuit_eval(
 fn verify_encoded_circuit_eval(
     circuit: &Circuit,
     inputs: &[QuadFelt],
-    err_ctx: &ErrorContext<'_, BasicBlockNode>,
+    err_ctx: &impl ErrorContext,
 ) -> EncodedCircuit {
     let encoded_circuit = EncodedCircuit::try_from_circuit(circuit).expect("cannot encode");
 
@@ -210,11 +210,13 @@ fn verify_encoded_circuit_eval(
         evaluator.do_read(ptr, *word).expect("failed to read a word during `READ`");
         ptr += PTR_OFFSET_WORD;
     }
-    for instruction in mem_iter.flatten() {
-        evaluator
-            .do_eval(ptr, *instruction, err_ctx)
-            .expect("failed to read an element during `EVAL`");
-        ptr += PTR_OFFSET_ELEM;
+    for &instruction_group in mem_iter {
+        for instruction in Into::<[Felt; WORD_SIZE]>::into(instruction_group) {
+            evaluator
+                .do_eval(ptr, instruction, err_ctx)
+                .expect("failed to read an element during `EVAL`");
+            ptr += PTR_OFFSET_ELEM;
+        }
     }
 
     // Check final eval is 0
@@ -232,13 +234,13 @@ fn verify_eval_circuit(circuit: &EncodedCircuit, inputs: &[QuadFelt]) {
     let ptr = Felt::ZERO;
     let clk = RowIndex::from(0);
     let mut mem = Memory::default();
-    let error_ctx = ErrorContext::<BasicBlockNode>::none();
+    let err_ctx = ();
 
     let circuit_mem = generate_memory(circuit, inputs);
 
     let mut ptr_curr = ptr;
     for word in circuit_mem {
-        mem.write_word(ctx, ptr_curr, clk, word, &error_ctx).unwrap();
+        mem.write_word(ctx, ptr_curr, clk, word, &err_ctx).unwrap();
         ptr_curr += Felt::from(4u8);
     }
 
@@ -249,7 +251,7 @@ fn verify_eval_circuit(circuit: &EncodedCircuit, inputs: &[QuadFelt]) {
         Felt::from(circuit.num_vars() as u32),
         Felt::from(circuit.num_eval() as u32),
         &mut mem,
-        &error_ctx,
+        &err_ctx,
     )
     .unwrap();
 }
@@ -266,7 +268,12 @@ fn generate_memory(circuit: &EncodedCircuit, inputs: &[QuadFelt]) -> Vec<Word> {
     mem.extend(circuit.encoded_circuit().iter());
 
     // Convert to words
-    mem.chunks_exact(4).map(|word| word.try_into().unwrap()).collect()
+    mem.chunks_exact(4)
+        .map(|word| {
+            let result: [Felt; WORD_SIZE] = word.try_into().unwrap();
+            result.into()
+        })
+        .collect()
 }
 
 /// Given an EvaluationContext

@@ -7,7 +7,7 @@ use miden_air::{
         main_trace::MainTrace,
     },
 };
-use vm_core::{Felt, FieldElement, crypto::hash::RpoDigest};
+use vm_core::{Felt, FieldElement, Word};
 
 use crate::{
     chiplets::aux_trace::build_value,
@@ -19,7 +19,7 @@ use crate::{
 
 /// Builds the requests for each unique kernel procedure digest, to be provided via public inputs.
 pub(super) fn build_kernel_init_requests<E>(
-    proc_hashes: &[RpoDigest],
+    proc_hashes: &[Word],
     alphas: &[E],
     _debugger: &mut BusDebugger<E>,
 ) -> E

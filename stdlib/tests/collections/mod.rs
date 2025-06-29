@@ -1,6 +1,6 @@
 use test_utils::{
     EMPTY_WORD, Felt, Word,
-    crypto::{MerkleStore, RpoDigest, Smt},
+    crypto::{MerkleStore, Smt},
 };
 
 mod mmr;

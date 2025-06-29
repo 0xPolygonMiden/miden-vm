@@ -196,7 +196,7 @@ where
         ctx: main_trace.ctx(row),
         addr: main_trace.stack_element(0, row),
         clk: main_trace.clk(row),
-        word: main_trace.decoder_hasher_state_first_half(row),
+        word: main_trace.decoder_hasher_state_first_half(row).into(),
         source: if op_code_felt == OPCODE_DYNCALL.into() {
             "dyncall"
         } else {

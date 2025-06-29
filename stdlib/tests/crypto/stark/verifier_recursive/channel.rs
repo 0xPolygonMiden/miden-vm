@@ -3,10 +3,11 @@ use alloc::vec::Vec;
 use miden_air::ProcessorAir;
 use test_utils::{
     Felt, MerkleTreeVC, VerifierError,
-    crypto::{BatchMerkleProof, PartialMerkleTree, Rpo256, RpoDigest},
+    crypto::{BatchMerkleProof, PartialMerkleTree, Rpo256},
     group_slice_elements,
     math::{FieldElement, QuadExtension, StarkField},
 };
+use vm_core::Word;
 use winter_air::{
     Air,
     proof::{Proof, Queries, QuotientOodFrame, Table, TraceOodFrame},
@@ -15,7 +16,7 @@ use winter_fri::{VerifierChannel as FriVerifierChannel, folding::fold_positions}
 
 pub type QuadExt = QuadExtension<Felt>;
 
-type AdvMap = Vec<(RpoDigest, Vec<Felt>)>;
+type AdvMap = Vec<(Word, Vec<Felt>)>;
 
 /// A view into a [Proof] for a computation structured to simulate an "interactive" channel.
 ///
@@ -24,13 +25,13 @@ type AdvMap = Vec<(RpoDigest, Vec<Felt>)>;
 /// well-formed in the context of the computation for the specified [Air].
 pub struct VerifierChannel {
     // trace queries
-    trace_roots: Vec<RpoDigest>,
+    trace_roots: Vec<Word>,
     trace_queries: Option<TraceQueries>,
     // constraint queries
-    constraint_root: RpoDigest,
+    constraint_root: Word,
     constraint_queries: Option<ConstraintQueries>,
     // FRI proof
-    fri_roots: Option<Vec<RpoDigest>>,
+    fri_roots: Option<Vec<Word>>,
     fri_layer_proofs: Vec<BatchMerkleProof<Rpo256>>,
     fri_layer_queries: Vec<Vec<QuadExt>>,
     fri_remainder: Option<Vec<QuadExt>>,
@@ -124,12 +125,12 @@ impl VerifierChannel {
     ///
     /// For computations requiring multiple trace segment, the returned slice will contain a
     /// commitment for each trace segment.
-    pub fn read_trace_commitments(&self) -> &[RpoDigest] {
+    pub fn read_trace_commitments(&self) -> &[Word] {
         &self.trace_roots
     }
 
     /// Returns constraint evaluation commitment sent by the prover.
-    pub fn read_constraint_commitment(&self) -> RpoDigest {
+    pub fn read_constraint_commitment(&self) -> Word {
         self.constraint_root
     }
 
@@ -222,8 +223,8 @@ impl VerifierChannel {
         &mut self,
         positions_: &[usize],
         domain_size: usize,
-        layer_commitments: Vec<RpoDigest>,
-    ) -> (Vec<PartialMerkleTree>, Vec<(RpoDigest, Vec<Felt>)>) {
+        layer_commitments: Vec<Word>,
+    ) -> (Vec<PartialMerkleTree>, Vec<(Word, Vec<Felt>)>) {
         let all_layers_queries = self.fri_layer_queries.clone();
         let mut current_domain_size = domain_size;
         let mut positions = positions_.to_vec();
@@ -266,7 +267,7 @@ impl FriVerifierChannel<QuadExt> for VerifierChannel {
         self.fri_num_partitions
     }
 
-    fn read_fri_layer_commitments(&mut self) -> Vec<RpoDigest> {
+    fn read_fri_layer_commitments(&mut self) -> Vec<Word> {
         self.fri_roots.take().expect("already read")
     }
 
@@ -404,9 +405,9 @@ pub fn unbatch_to_partial_mt(
     positions: Vec<usize>,
     queries: Vec<Vec<Felt>>,
     proof: BatchMerkleProof<Rpo256>,
-) -> (PartialMerkleTree, Vec<(RpoDigest, Vec<Felt>)>) {
+) -> (PartialMerkleTree, Vec<(Word, Vec<Felt>)>) {
     // hash the query values in order to get the leaf
-    let leaves: Vec<RpoDigest> = queries.iter().map(|row| Rpo256::hash_elements(row)).collect();
+    let leaves: Vec<Word> = queries.iter().map(|row| Rpo256::hash_elements(row)).collect();
 
     // use the computed leaves with the indices in order to unbatch the Merkle proof batch proof
     let unbatched_proof = proof
