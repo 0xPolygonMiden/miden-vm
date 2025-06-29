@@ -5,7 +5,7 @@ use miden_assembly_syntax::{
 use miden_core::Operation::*;
 
 use super::{BasicBlockBuilder, mem_ops::local_to_absolute_addr, push_felt};
-use crate::assembler::ProcedureContext;
+use crate::ProcedureContext;
 
 // CONSTANT INPUTS
 // ================================================================================================

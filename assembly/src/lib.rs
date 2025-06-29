@@ -9,13 +9,21 @@ extern crate std;
 use miden_core::{ONE, ZERO};
 
 mod assembler;
+mod basic_block_builder;
+mod id;
+mod instruction;
+pub mod linker;
+mod mast_forest_builder;
+mod procedure;
+
+#[cfg(test)]
+mod mast_forest_merger_tests;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 #[cfg(test)]
 mod tests;
 
 // Re-exported for downstream crates
-
 pub use miden_assembly_syntax::{
     DefaultSourceManager, KernelLibrary, Library, LibraryNamespace, LibraryPath, ModuleParser,
     Parse, ParseOptions, Report, SourceFile, SourceId, SourceManager, SourceSpan, Span, Spanned,
@@ -25,7 +33,13 @@ pub use miden_assembly_syntax::{
 /// Merkelized abstract syntax tree (MAST) components defining Miden VM programs.
 pub use miden_core::{mast, utils};
 
-pub use self::assembler::{Assembler, LinkLibraryKind, LinkerError};
+#[doc(hidden)]
+pub use self::linker::{LinkLibraryKind, LinkerError};
+pub use self::{
+    assembler::Assembler,
+    id::{GlobalProcedureIndex, ModuleIndex},
+    procedure::{Procedure, ProcedureContext},
+};
 
 // CONSTANTS
 // ================================================================================================

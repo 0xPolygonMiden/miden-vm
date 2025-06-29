@@ -1,4 +1,4 @@
-use crate::{assembler::ProcedureContext, ast::DebugOptions, diagnostics::Report};
+use crate::{ProcedureContext, ast::DebugOptions, diagnostics::Report};
 
 /// Compiles the AST representation of a `debug` instruction into its VM representation.
 ///

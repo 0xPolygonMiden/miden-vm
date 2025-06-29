@@ -11,7 +11,7 @@ use miden_assembly_syntax::{
 };
 
 use super::{Linker, ModuleLink, PreLinkModule};
-use crate::assembler::{GlobalProcedureIndex, LinkerError, ModuleIndex};
+use crate::{GlobalProcedureIndex, LinkerError, ModuleIndex};
 
 // HELPER STRUCTS
 // ================================================================================================

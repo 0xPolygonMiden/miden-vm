@@ -3,7 +3,7 @@ use alloc::{
     vec::Vec,
 };
 
-use crate::assembler::GlobalProcedureIndex;
+use crate::GlobalProcedureIndex;
 
 /// Represents the inability to construct a topological ordering of the nodes in a [CallGraph]
 /// due to a cycle in the graph, which can happen due to recursion.
@@ -47,8 +47,8 @@ impl CallGraph {
 
     /// Inserts a node in the graph for `id`, if not already present.
     ///
-    /// Returns the set of [ProcedureId] which are the outbound neighbors of `id` in the graph,
-    /// i.e. the callees of a call-like instruction.
+    /// Returns the set of [GlobalProcedureIndex] which are the outbound neighbors of `id` in the
+    /// graph, i.e. the callees of a call-like instruction.
     pub fn get_or_insert_node(
         &mut self,
         id: GlobalProcedureIndex,
@@ -60,12 +60,12 @@ impl CallGraph {
     ///
     /// This operation is unchecked, i.e. it is possible to introduce cycles in the graph using it.
     /// As a result, it is essential that the caller either know that adding the edge does _not_
-    /// introduce a cycle, or that [toposort] is run once the graph is built, in order to verify
-    /// that the graph is valid and has no cycles.
+    /// introduce a cycle, or that [Self::toposort] is run once the graph is built, in order to
+    /// verify that the graph is valid and has no cycles.
     ///
     /// NOTE: This function will panic if you attempt to add an edge from a function to itself,
     /// which trivially introduces a cycle. All other cycle-inducing edges must be caught by a
-    /// call to [toposort].
+    /// call to [Self::toposort].
     pub fn add_edge(&mut self, caller: GlobalProcedureIndex, callee: GlobalProcedureIndex) {
         assert_ne!(caller, callee, "a procedure cannot call itself");
 
@@ -235,10 +235,7 @@ impl CallGraph {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        assembler::{GlobalProcedureIndex, ModuleIndex},
-        ast::ProcedureIndex,
-    };
+    use crate::{GlobalProcedureIndex, ModuleIndex, ast::ProcedureIndex};
 
     const A: ModuleIndex = ModuleIndex::const_new(1);
     const B: ModuleIndex = ModuleIndex::const_new(2);

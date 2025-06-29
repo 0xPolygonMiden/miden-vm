@@ -4,9 +4,11 @@ use miden_assembly_syntax::{
     diagnostics::{RelatedLabel, Report},
     parser::IntValue,
 };
-use miden_core::{Decorator, ONE, WORD_SIZE, ZERO, debuginfo::Spanned, mast::MastNodeId};
+use miden_core::{
+    Decorator, Felt, ONE, Operation, WORD_SIZE, ZERO, debuginfo::Spanned, mast::MastNodeId,
+};
 
-use super::{Assembler, BasicBlockBuilder, Felt, Operation, ProcedureContext, ast::InvokeKind};
+use crate::{Assembler, ProcedureContext, ast::InvokeKind, basic_block_builder::BasicBlockBuilder};
 
 mod adv_ops;
 mod crypto_ops;

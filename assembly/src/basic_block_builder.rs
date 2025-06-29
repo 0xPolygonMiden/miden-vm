@@ -2,12 +2,12 @@ use alloc::{borrow::Borrow, string::ToString, sync::Arc, vec::Vec};
 
 use miden_assembly_syntax::{Span, ast::Instruction, diagnostics::Report};
 use miden_core::{
-    AssemblyOp, Decorator, Felt, Operation,
+    AssemblyOp, Decorator, DecoratorList, Felt, Operation,
     mast::{DecoratorId, MastNodeId},
     sys_events::SystemEvent,
 };
 
-use super::{BodyWrapper, DecoratorList, ProcedureContext, mast_forest_builder::MastForestBuilder};
+use crate::{ProcedureContext, assembler::BodyWrapper, mast_forest_builder::MastForestBuilder};
 
 // BASIC BLOCK BUILDER
 // ================================================================================================

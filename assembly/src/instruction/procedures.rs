@@ -3,11 +3,13 @@ use miden_assembly_syntax::{
     ast::{InvocationTarget, InvokeKind},
     diagnostics::Report,
 };
-use miden_core::mast::MastNodeId;
+use miden_core::{Operation, mast::MastNodeId};
 use smallvec::SmallVec;
 
-use super::{Assembler, BasicBlockBuilder, Operation};
-use crate::assembler::{ProcedureContext, mast_forest_builder::MastForestBuilder};
+use crate::{
+    Assembler, ProcedureContext, basic_block_builder::BasicBlockBuilder,
+    mast_forest_builder::MastForestBuilder,
+};
 
 /// Procedure Invocation
 impl Assembler {

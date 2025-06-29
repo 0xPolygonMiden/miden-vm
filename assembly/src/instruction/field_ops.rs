@@ -5,7 +5,7 @@ use miden_assembly_syntax::{
 use miden_core::{FieldElement, Operation::*, sys_events::SystemEvent};
 
 use super::BasicBlockBuilder;
-use crate::{MAX_EXP_BITS, ONE, ZERO, assembler::ProcedureContext};
+use crate::{MAX_EXP_BITS, ONE, ProcedureContext, ZERO};
 
 /// Field element representing TWO in the base field of the VM.
 const TWO: Felt = Felt::new(2);

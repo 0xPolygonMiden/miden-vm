@@ -1,12 +1,9 @@
 use core::ops::ControlFlow;
 
 use crate::{
-    Spanned,
-    assembler::{
-        ModuleIndex, ResolvedTarget,
-        linker::{CallerInfo, LinkerError, NameResolver},
-    },
+    ModuleIndex, Spanned,
     ast::{InvocationTarget, InvokeKind, Module, visit::Visit},
+    linker::{CallerInfo, LinkerError, NameResolver, ResolvedTarget},
 };
 
 // MAYBE REWRITE CHECK

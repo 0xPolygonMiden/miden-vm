@@ -9,8 +9,11 @@ use miden_core::{
     sys_events::SystemEvent,
 };
 
-use super::{BasicBlockBuilder, field_ops::append_pow2_op, push_u32_value};
-use crate::{MAX_U32_ROTATE_VALUE, MAX_U32_SHIFT_VALUE, assembler::ProcedureContext};
+use super::{field_ops::append_pow2_op, push_u32_value};
+use crate::{
+    MAX_U32_ROTATE_VALUE, MAX_U32_SHIFT_VALUE, ProcedureContext,
+    basic_block_builder::BasicBlockBuilder,
+};
 
 /// This enum is intended to determine the mode of operation passed to the parsing function
 #[derive(PartialEq, Eq)]

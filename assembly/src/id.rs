@@ -16,9 +16,9 @@ use crate::ast::ProcedureIndex;
 /// </div>
 ///
 /// In addition to the linker's module graph, these indices are also used with an instance of a
-/// [super::MastForestBuilder]. This is because the linker and [super::MastForestBuilder] instances
+/// `MastForestBuilder`. This is because the linker and `MastForestBuilder` instances
 /// are paired, i.e. the linker stores the syntax trees and call graph analysis for a program, while
-/// the [super::MastForestBuilder] caches the compiled [super::Procedure]s for the same program, as
+/// the `MastForestBuilder` caches the compiled [crate::Procedure]s for the same program, as
 /// derived from the corresponding graph.
 ///
 /// This is intended for use when we are doing global inter-procedural analysis on a (possibly
@@ -35,7 +35,7 @@ pub struct GlobalProcedureIndex {
     pub index: ProcedureIndex,
 }
 
-/// A strongly-typed index into a set of [Module]
+/// A strongly-typed index into a set of [crate::ast::Module]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct ModuleIndex(u16);

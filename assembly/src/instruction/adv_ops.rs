@@ -2,8 +2,7 @@ use miden_core::Operation;
 
 use super::BasicBlockBuilder;
 use crate::{
-    ADVICE_READ_LIMIT,
-    assembler::ProcedureContext,
+    ADVICE_READ_LIMIT, ProcedureContext,
     diagnostics::{RelatedLabel, Report, SourceSpan},
 };
 

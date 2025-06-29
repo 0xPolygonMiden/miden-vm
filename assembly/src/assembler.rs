@@ -1,8 +1,5 @@
 use alloc::{collections::BTreeMap, string::ToString, sync::Arc, vec::Vec};
 
-use basic_block_builder::BasicBlockOrDecorators;
-use linker::{ModuleLink, ProcedureLink};
-use mast_forest_builder::MastForestBuilder;
 use miden_assembly_syntax::{
     self as syntax, DefaultSourceManager, KernelLibrary, Library, LibraryNamespace, LibraryPath,
     Parse, ParseOptions, SemanticAnalysisError, SourceManager, Spanned,
@@ -10,32 +7,19 @@ use miden_assembly_syntax::{
     diagnostics::{RelatedLabel, Report},
 };
 use miden_core::{
-    AssemblyOp, Decorator, DecoratorList, Felt, Kernel, Operation, Program, WORD_SIZE, Word,
+    AssemblyOp, Decorator, Felt, Kernel, Operation, Program, WORD_SIZE, Word,
     debuginfo::SourceSpan,
     mast::{DecoratorId, MastNodeId},
 };
 
-mod basic_block_builder;
-mod id;
-mod instruction;
-mod linker;
-mod mast_forest_builder;
-mod procedure;
-
-#[cfg(test)]
-mod tests;
-
-#[cfg(test)]
-mod mast_forest_merger_tests;
-
-use self::{
-    basic_block_builder::BasicBlockBuilder,
-    linker::{CallerInfo, LinkLibrary, Linker, ResolvedTarget},
-};
-pub use self::{
-    id::{GlobalProcedureIndex, ModuleIndex},
-    linker::{LinkLibraryKind, LinkerError},
-    procedure::{Procedure, ProcedureContext},
+use crate::{
+    GlobalProcedureIndex, ModuleIndex, Procedure, ProcedureContext,
+    basic_block_builder::{BasicBlockBuilder, BasicBlockOrDecorators},
+    linker::{
+        CallerInfo, LinkLibrary, LinkLibraryKind, Linker, LinkerError, ModuleLink, ProcedureLink,
+        ResolvedTarget,
+    },
+    mast_forest_builder::MastForestBuilder,
 };
 
 // ASSEMBLER
@@ -1030,7 +1014,7 @@ impl Assembler {
 
 /// Contains a set of operations which need to be executed before and after a sequence of AST
 /// nodes (i.e., code body).
-struct BodyWrapper {
-    prologue: Vec<Operation>,
-    epilogue: Vec<Operation>,
+pub(crate) struct BodyWrapper {
+    pub prologue: Vec<Operation>,
+    pub epilogue: Vec<Operation>,
 }

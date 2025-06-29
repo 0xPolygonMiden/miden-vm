@@ -11,11 +11,11 @@ use core::ops::Index;
 use miden_core::{Kernel, Word};
 use smallvec::{SmallVec, smallvec};
 
-use self::{analysis::MaybeRewriteCheck, name_resolver::NameResolver, rewrites::ModuleRewriter};
+use self::{analysis::MaybeRewriteCheck, rewrites::ModuleRewriter};
 pub use self::{
     callgraph::{CallGraph, CycleError},
     errors::LinkerError,
-    name_resolver::{CallerInfo, ResolvedTarget},
+    name_resolver::{CallerInfo, NameResolver, ResolvedTarget},
 };
 use super::{GlobalProcedureIndex, ModuleIndex};
 use crate::{

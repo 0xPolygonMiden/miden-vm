@@ -2,7 +2,7 @@ use miden_core::{Felt, Operation::*, debuginfo::SourceSpan};
 
 use super::{BasicBlockBuilder, push_felt, push_u32_value};
 use crate::{
-    assembler::ProcedureContext,
+    ProcedureContext,
     diagnostics::{RelatedLabel, Report, Spanned},
 };
 
