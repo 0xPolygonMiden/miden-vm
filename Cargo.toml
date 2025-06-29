@@ -2,13 +2,13 @@
 members = [
     "air",
     "assembly",
+    "assembly-syntax",
     "core",
     "miden-vm",
     "package",
     "processor",
     "prover",
     "stdlib",
-    "syntax",
     "test-utils",
     "verifier",
 ]

@@ -29,7 +29,7 @@ log = "0.4"
 miden-core = { path = "../core", version = "0.15", default-features = false, features = [
     "diagnostics",
 ] }
-miden-assembly-syntax = { path = "../syntax", version = "0.15", default-features = false }
+miden-assembly-syntax = { path = "../assembly-syntax", version = "0.15", default-features = false }
 miden-mast-package = { path = "../package", version = "0.15", default-features = false }
 smallvec = { version = "1.13", features = [
     "union",
