@@ -1,4 +1,4 @@
-use assembly::regex;
+use assembly::testing::regex;
 use test_utils::{
     MIN_STACK_DEPTH, WORD_SIZE, assert_assembler_diagnostic, assert_diagnostic_lines,
     build_op_test, proptest::prelude::*,

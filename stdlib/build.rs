@@ -30,7 +30,7 @@ fn main() -> Result<()> {
 
     let assembler = Assembler::default().with_debug_mode(cfg!(feature = "with-debug-info"));
     let namespace = "std".parse::<LibraryNamespace>().expect("invalid base namespace");
-    let stdlib = Library::from_dir(asm_dir, namespace, assembler)?;
+    let stdlib = assembler.assemble_library_from_dir(asm_dir, namespace)?;
 
     // write the masl output
     let build_dir = env::var("OUT_DIR").unwrap();

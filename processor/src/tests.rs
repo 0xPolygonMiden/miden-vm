@@ -1,7 +1,10 @@
 /// Tests in this file make sure that diagnostics presented to the user are as expected.
 use alloc::string::ToString;
 
-use assembly::{Assembler, assert_diagnostic_lines, regex, source_file, testing::TestContext};
+use assembly::{
+    Assembler,
+    testing::{TestContext, assert_diagnostic_lines, regex, source_file},
+};
 use test_utils::{
     build_test, build_test_by_mode,
     crypto::{init_merkle_leaves, init_merkle_store},

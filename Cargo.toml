@@ -2,6 +2,7 @@
 members = [
     "air",
     "assembly",
+    "assembly-syntax",
     "core",
     "miden-vm",
     "package",

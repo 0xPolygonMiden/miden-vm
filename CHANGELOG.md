@@ -24,6 +24,11 @@
 - [BREAKING] `Host::get_mast_forest` takes `&mut self` ([#1902](https://github.com/0xMiden/miden-vm/issues/1902)
 - [BREAKING] `ProcessState` returns `MemoryError` instead of `ExecutionError` ([#1912](https://github.com/0xMiden/miden-vm/issues/1912)
 - [BREAKING] `AdviceProvider` should return its own error type ([#1907](https://github.com/0xMiden/miden-vm/issues/1907)
+- Split out the syntax-related aspects of the `miden-assembly` crate into a new crate called `miden-assembly-syntax` ([#1921](https://github.com/0xMiden/miden-vm/pull/1921))
+- Removed the dependency on `miden-assembly` from `miden-mast-package` ([#1921](https://github.com/0xMiden/miden-vm/pull/1921))
+- [BREAKING] Removed `Library::from_dir` in favor of `Assembler::assemble_library_from_dir` ([#1921](https://github.com/0xMiden/miden-vm/pull/1921))
+- [BREAKING] Removed `KernelLibrary::from_dir` in favor of `Assembler::assemble_kernel_from_dir` ([#1921](https://github.com/0xMiden/miden-vm/pull/1921))
+- [BREAKING] Fixed incorrect namespace being set on modules parsed using the `lib_dir` parameter of `KernelLibrary::from_dir`. Previously, modules would be namespaced under `kernel`, but this should have been `$kernel`. Downstream kernels using this option should make sure that any references to the `kernel` namespace are replaced with `$kernel` instead. ([#1921](https://github.com/0xMiden/miden-vm/pull/1921))
 
 #### Enhancements
 
