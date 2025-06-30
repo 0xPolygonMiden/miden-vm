@@ -4,8 +4,10 @@
 
 #### Changes
 
+- Update lalrpop dependency to 0.22 (#1865)
 - Removed the obsolete `RpoFalcon512` decorator and associated structs (#1872).
-- Licensed the project under the Apache 2.0 license (in addition to the MIT) (#1882).
+- Fixed instructions with errors print without quotes (#1882).
+- Licensed the project under the Apache 2.0 license (in addition to the MIT) (#1883).
 - [BREAKING] Renamed `Assembler::add_module` to `Assembler::compile_and_statically_link` (#1881)
 - [BREAKING] Renamed `Assembler::add_modules` to `Assembler::compile_and_statically_link_all` (#1881)
 - [BREAKING] Renamed `Assembler::add_modules_from_dir` to `Assembler::compile_and_statically_link_from_dir` (#1881)
@@ -14,12 +16,10 @@
 - [BREAKING] Renamed `Assembler::add_library` to `Assembler::link_dynamic_library` (#1881)
 - [BREAKING] Renamed `Assembler::add_vendored_library` to `Assembler::link_static_library` (#1881)
 - [BREAKING] `AssemblyError` was removed, and all uses replaced with `Report` (#1881).
-- [BREAKING] `Compile` trait was renamed to `Parse`
-- [BREAKING] `CompileOptions` was renamed to `ParseOptions`
-- Licensed the project under the Apache 2.0 license (in addition to the MIT) (#1840).
+- [BREAKING] `Compile` trait was renamed to `Parse`.
+- [BREAKING] `CompileOptions` was renamed to `ParseOptions`.
 - Uniform chiplet bus message flag encoding (#1887).
 - [BREAKING] Updated dependencies Winterfell to v0.13 and Crypto to v0.15 (#1896).
-- Fixed instructions with errors print without quotes (#1882).
 - [BREAKING] Convert `AdviceProvider` into a struct ([#1904](https://github.com/0xMiden/miden-vm/issues/1904), [#1905](https://github.com/0xMiden/miden-vm/issues/1905))
 - [BREAKING] `Host::get_mast_forest` takes `&mut self` ([#1902](https://github.com/0xMiden/miden-vm/issues/1902)
 - [BREAKING] `ProcessState` returns `MemoryError` instead of `ExecutionError` ([#1912](https://github.com/0xMiden/miden-vm/issues/1912)
@@ -28,16 +28,18 @@
 - Removed the dependency on `miden-assembly` from `miden-mast-package` ([#1921](https://github.com/0xMiden/miden-vm/pull/1921))
 - [BREAKING] Removed `Library::from_dir` in favor of `Assembler::assemble_library_from_dir` ([#1921](https://github.com/0xMiden/miden-vm/pull/1921))
 - [BREAKING] Removed `KernelLibrary::from_dir` in favor of `Assembler::assemble_kernel_from_dir` ([#1921](https://github.com/0xMiden/miden-vm/pull/1921))
-- [BREAKING] Fixed incorrect namespace being set on modules parsed using the `lib_dir` parameter of `KernelLibrary::from_dir`. Previously, modules would be namespaced under `kernel`, but this should have been `$kernel`. Downstream kernels using this option should make sure that any references to the `kernel` namespace are replaced with `$kernel` instead. ([#1921](https://github.com/0xMiden/miden-vm/pull/1921))
+- [BREAKING] Fixed incorrect namespace being set on modules parsed using the `lib_dir` parameter of `KernelLibrary::from_dir`. Previously, modules would be namespaced under `kernel`, but this should have been `$kernel`. Downstream kernels using this option should make sure that any references to the `kernel` namespace are replaced with `$kernel` instead. ([#1921](https://github.com/0xMiden/miden-vm/pull/1921)).
 
 #### Enhancements
 
+- Allow constants to be declared as words and to be arguments of the `push` instruction (#1855).
+- Allow definition of Advice Map data in MASM programs. The data is loaded by the host before execution (#1862).
 - The documentation for the `Assembler` and its APIs was improved, to better explain how each affects the final assembled artifact (#1881).
 - It is now possible to assemble kernels with multiple modules while allowing those modules to perform kernel-like actions, such as using the `caller` instruction. (#1893)
 - Optimize handling of variable length public inputs in the recursive verifier (#1842).
 - Simplify processing of OOD evaluations in the recursive verifier (#1848).
-- Make `ErrorContext` zero-cost ([#1910](https://github.com/0xMiden/miden-vm/issues/1910))
-- Make `FastProcessor` output rich error diagnostics ([#1914](https://github.com/0xMiden/miden-vm/issues/1914))
+- Make `ErrorContext` zero-cost ([#1910](https://github.com/0xMiden/miden-vm/issues/1910)).
+- Make `FastProcessor` output rich error diagnostics ([#1914](https://github.com/0xMiden/miden-vm/issues/1914)).
 
 #### Fixes
 
@@ -56,8 +58,6 @@
 - Add support for setting debugger breakpoints via `breakpoint` instruction (#1860)
 - Improve error messages for some procedure locals-related errors (#1863)
 - Add range checks to the `push_falcon_mod_result` advice injector to make sure that the inputs are `u32` (#1819).
-- Allow constants to be declared as words and to be arguments of the `push` instruction (#1855).
-- Allow definition of Advice Map data in MASM programs. The data is loaded by the host before execution (#1862).
 
 #### Changes
 
@@ -69,7 +69,6 @@
 - Simplify and optimize the recursive verifier (#1801).
 - Simplify auxiliary randomness generation (#1810).
 - Add handling of variable length public inputs to the recursive verifier (#1813).
-- Update lalrpop dependency to 0.22 (#1865)
 
 #### Fixes
 
