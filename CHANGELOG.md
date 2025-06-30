@@ -92,6 +92,7 @@
 - Change `MastForestBuilder::set_after_exit()` for `append_after_exit()` (#1775)
 - Improve processor error diagnostics (#1765)
 - Fix source spans associated with assert* and mtree_verify instructions (#1789)
+- [BREAKING] Improve the layout of the memory used by the recursive verifier (#1857)
 
 ## 0.13.2 (2025-04-02)
 
