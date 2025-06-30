@@ -287,10 +287,10 @@ impl MastForest {
         self.add_node(block)
     }
 
-    /// Clears all debug information: decorators and error_codes.
-    pub fn clear_debug_info(&mut self) {
+    pub fn clear_debug_info_legacy(&mut self) {
         self.decorators.clear();
         self.error_codes.clear();
+
         for node in self.nodes.iter_mut() {
             match node {
                 MastNode::Block(n) => n.clear_decorators(),
@@ -302,6 +302,15 @@ impl MastForest {
                 MastNode::External(n) => n.clear_decorators(),
             }
         }
+    }
+
+    /// Clears all debug information: decorators and error_codes.
+    pub fn clear_debug_info(&mut self) {
+        self.clear_debug_info_legacy();
+
+        self.debug_info.decorators.clear();
+        self.debug_info.op_decorators.clear();
+        self.debug_info.error_codes.clear();
     }
 }
 

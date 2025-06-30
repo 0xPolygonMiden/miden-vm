@@ -109,7 +109,7 @@ impl MastForestBuilder {
         let id_remappings = self.mast_forest.remove_nodes(&nodes_to_remove);
 
         self.mast_forest.build_debug_info();
-        self.mast_forest.clear_debug_info();
+        self.mast_forest.clear_debug_info_legacy();
         (self.mast_forest, id_remappings)
     }
 }

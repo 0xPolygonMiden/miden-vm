@@ -1043,3 +1043,20 @@ impl OperationId {
     //     self.op_id_in_batch
     // }
 }
+
+impl Serializable for OperationId {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write_usize(self.node);
+        target.write_usize(self.batch_idx);
+        target.write_usize(self.op_id_in_batch);
+    }
+}
+
+impl Deserializable for OperationId {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let node = source.read_usize()?;
+        let batch_idx = source.read_usize()?;
+        let op_id_in_batch = source.read_usize()?;
+        Ok(Self { node, batch_idx, op_id_in_batch })
+    }
+}

@@ -4063,6 +4063,6 @@ fn test_clear_debug_info() {
     // std::dbg!(target_with_debug_info.len());
     // std::dbg!(target_without_debug_info.len());
 
-    assert!(target_with_debug_info.len() == 591);
-    assert!(target_without_debug_info.len() == 158);
+    assert!(target_with_debug_info.len() == 595);
+    assert!(target_without_debug_info.len() == 164);
 }
