@@ -7,7 +7,7 @@ use vm_core::mast::{ExternalNode, MastForest, MastNodeId};
 pub use vm_core::utils::*;
 
 use super::{AdviceProvider, Felt};
-use crate::{ExecutionError, Host};
+use crate::{ExecutionError, SyncHost};
 
 // HELPER FUNCTIONS
 // ================================================================================================
@@ -56,7 +56,7 @@ pub(crate) fn split_u32_into_u16(value: u64) -> (u16, u16) {
 pub(crate) fn resolve_external_node(
     external_node: &ExternalNode,
     advice_provider: &mut AdviceProvider,
-    host: &impl Host,
+    host: &impl SyncHost,
 ) -> Result<(MastNodeId, Arc<MastForest>), ExecutionError> {
     let node_digest = external_node.digest();
     let mast_forest = host

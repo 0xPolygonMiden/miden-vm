@@ -2,8 +2,8 @@ use vm_core::{Felt, mast::MastForest, sys_events::SystemEvent};
 
 use super::{ExecutionError, FastProcessor, ONE};
 use crate::{
-    ErrorContext, FMP_MIN, Host, operations::sys_ops::sys_event_handlers::handle_system_event,
-    system::FMP_MAX,
+    BaseHost, ErrorContext, FMP_MIN, SyncHost,
+    operations::sys_ops::sys_event_handlers::handle_system_event, system::FMP_MAX,
 };
 
 impl FastProcessor {
@@ -13,7 +13,7 @@ impl FastProcessor {
         &mut self,
         err_code: Felt,
         op_idx: usize,
-        host: &mut impl Host,
+        host: &mut impl BaseHost,
         program: &MastForest,
         err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
@@ -87,7 +87,7 @@ impl FastProcessor {
         &mut self,
         event_id: u32,
         op_idx: usize,
-        host: &mut impl Host,
+        host: &mut impl SyncHost,
         err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         let process = &mut self.state(op_idx);

@@ -16,8 +16,8 @@ use vm_core::{
 };
 
 use crate::{
-    AdviceInputs, AdviceProvider, ContextId, ErrorContext, ExecutionError, FMP_MIN, Host,
-    ProcessState, SYSCALL_FMP_MIN, add_error_ctx_to_external_error, chiplets::Ace, err_ctx,
+    AdviceInputs, AdviceProvider, ContextId, ErrorContext, ExecutionError, FMP_MIN, ProcessState,
+    SYSCALL_FMP_MIN, SyncHost, add_error_ctx_to_external_error, chiplets::Ace, err_ctx,
     utils::resolve_external_node,
 };
 
@@ -316,7 +316,7 @@ impl FastProcessor {
     pub fn execute(
         mut self,
         program: &Program,
-        host: &mut impl Host,
+        host: &mut impl SyncHost,
     ) -> Result<StackOutputs, ExecutionError> {
         self.execute_impl(program, host)
     }
@@ -328,7 +328,7 @@ impl FastProcessor {
     fn execute_impl(
         &mut self,
         program: &Program,
-        host: &mut impl Host,
+        host: &mut impl SyncHost,
     ) -> Result<StackOutputs, ExecutionError> {
         self.execute_mast_node(
             program.entrypoint(),
@@ -359,7 +359,7 @@ impl FastProcessor {
         node_id: MastNodeId,
         program: &MastForest,
         kernel: &Kernel,
-        host: &mut impl Host,
+        host: &mut impl SyncHost,
     ) -> Result<(), ExecutionError> {
         let node = program
             .get_node_by_id(node_id)
@@ -419,7 +419,7 @@ impl FastProcessor {
         join_node: &JoinNode,
         program: &MastForest,
         kernel: &Kernel,
-        host: &mut impl Host,
+        host: &mut impl SyncHost,
     ) -> Result<(), ExecutionError> {
         // Corresponds to the row inserted for the JOIN operation added to the trace.
         self.clk += 1_u32;
@@ -438,7 +438,7 @@ impl FastProcessor {
         split_node: &SplitNode,
         program: &MastForest,
         kernel: &Kernel,
-        host: &mut impl Host,
+        host: &mut impl SyncHost,
     ) -> Result<(), ExecutionError> {
         // Corresponds to the row inserted for the SPLIT operation added to the trace.
         self.clk += 1_u32;
@@ -469,7 +469,7 @@ impl FastProcessor {
         loop_node: &LoopNode,
         program: &MastForest,
         kernel: &Kernel,
-        host: &mut impl Host,
+        host: &mut impl SyncHost,
     ) -> Result<(), ExecutionError> {
         // Corresponds to the row inserted for the LOOP operation added to the trace.
         self.clk += 1_u32;
@@ -513,7 +513,7 @@ impl FastProcessor {
         call_node: &CallNode,
         program: &MastForest,
         kernel: &Kernel,
-        host: &mut impl Host,
+        host: &mut impl SyncHost,
     ) -> Result<(), ExecutionError> {
         let err_ctx = err_ctx!(program, call_node, self.source_manager.clone());
 
@@ -569,7 +569,7 @@ impl FastProcessor {
         dyn_node: &DynNode,
         program: &MastForest,
         kernel: &Kernel,
-        host: &mut impl Host,
+        host: &mut impl SyncHost,
     ) -> Result<(), ExecutionError> {
         // Corresponds to the row inserted for the DYN or DYNCALL operation added to the trace.
         self.clk += 1_u32;
@@ -636,7 +636,7 @@ impl FastProcessor {
         &mut self,
         external_node: &ExternalNode,
         kernel: &Kernel,
-        host: &mut impl Host,
+        host: &mut impl SyncHost,
     ) -> Result<(), ExecutionError> {
         let (root_id, mast_forest) = resolve_external_node(external_node, &mut self.advice, host)?;
 
@@ -651,7 +651,7 @@ impl FastProcessor {
         &mut self,
         basic_block_node: &BasicBlockNode,
         program: &MastForest,
-        host: &mut impl Host,
+        host: &mut impl SyncHost,
     ) -> Result<(), ExecutionError> {
         // Corresponds to the row inserted for the SPAN operation added to the trace.
         self.clk += 1_u32;
@@ -717,7 +717,7 @@ impl FastProcessor {
         decorators: &mut DecoratorIterator,
         batch_offset_in_block: usize,
         program: &MastForest,
-        host: &mut impl Host,
+        host: &mut impl SyncHost,
     ) -> Result<(), ExecutionError> {
         let op_counts = batch.op_counts();
         let mut op_idx_in_group = 0;
@@ -789,7 +789,7 @@ impl FastProcessor {
         &mut self,
         decorator: &Decorator,
         op_idx_in_batch: usize,
-        host: &mut impl Host,
+        host: &mut impl SyncHost,
     ) -> Result<(), ExecutionError> {
         match decorator {
             Decorator::Debug(options) => {
@@ -815,7 +815,7 @@ impl FastProcessor {
         operation: &Operation,
         op_idx: usize,
         program: &MastForest,
-        host: &mut impl Host,
+        host: &mut impl SyncHost,
         err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         if self.bounds_check_counter == 0 {
