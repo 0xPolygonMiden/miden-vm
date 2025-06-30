@@ -17,8 +17,6 @@ use vm_core::{Felt, FieldElement, WORD_SIZE, Word, ZERO};
 
 mod verifier_recursive;
 
-const KERNEL_OP_LABEL: Felt = Felt::new(48);
-
 // Note: Changes to Miden VM may cause this test to fail when some of the assumptions documented
 // in `stdlib/asm/crypto/stark/verifier.masm` are violated.
 #[rstest]
@@ -296,6 +294,7 @@ fn reduce_kernel_procedures_digests(
 }
 
 fn reduce_digest(digest: &[u64], alpha: QuadExt, beta: QuadExt) -> QuadExt {
+    const KERNEL_OP_LABEL: Felt = Felt::new(48);
     alpha
         + KERNEL_OP_LABEL.into()
         + beta
