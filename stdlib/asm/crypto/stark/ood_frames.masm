@@ -45,8 +45,8 @@ export.load_and_horner_eval_ood_frames
     ###    to which we save the OOD.
     push.0.0
     exec.constants::deep_rand_alpha_nd_ptr
-    exec.constants::ood_trace_current_ptr
-    # => [ood_trace_current_ptr, deep_rand_alpha_ptr, 0, 0, Y, ...]
+    exec.constants::ood_evaluations_ptr
+    # => [ood_evaluations_ptr, deep_rand_alpha_ptr, 0, 0, Y, ...]
     # => [U, Y, ...]
 
     ## 2) Process the fully aligned OOD `current` evaluations at z of the execution trace
