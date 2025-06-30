@@ -27,7 +27,7 @@ pub use vm_core::{
     utils::{DeserializationError, collections::KvMap},
 };
 use vm_core::{
-    Decorator, DecoratorIterator, FieldElement, WORD_SIZE,
+    Decorator, FieldElement, OperationId, WORD_SIZE,
     mast::{
         BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, OP_GROUP_SIZE, OpBatch, SplitNode,
     },
@@ -322,26 +322,30 @@ impl Process {
             .get_node_by_id(node_id)
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id })?;
 
-        for &decorator_id in node.before_enter() {
-            self.execute_decorator(&program[decorator_id], host)?;
+        for decorator in program.get_decorators(&OperationId::new(node_id.into(), 0, 0)) {
+            self.execute_decorator(decorator, host)?;
         }
 
         match node {
-            MastNode::Block(node) => self.execute_basic_block_node(node, program, host)?,
+            MastNode::Block(node) => {
+                self.execute_basic_block_node(node_id.into(), node, program, host)?
+            },
             MastNode::Join(node) => self.execute_join_node(node, program, host)?,
-            MastNode::Split(node) => self.execute_split_node(node, program, host)?,
-            MastNode::Loop(node) => self.execute_loop_node(node, program, host)?,
+            MastNode::Split(node) => {
+                self.execute_split_node(node, node_id.into(), program, host)?
+            },
+            MastNode::Loop(node) => self.execute_loop_node(node, node_id.into(), program, host)?,
             MastNode::Call(node) => {
-                let err_ctx = err_ctx!(program, node, self.source_manager.clone());
+                let err_ctx = err_ctx!(program, node, node_id.into(), self.source_manager.clone());
                 add_error_ctx_to_external_error(
-                    self.execute_call_node(node, program, host),
+                    self.execute_call_node(node, node_id.into(), program, host),
                     err_ctx,
                 )?
             },
             MastNode::Dyn(node) => {
-                let err_ctx = err_ctx!(program, node, self.source_manager.clone());
+                let err_ctx = err_ctx!(program, node, node_id.into(), self.source_manager.clone());
                 add_error_ctx_to_external_error(
-                    self.execute_dyn_node(node, program, host),
+                    self.execute_dyn_node(node, node_id.into(), program, host),
                     err_ctx,
                 )?
             },
@@ -352,8 +356,8 @@ impl Process {
             },
         }
 
-        for &decorator_id in node.after_exit() {
-            self.execute_decorator(&program[decorator_id], host)?;
+        for decorator in program.get_decorators_after(&OperationId::new(node_id.into(), 0, 0)) {
+            self.execute_decorator(decorator, host)?;
         }
 
         Ok(())
@@ -381,6 +385,7 @@ impl Process {
     fn execute_split_node(
         &mut self,
         node: &SplitNode,
+        node_id: usize,
         program: &MastForest,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
@@ -393,7 +398,7 @@ impl Process {
         } else if condition == ZERO {
             self.execute_mast_node(node.on_false(), program, host)?;
         } else {
-            let err_ctx = err_ctx!(program, node, self.source_manager.clone());
+            let err_ctx = err_ctx!(program, node, node_id, self.source_manager.clone());
             return Err(ExecutionError::not_binary_value_if(condition, &err_ctx));
         }
 
@@ -405,6 +410,7 @@ impl Process {
     fn execute_loop_node(
         &mut self,
         node: &LoopNode,
+        node_id: usize,
         program: &MastForest,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
@@ -426,7 +432,7 @@ impl Process {
             }
 
             if self.stack.peek() != ZERO {
-                let err_ctx = err_ctx!(program, node, self.source_manager.clone());
+                let err_ctx = err_ctx!(program, node, node_id, self.source_manager.clone());
                 return Err(ExecutionError::not_binary_value_loop(self.stack.peek(), &err_ctx));
             }
 
@@ -437,7 +443,7 @@ impl Process {
             // already dropped when we started the LOOP block
             self.end_loop_node(node, false, program, host)
         } else {
-            let err_ctx = err_ctx!(program, node, self.source_manager.clone());
+            let err_ctx = err_ctx!(program, node, node_id, self.source_manager.clone());
             Err(ExecutionError::not_binary_value_loop(condition, &err_ctx))
         }
     }
@@ -447,6 +453,7 @@ impl Process {
     fn execute_call_node(
         &mut self,
         call_node: &CallNode,
+        node_id: usize,
         program: &MastForest,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
@@ -461,10 +468,10 @@ impl Process {
             let callee = program.get_node_by_id(call_node.callee()).ok_or_else(|| {
                 ExecutionError::MastNodeNotFoundInForest { node_id: call_node.callee() }
             })?;
-            let err_ctx = err_ctx!(program, call_node, self.source_manager.clone());
+            let err_ctx = err_ctx!(program, call_node, node_id, self.source_manager.clone());
             self.chiplets.kernel_rom.access_proc(callee.digest(), &err_ctx)?;
         }
-        let err_ctx = err_ctx!(program, call_node, self.source_manager.clone());
+        let err_ctx = err_ctx!(program, call_node, node_id, self.source_manager.clone());
 
         self.start_call_node(call_node, program, host)?;
         self.execute_mast_node(call_node.callee(), program, host)?;
@@ -479,6 +486,7 @@ impl Process {
     fn execute_dyn_node(
         &mut self,
         node: &DynNode,
+        node_id: usize,
         program: &MastForest,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
@@ -487,7 +495,7 @@ impl Process {
             return Err(ExecutionError::CallInSyscall("dyncall"));
         }
 
-        let err_ctx = err_ctx!(program, node, self.source_manager.clone());
+        let err_ctx = err_ctx!(program, node, node_id, self.source_manager.clone());
 
         let callee_hash = if node.is_dyncall() {
             self.start_dyncall_node(node, &err_ctx)?
@@ -526,6 +534,7 @@ impl Process {
     #[inline(always)]
     fn execute_basic_block_node(
         &mut self,
+        node_id: usize,
         basic_block: &BasicBlockNode,
         program: &MastForest,
         host: &mut impl Host,
@@ -533,13 +542,12 @@ impl Process {
         self.start_basic_block_node(basic_block, program, host)?;
 
         let mut op_offset = 0;
-        let mut decorator_ids = basic_block.decorator_iter();
 
         // execute the first operation batch
         self.execute_op_batch(
+            node_id,
             basic_block,
             &basic_block.op_batches()[0],
-            &mut decorator_ids,
             op_offset,
             program,
             host,
@@ -553,29 +561,22 @@ impl Process {
         for op_batch in basic_block.op_batches().iter().skip(1) {
             self.respan(op_batch);
             self.execute_op(Operation::Noop, program, host)?;
-            self.execute_op_batch(
-                basic_block,
-                op_batch,
-                &mut decorator_ids,
-                op_offset,
-                program,
-                host,
-            )?;
+            self.execute_op_batch(node_id, basic_block, op_batch, op_offset, program, host)?;
             op_offset += op_batch.ops().len();
         }
 
         self.end_basic_block_node(basic_block, program, host)?;
 
-        // execute any decorators which have not been executed during span ops execution; this
-        // can happen for decorators appearing after all operations in a block. these decorators
-        // are executed after SPAN block is closed to make sure the VM clock cycle advances beyond
-        // the last clock cycle of the SPAN block ops.
-        for &decorator_id in decorator_ids {
-            let decorator = program
-                .get_decorator_by_id(decorator_id)
-                .ok_or(ExecutionError::DecoratorNotFoundInForest { decorator_id })?;
-            self.execute_decorator(decorator, host)?;
-        }
+        // // execute any decorators which have not been executed during span ops execution; this
+        // // can happen for decorators appearing after all operations in a block. these decorators
+        // // are executed after SPAN block is closed to make sure the VM clock cycle advances
+        // beyond // the last clock cycle of the SPAN block ops.
+        // for &decorator_id in decorator_ids {
+        //     let decorator = program
+        //         .get_decorator_by_id(decorator_id)
+        //         .ok_or(ExecutionError::DecoratorNotFoundInForest { decorator_id })?;
+        //     self.execute_decorator(decorator, host)?;
+        // }
 
         Ok(())
     }
@@ -589,9 +590,9 @@ impl Process {
     #[inline(always)]
     fn execute_op_batch(
         &mut self,
+        node_id: usize,
         basic_block: &BasicBlockNode,
         batch: &OpBatch,
-        decorators: &mut DecoratorIterator,
         op_offset: usize,
         program: &MastForest,
         host: &mut impl Host,
@@ -608,17 +609,16 @@ impl Process {
 
         // execute operations in the batch one by one
         for (i, &op) in batch.ops().iter().enumerate() {
+            std::dbg!(OperationId::new(node_id, 0, i + op_offset));
+
             // the decorator offset
-            while let Some(&decorator_id) = decorators.next_filtered(i + op_offset) {
-                let decorator = program
-                    .get_decorator_by_id(decorator_id)
-                    .ok_or(ExecutionError::DecoratorNotFoundInForest { decorator_id })?;
+            for decorator in program.get_decorators(&OperationId::new(node_id, 0, i + op_offset)) {
                 self.execute_decorator(decorator, host)?;
             }
 
             // decode and execute the operation
             let err_ctx =
-                err_ctx!(program, basic_block, self.source_manager.clone(), i + op_offset);
+                err_ctx!(program, basic_block, self.source_manager.clone(), node_id, i + op_offset);
             self.decoder.execute_user_op(op, op_idx);
             self.execute_op_with_error_ctx(op, program, host, &err_ctx)?;
 
@@ -638,6 +638,7 @@ impl Process {
                     // so, we need execute a NOOP after it. the assert also makes sure that there
                     // is enough room in the group to execute a NOOP (if there isn't, there is a
                     // bug somewhere in the assembler)
+                    std::dbg!("NOOOOOOOOOOOOOPING");
                     debug_assert!(op_idx < OP_GROUP_SIZE - 1, "invalid op index");
                     self.decoder.execute_user_op(Operation::Noop, op_idx + 1);
                     self.execute_op(Operation::Noop, program, host)?;

@@ -29,7 +29,7 @@ pub use loop_node::LoopNode;
 
 use super::{DecoratorId, MastForestError};
 use crate::{
-    AssemblyOp, Decorator, DecoratorList, Operation,
+    AssemblyOp, Decorator, DecoratorList, Operation, OperationId,
     mast::{MastForest, MastNodeId, Remapping},
 };
 
@@ -369,40 +369,32 @@ pub trait MastNodeExt {
     fn get_assembly_op<'m>(
         &self,
         mast_forest: &'m MastForest,
-        target_op_idx: Option<usize>,
+        node_id: usize,
+        op_idx: usize,
     ) -> Option<&'m AssemblyOp> {
-        match target_op_idx {
-            // If a target operation index is provided, return the assembly op associated with that
-            // operation.
-            Some(target_op_idx) => {
-                for (op_idx, decorator_id) in self.decorators() {
-                    if let Some(Decorator::AsmOp(assembly_op)) =
-                        mast_forest.get_decorator_by_id(decorator_id)
-                    {
-                        // when an instruction compiles down to multiple operations, only the first
-                        // operation is associated with the assembly op. We need to check if the
-                        // target operation index falls within the range of operations associated
-                        // with the assembly op.
-                        if target_op_idx >= op_idx
-                            && target_op_idx < op_idx + assembly_op.num_cycles() as usize
-                        {
-                            return Some(assembly_op);
-                        }
-                    }
-                }
-            },
-            // If no target operation index is provided, return the first assembly op found.
-            None => {
-                for (_, decorator_id) in self.decorators() {
-                    if let Some(Decorator::AsmOp(assembly_op)) =
-                        mast_forest.get_decorator_by_id(decorator_id)
-                    {
+        std::dbg!("[[[[[[[[[[[[[[[[[[YOAMMA");
+        std::dbg!(&node_id, op_idx);
+        std::dbg!(&mast_forest);
+
+        for i in (0..=op_idx).rev() {
+            let op_id = OperationId::new(node_id, 0, i);
+            std::dbg!(&op_id);
+            for decorator in mast_forest.get_decorators(&op_id) {
+                std::dbg!(&decorator);
+                if let Decorator::AsmOp(assembly_op) = decorator {
+                    std::dbg!(&assembly_op);
+                    // when an instruction compiles down to multiple operations, only the first
+                    // operation is associated with the assembly op. We need to check if the
+                    // target operation index falls within the range of operations associated
+                    // with the assembly op.
+                    // if target_op_idx >= op_idx
+                    //     && target_op_idx < op_idx + assembly_op.num_cycles() as usize
+                    if op_idx <= i + assembly_op.num_cycles() as usize {
                         return Some(assembly_op);
                     }
                 }
-            },
+            }
         }
-
         None
     }
 }

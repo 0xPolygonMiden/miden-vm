@@ -267,6 +267,7 @@ impl MastForest {
     /// which is effectively deduplication. Decorators are ignored when it comes to merging
     /// External nodes. This means that an External node with decorators may be replaced by a node
     /// without decorators or vice versa.
+    // TODO
     pub fn merge<'forest>(
         forests: impl IntoIterator<Item = &'forest MastForest>,
     ) -> Result<(MastForest, MastForestRootMap), MastForestError> {

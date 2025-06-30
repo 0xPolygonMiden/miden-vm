@@ -562,6 +562,8 @@ fn test_diagnostic_address_out_of_bounds() {
     let build_test = build_test_by_mode!(true, source, &[u32::MAX as u64 + 1_u64]);
     let err = build_test.execute().expect_err("expected error");
 
+    std::dbg!(&err);
+
     assert_diagnostic_lines!(
         err,
         "memory address cannot exceed 2^32 but was 4294967296",

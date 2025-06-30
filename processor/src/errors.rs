@@ -482,14 +482,15 @@ pub enum Ext2InttError {
 #[cfg(not(feature = "no_err_ctx"))]
 #[macro_export]
 macro_rules! err_ctx {
-    ($mast_forest:expr, $node:expr, $source_manager:expr) => {
-        $crate::errors::ErrorContextImpl::new($mast_forest, $node, $source_manager)
+    ($mast_forest:expr, $node:expr, $node_id:expr, $source_manager:expr) => {
+        $crate::errors::ErrorContextImpl::new($mast_forest, $node, $node_id, $source_manager)
     };
-    ($mast_forest:expr, $node:expr, $source_manager:expr, $op_idx:expr) => {
+    ($mast_forest:expr, $node:expr, $source_manager:expr, $node_id:expr, $op_idx:expr) => {
         $crate::errors::ErrorContextImpl::new_with_op_idx(
             $mast_forest,
             $node,
             $source_manager,
+            $node_id,
             $op_idx,
         )
     };
@@ -529,7 +530,8 @@ pub struct ErrorContextImpl<'a, N: MastNodeExt> {
     mast_forest: &'a MastForest,
     node: &'a N,
     source_manager: Arc<dyn SourceManager>,
-    op_idx: Option<usize>,
+    node_id: usize,
+    op_idx: usize,
 }
 
 impl<'a, N: MastNodeExt> ErrorContextImpl<'a, N> {
@@ -537,13 +539,15 @@ impl<'a, N: MastNodeExt> ErrorContextImpl<'a, N> {
     pub fn new(
         mast_forest: &'a MastForest,
         node: &'a N,
+        node_id: usize,
         source_manager: Arc<dyn SourceManager>,
     ) -> Self {
         Self {
             mast_forest,
             node,
             source_manager,
-            op_idx: None,
+            node_id,
+            op_idx: 0,
         }
     }
 
@@ -552,19 +556,21 @@ impl<'a, N: MastNodeExt> ErrorContextImpl<'a, N> {
         mast_forest: &'a MastForest,
         node: &'a N,
         source_manager: Arc<dyn SourceManager>,
+        node_id: usize,
         op_idx: usize,
     ) -> Self {
         Self {
             mast_forest,
             node,
             source_manager,
-            op_idx: Some(op_idx),
+            node_id,
+            op_idx,
         }
     }
 
     pub fn label_and_source_file(&self) -> (SourceSpan, Option<Arc<SourceFile>>) {
         self.node
-            .get_assembly_op(self.mast_forest, self.op_idx)
+            .get_assembly_op(self.mast_forest, self.node_id, self.op_idx)
             .and_then(|assembly_op| assembly_op.location())
             .map_or_else(
                 || (SourceSpan::UNKNOWN, None),
