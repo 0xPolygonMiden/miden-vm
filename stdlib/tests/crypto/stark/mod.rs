@@ -17,6 +17,8 @@ use vm_core::{Felt, FieldElement, WORD_SIZE, Word, ZERO};
 
 mod verifier_recursive;
 
+const KERNEL_OP_LABEL: Felt = Felt::new(48);
+
 // Note: Changes to Miden VM may cause this test to fail when some of the assumptions documented
 // in `stdlib/asm/crypto/stark/verifier.masm` are violated.
 #[rstest]
@@ -27,7 +29,7 @@ fn stark_verifier_e2f4(#[case] kernel: Option<&str>) {
     // An example MASM program to be verified inside Miden VM.
 
     let example_source = "begin
-            repeat.32
+            repeat.320
                 swap dup.1 add
             end
         end";
@@ -295,6 +297,7 @@ fn reduce_kernel_procedures_digests(
 
 fn reduce_digest(digest: &[u64], alpha: QuadExt, beta: QuadExt) -> QuadExt {
     alpha
+        + KERNEL_OP_LABEL.into()
         + beta
             * digest
                 .iter()
