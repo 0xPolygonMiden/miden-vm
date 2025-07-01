@@ -176,11 +176,12 @@ pub struct ChipletsTrace {
 pub fn execute(
     program: &Program,
     stack_inputs: StackInputs,
+    advice_inputs: AdviceInputs,
     host: &mut impl Host,
     options: ExecutionOptions,
     source_manager: Arc<dyn SourceManager>,
 ) -> Result<ExecutionTrace, ExecutionError> {
-    let mut process = Process::new(program.kernel().clone(), stack_inputs, options)
+    let mut process = Process::new(program.kernel().clone(), stack_inputs, advice_inputs, options)
         .with_source_manager(source_manager);
     let stack_outputs = process.execute(program, host)?;
     let trace = ExecutionTrace::new(process, stack_outputs);
@@ -193,10 +194,11 @@ pub fn execute(
 pub fn execute_iter(
     program: &Program,
     stack_inputs: StackInputs,
+    advice_inputs: AdviceInputs,
     host: &mut impl Host,
     source_manager: Arc<dyn SourceManager>,
 ) -> VmStateIterator {
-    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs)
+    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs, advice_inputs)
         .with_source_manager(source_manager);
     let result = process.execute(program, host);
     if result.is_ok() {
@@ -223,6 +225,7 @@ pub fn execute_iter(
 /// get the execution trace using [ExecutionTrace::new] using the outputs produced by execution.
 #[cfg(not(any(test, feature = "testing")))]
 pub struct Process {
+    advice: AdviceProvider,
     system: System,
     decoder: Decoder,
     stack: Stack,
@@ -235,6 +238,7 @@ pub struct Process {
 
 #[cfg(any(test, feature = "testing"))]
 pub struct Process {
+    pub advice: AdviceProvider,
     pub system: System,
     pub decoder: Decoder,
     pub stack: Stack,
@@ -252,24 +256,36 @@ impl Process {
     pub fn new(
         kernel: Kernel,
         stack_inputs: StackInputs,
+        advice_inputs: AdviceInputs,
         execution_options: ExecutionOptions,
     ) -> Self {
-        Self::initialize(kernel, stack_inputs, execution_options)
+        Self::initialize(kernel, stack_inputs, advice_inputs, execution_options)
     }
 
     /// Creates a new process with provided inputs and debug options enabled.
-    pub fn new_debug(kernel: Kernel, stack_inputs: StackInputs) -> Self {
+    pub fn new_debug(
+        kernel: Kernel,
+        stack_inputs: StackInputs,
+        advice_inputs: AdviceInputs,
+    ) -> Self {
         Self::initialize(
             kernel,
             stack_inputs,
+            advice_inputs,
             ExecutionOptions::default().with_tracing().with_debugging(true),
         )
     }
 
-    fn initialize(kernel: Kernel, stack: StackInputs, execution_options: ExecutionOptions) -> Self {
+    fn initialize(
+        kernel: Kernel,
+        stack: StackInputs,
+        advice_inputs: AdviceInputs,
+        execution_options: ExecutionOptions,
+    ) -> Self {
         let in_debug_mode = execution_options.enable_debugging();
         let source_manager = Arc::new(DefaultSourceManager::default());
         Self {
+            advice: advice_inputs.into(),
             system: System::new(execution_options.expected_cycles() as usize),
             decoder: Decoder::new(in_debug_mode),
             stack: Stack::new(&stack, execution_options.expected_cycles() as usize, in_debug_mode),
@@ -300,7 +316,13 @@ impl Process {
             return Err(ExecutionError::ProgramAlreadyExecuted);
         }
 
-        host.advice_provider_mut()
+        for mast_forest in host.iter_mast_forests() {
+            self.advice
+                .merge_advice_map(mast_forest.advice_map())
+                .map_err(|err| ExecutionError::advice_error(err, RowIndex::from(0), &()))?;
+        }
+
+        self.advice
             .merge_advice_map(program.mast_forest().advice_map())
             .map_err(|err| ExecutionError::advice_error(err, RowIndex::from(0), &()))?;
 
@@ -683,7 +705,7 @@ impl Process {
         match decorator {
             Decorator::Debug(options) => {
                 if self.decoder.in_debug_mode() {
-                    host.on_debug(self.into(), options)?;
+                    host.on_debug(&mut self.into(), options)?;
                 }
             },
             Decorator::AsmOp(assembly_op) => {
@@ -693,7 +715,7 @@ impl Process {
             },
             Decorator::Trace(id) => {
                 if self.enable_tracing {
-                    host.on_trace(self.into(), *id)?;
+                    host.on_trace(&mut self.into(), *id)?;
                 }
             },
         };
@@ -715,29 +737,44 @@ impl Process {
 // PROCESS STATE
 // ================================================================================================
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub struct SlowProcessState<'a> {
+    advice: &'a mut AdviceProvider,
     system: &'a System,
     stack: &'a Stack,
     chiplets: &'a Chiplets,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub struct FastProcessState<'a> {
-    processor: &'a FastProcessor,
+    processor: &'a mut FastProcessor,
     /// the index of the operation in its basic block
     op_idx: usize,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub enum ProcessState<'a> {
     Slow(SlowProcessState<'a>),
     Fast(FastProcessState<'a>),
 }
 
 impl<'a> ProcessState<'a> {
-    pub fn new_fast(processor: &'a FastProcessor, op_idx: usize) -> Self {
+    pub fn new_fast(processor: &'a mut FastProcessor, op_idx: usize) -> Self {
         Self::Fast(FastProcessState { processor, op_idx })
+    }
+
+    pub fn advice_provider(&self) -> &AdviceProvider {
+        match self {
+            ProcessState::Slow(state) => state.advice,
+            ProcessState::Fast(state) => &state.processor.advice,
+        }
+    }
+
+    pub fn advice_provider_mut(&mut self) -> &mut AdviceProvider {
+        match self {
+            ProcessState::Slow(state) => state.advice,
+            ProcessState::Fast(state) => &mut state.processor.advice,
+        }
     }
 
     /// Returns the current clock cycle of a process.
@@ -847,19 +884,10 @@ impl<'a> ProcessState<'a> {
 // CONVERSIONS
 // ===============================================================================================
 
-impl<'a> From<&'a Process> for ProcessState<'a> {
-    fn from(process: &'a Process) -> Self {
-        Self::Slow(SlowProcessState {
-            system: &process.system,
-            stack: &process.stack,
-            chiplets: &process.chiplets,
-        })
-    }
-}
-
 impl<'a> From<&'a mut Process> for ProcessState<'a> {
     fn from(process: &'a mut Process) -> Self {
         Self::Slow(SlowProcessState {
+            advice: &mut process.advice,
             system: &process.system,
             stack: &process.stack,
             chiplets: &process.chiplets,

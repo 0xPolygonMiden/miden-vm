@@ -7,7 +7,7 @@ use assembly::{
 };
 use clap::Parser;
 use miden_vm::{DefaultHost, Host, Operation, StackInputs, internal::InputFile};
-use processor::{AsmOpInfo, TraceLenSummary};
+use processor::{AdviceInputs, AsmOpInfo, TraceLenSummary};
 use stdlib::StdLibrary;
 use vm_core::Program;
 
@@ -63,11 +63,12 @@ impl Analyze {
 
         // fetch the stack and program inputs from the arguments
         let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
-        let mut host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
+        let advice_inputs = input_data.parse_advice_inputs().map_err(Report::msg)?;
+        let mut host = DefaultHost::default();
         host.load_mast_forest(StdLibrary::default().mast_forest().clone())?;
 
         let execution_details: ExecutionDetails =
-            analyze(&program, stack_inputs, host, source_manager)
+            analyze(&program, stack_inputs, advice_inputs, host, source_manager)
                 .expect("Could not retrieve execution details");
         let program_name = self
             .program_file
@@ -239,6 +240,7 @@ impl fmt::Display for ExecutionDetails {
 fn analyze<H>(
     program: &Program,
     stack_inputs: StackInputs,
+    advice_inputs: AdviceInputs,
     mut host: H,
     source_manager: Arc<dyn SourceManager>,
 ) -> Result<ExecutionDetails, Report>
@@ -248,7 +250,7 @@ where
     let mut execution_details = ExecutionDetails::default();
 
     let vm_state_iterator =
-        processor::execute_iter(program, stack_inputs, &mut host, source_manager);
+        processor::execute_iter(program, stack_inputs, advice_inputs, &mut host, source_manager);
     execution_details.set_trace_len_summary(vm_state_iterator.trace_len_summary());
 
     for state in vm_state_iterator {
@@ -326,11 +328,17 @@ mod tests {
     fn analyze_test() {
         let source = "proc.foo.1 loc_store.0 end begin mem_storew.4 dropw push.17 push.1 movdn.2 exec.foo drop end";
         let stack_inputs = StackInputs::default();
+        let advice_inputs = AdviceInputs::default();
         let host = DefaultHost::default();
         let program = Assembler::default().with_debug_mode(true).assemble_program(source).unwrap();
-        let execution_details =
-            super::analyze(&program, stack_inputs, host, Arc::new(DefaultSourceManager::default()))
-                .expect("analyze_test: Unexpected Error");
+        let execution_details = super::analyze(
+            &program,
+            stack_inputs,
+            advice_inputs,
+            host,
+            Arc::new(DefaultSourceManager::default()),
+        )
+        .expect("analyze_test: Unexpected Error");
         let expected_details = ExecutionDetails {
             total_noops: 0,
             asm_op_stats: vec![

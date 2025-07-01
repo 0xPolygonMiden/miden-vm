@@ -157,8 +157,8 @@ impl Process {
             // ----- input / output ---------------------------------------------------------------
             Operation::Push(value) => self.op_push(value)?,
 
-            Operation::AdvPop => self.op_advpop(host, err_ctx)?,
-            Operation::AdvPopW => self.op_advpopw(host, err_ctx)?,
+            Operation::AdvPop => self.op_advpop(err_ctx)?,
+            Operation::AdvPopW => self.op_advpopw(err_ctx)?,
 
             Operation::MLoadW => self.op_mloadw(err_ctx)?,
             Operation::MStoreW => self.op_mstorew(err_ctx)?,
@@ -167,12 +167,12 @@ impl Process {
             Operation::MStore => self.op_mstore(err_ctx)?,
 
             Operation::MStream => self.op_mstream(err_ctx)?,
-            Operation::Pipe => self.op_pipe(host, err_ctx)?,
+            Operation::Pipe => self.op_pipe(err_ctx)?,
 
             // ----- cryptographic operations -----------------------------------------------------
             Operation::HPerm => self.op_hperm()?,
-            Operation::MpVerify(err_code) => self.op_mpverify(err_code, host, program, err_ctx)?,
-            Operation::MrUpdate => self.op_mrupdate(host, err_ctx)?,
+            Operation::MpVerify(err_code) => self.op_mpverify(err_code, program, err_ctx)?,
+            Operation::MrUpdate => self.op_mrupdate(err_ctx)?,
             Operation::FriE2F4 => self.op_fri_ext2fold4()?,
             Operation::HornerBase => self.op_horner_eval_base(err_ctx)?,
             Operation::HornerExt => self.op_horner_eval_ext(err_ctx)?,
@@ -211,8 +211,12 @@ pub mod testing {
         /// initialized with the provided values.
         pub fn new_dummy(stack_inputs: StackInputs) -> Self {
             let mut host = DefaultHost::default();
-            let mut process =
-                Self::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
+            let mut process = Self::new(
+                Kernel::default(),
+                stack_inputs,
+                AdviceInputs::default(),
+                ExecutionOptions::default(),
+            );
             let program = &MastForest::default();
             process.execute_op(Operation::Noop, program, &mut host).unwrap();
             process
@@ -229,9 +233,13 @@ pub mod testing {
             let stack_inputs = StackInputs::default();
             let advice_inputs =
                 AdviceInputs::default().with_stack_values(advice_stack.iter().copied()).unwrap();
-            let mut host = DefaultHost::new(advice_inputs.into());
-            let mut process =
-                Self::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
+            let mut host = DefaultHost::default();
+            let mut process = Self::new(
+                Kernel::default(),
+                stack_inputs,
+                advice_inputs,
+                ExecutionOptions::default(),
+            );
             let program = &MastForest::default();
             process.execute_op(Operation::Noop, program, &mut host).unwrap();
 
@@ -262,9 +270,13 @@ pub mod testing {
             stack_inputs: StackInputs,
             advice_inputs: AdviceInputs,
         ) -> (Self, DefaultHost) {
-            let mut host = DefaultHost::new(advice_inputs.into());
-            let mut process =
-                Self::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
+            let mut host = DefaultHost::default();
+            let mut process = Self::new(
+                Kernel::default(),
+                stack_inputs,
+                advice_inputs,
+                ExecutionOptions::default(),
+            );
             let program = &MastForest::default();
             process.decoder.add_dummy_trace_row();
             process.execute_op(Operation::Noop, program, &mut host).unwrap();

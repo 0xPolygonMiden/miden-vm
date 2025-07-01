@@ -16,8 +16,9 @@ use vm_core::{
 };
 
 use crate::{
-    ContextId, ErrorContext, ExecutionError, FMP_MIN, Host, ProcessState, SYSCALL_FMP_MIN,
-    add_error_ctx_to_external_error, chiplets::Ace, err_ctx, utils::resolve_external_node,
+    AdviceInputs, AdviceProvider, ContextId, ErrorContext, ExecutionError, FMP_MIN, Host,
+    ProcessState, SYSCALL_FMP_MIN, add_error_ctx_to_external_error, chiplets::Ace, err_ctx,
+    utils::resolve_external_node,
 };
 
 mod memory;
@@ -129,6 +130,9 @@ pub struct FastProcessor {
     /// ZERO]` if we are in the first context (i.e. when `call_stack` is empty).
     pub(super) caller_hash: Word,
 
+    /// Advice data to be consumed and modified during the execution.
+    pub(super) advice: AdviceProvider,
+
     /// A map from (context_id, word_address) to the word stored starting at that memory location.
     pub(super) memory: Memory,
 
@@ -160,10 +164,10 @@ impl FastProcessor {
     /// # Panics
     /// - Panics if the length of `stack_inputs` is greater than `MIN_STACK_DEPTH`.
     pub fn new(stack_inputs: &[Felt]) -> Self {
-        Self::initialize(stack_inputs, false)
+        Self::initialize(stack_inputs, AdviceInputs::default(), false)
     }
 
-    /// Creates a new `FastProcessor` instance with the given stack inputs, set to debug mode.
+    /// Creates a new `FastProcessor` instance with the given stack and advice inputs.
     ///
     /// The stack inputs are expected to be stored in reverse order. For example, if `stack_inputs =
     /// [1,2,3]`, then the stack will be initialized as `[3,2,1,0,0,...]`, with `3` being on
@@ -171,11 +175,24 @@ impl FastProcessor {
     ///
     /// # Panics
     /// - Panics if the length of `stack_inputs` is greater than `MIN_STACK_DEPTH`.
-    pub fn new_debug(stack_inputs: &[Felt]) -> Self {
-        Self::initialize(stack_inputs, true)
+    pub fn new_with_advice_inputs(stack_inputs: &[Felt], advice_inputs: AdviceInputs) -> Self {
+        Self::initialize(stack_inputs, advice_inputs, false)
     }
 
-    fn initialize(stack_inputs: &[Felt], in_debug_mode: bool) -> Self {
+    /// Creates a new `FastProcessor` instance with the given stack and advice inputs,
+    /// set to debug mode.
+    ///
+    /// The stack inputs are expected to be stored in reverse order. For example, if `stack_inputs =
+    /// [1,2,3]`, then the stack will be initialized as `[3,2,1,0,0,...]`, with `3` being on
+    /// top.
+    ///
+    /// # Panics
+    /// - Panics if the length of `stack_inputs` is greater than `MIN_STACK_DEPTH`.
+    pub fn new_debug(stack_inputs: &[Felt], advice_inputs: AdviceInputs) -> Self {
+        Self::initialize(stack_inputs, advice_inputs, true)
+    }
+
+    fn initialize(stack_inputs: &[Felt], advice_inputs: AdviceInputs, in_debug_mode: bool) -> Self {
         assert!(stack_inputs.len() <= MIN_STACK_DEPTH);
 
         let stack_top_idx = INITIAL_STACK_TOP_IDX;
@@ -191,7 +208,8 @@ impl FastProcessor {
 
         let bounds_check_counter = stack_bot_idx;
         let source_manager = Arc::new(DefaultSourceManager::default());
-        FastProcessor {
+        Self {
+            advice: advice_inputs.into(),
             stack,
             stack_top_idx,
             stack_bot_idx,
@@ -319,6 +337,12 @@ impl FastProcessor {
         program: &Program,
         host: &mut impl Host,
     ) -> Result<StackOutputs, ExecutionError> {
+        for mast_forest in host.iter_mast_forests() {
+            self.advice
+                .merge_advice_map(mast_forest.advice_map())
+                .map_err(|err| ExecutionError::advice_error(err, RowIndex::from(0), &()))?;
+        }
+
         self.execute_mast_node(
             program.entrypoint(),
             program.mast_forest(),
@@ -783,14 +807,14 @@ impl FastProcessor {
         match decorator {
             Decorator::Debug(options) => {
                 if self.in_debug_mode {
-                    host.on_debug(ProcessState::new_fast(self, op_idx_in_batch), options)?;
+                    host.on_debug(&mut ProcessState::new_fast(self, op_idx_in_batch), options)?;
                 }
             },
             Decorator::AsmOp(_assembly_op) => {
                 // do nothing
             },
             Decorator::Trace(id) => {
-                host.on_trace(ProcessState::new_fast(self, op_idx_in_batch), *id)?;
+                host.on_trace(&mut ProcessState::new_fast(self, op_idx_in_batch), *id)?;
             },
         };
         Ok(())
@@ -909,19 +933,19 @@ impl FastProcessor {
 
             // ----- input / output ---------------------------------------------------------------
             Operation::Push(element) => self.op_push(*element),
-            Operation::AdvPop => self.op_advpop(op_idx, host, err_ctx)?,
-            Operation::AdvPopW => self.op_advpopw(op_idx, host, err_ctx)?,
+            Operation::AdvPop => self.op_advpop(op_idx, err_ctx)?,
+            Operation::AdvPopW => self.op_advpopw(op_idx, err_ctx)?,
             Operation::MLoadW => self.op_mloadw(op_idx, err_ctx)?,
             Operation::MStoreW => self.op_mstorew(op_idx, err_ctx)?,
             Operation::MLoad => self.op_mload(err_ctx)?,
             Operation::MStore => self.op_mstore(err_ctx)?,
             Operation::MStream => self.op_mstream(op_idx, err_ctx)?,
-            Operation::Pipe => self.op_pipe(op_idx, host, err_ctx)?,
+            Operation::Pipe => self.op_pipe(op_idx, err_ctx)?,
 
             // ----- cryptographic operations -----------------------------------------------------
             Operation::HPerm => self.op_hperm(),
-            Operation::MpVerify(err_code) => self.op_mpverify(*err_code, host, program, err_ctx)?,
-            Operation::MrUpdate => self.op_mrupdate(host, err_ctx)?,
+            Operation::MpVerify(err_code) => self.op_mpverify(*err_code, program, err_ctx)?,
+            Operation::MrUpdate => self.op_mrupdate(err_ctx)?,
             Operation::FriE2F4 => self.op_fri_ext2fold4()?,
             Operation::HornerBase => self.op_horner_eval_base(op_idx, err_ctx)?,
             Operation::HornerExt => self.op_horner_eval_ext(op_idx, err_ctx)?,

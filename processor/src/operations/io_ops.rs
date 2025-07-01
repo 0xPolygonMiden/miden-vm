@@ -1,7 +1,7 @@
 use vm_core::WORD_SIZE;
 
 use super::{ExecutionError, Felt, Process};
-use crate::{Host, errors::ErrorContext};
+use crate::errors::ErrorContext;
 
 // INPUT / OUTPUT OPERATIONS
 // ================================================================================================
@@ -201,11 +201,7 @@ impl Process {
     ///
     /// # Errors
     /// - Returns an error if the address is not aligned to a word boundary.
-    pub(super) fn op_pipe(
-        &mut self,
-        host: &mut impl Host,
-        err_ctx: &impl ErrorContext,
-    ) -> Result<(), ExecutionError> {
+    pub(super) fn op_pipe(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         const MEM_ADDR_STACK_IDX: usize = 12;
 
         // get the address from position 12 on the stack
@@ -215,8 +211,8 @@ impl Process {
         let addr_second_word = addr_first_word + Felt::from(WORD_SIZE as u32);
 
         // pop two words from the advice stack
-        let words = host
-            .advice_provider_mut()
+        let words = self
+            .advice
             .pop_stack_dword()
             .map_err(|err| ExecutionError::advice_error(err, clk, err_ctx))?;
 
@@ -258,13 +254,9 @@ impl Process {
     ///
     /// # Errors
     /// Returns an error if the advice stack is empty.
-    pub(super) fn op_advpop(
-        &mut self,
-        host: &mut impl Host,
-        err_ctx: &impl ErrorContext,
-    ) -> Result<(), ExecutionError> {
-        let value = host
-            .advice_provider_mut()
+    pub(super) fn op_advpop(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
+        let value = self
+            .advice
             .pop_stack()
             .map_err(|err| ExecutionError::advice_error(err, self.system.clk(), err_ctx))?;
         self.stack.set(0, value);
@@ -277,13 +269,9 @@ impl Process {
     ///
     /// # Errors
     /// Returns an error if the advice stack contains fewer than four elements.
-    pub(super) fn op_advpopw(
-        &mut self,
-        host: &mut impl Host,
-        err_ctx: &impl ErrorContext,
-    ) -> Result<(), ExecutionError> {
-        let word = host
-            .advice_provider_mut()
+    pub(super) fn op_advpopw(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
+        let word = self
+            .advice
             .pop_stack_word()
             .map_err(|err| ExecutionError::advice_error(err, self.system.clk(), err_ctx))?;
 
@@ -308,9 +296,9 @@ mod tests {
 
     use super::{
         super::{MIN_STACK_DEPTH, Operation},
-        Felt, Host, Process,
+        Felt, Process,
     };
-    use crate::{AdviceSource, ContextId, DefaultHost, ExecutionError, MemoryError};
+    use crate::{AdviceSource, ContextId, DefaultHost, ExecutionError, Host, MemoryError};
 
     #[test]
     fn op_push() {
@@ -607,7 +595,7 @@ mod tests {
         let word2_felts: [Felt; WORD_SIZE] = word2.to_elements().try_into().unwrap();
         for element in word2_felts.iter().rev().chain(word1_felts.iter().rev()).copied() {
             // reverse the word order, since elements are pushed onto the advice stack.
-            host.advice_provider_mut().push_stack(AdviceSource::Value(element)).unwrap();
+            process.advice.push_stack(AdviceSource::Value(element)).unwrap();
         }
 
         // arrange the stack such that:

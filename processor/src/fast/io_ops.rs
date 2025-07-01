@@ -1,5 +1,5 @@
 use super::{DOUBLE_WORD_SIZE, ExecutionError, FastProcessor, Felt, WORD_SIZE_FELT};
-use crate::{ErrorContext, Host};
+use crate::ErrorContext;
 
 impl FastProcessor {
     /// Analogous to `Process::op_push`.
@@ -13,11 +13,10 @@ impl FastProcessor {
     pub fn op_advpop(
         &mut self,
         op_idx: usize,
-        host: &mut impl Host,
         err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
-        let value = host
-            .advice_provider_mut()
+        let value = self
+            .advice
             .pop_stack()
             .map_err(|err| ExecutionError::advice_error(err, self.clk + op_idx, err_ctx))?;
         self.increment_stack_size();
@@ -30,11 +29,10 @@ impl FastProcessor {
     pub fn op_advpopw(
         &mut self,
         op_idx: usize,
-        host: &mut impl Host,
         err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
-        let word = host
-            .advice_provider_mut()
+        let word = self
+            .advice
             .pop_stack_word()
             .map_err(|err| ExecutionError::advice_error(err, self.clk + op_idx, err_ctx))?;
         self.stack_write_word(0, &word);
@@ -145,7 +143,6 @@ impl FastProcessor {
     pub fn op_pipe(
         &mut self,
         op_idx: usize,
-        host: &mut impl Host,
         err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         // The stack index where the memory address to load the words from is stored.
@@ -155,8 +152,8 @@ impl FastProcessor {
         let addr_second_word = addr_first_word + WORD_SIZE_FELT;
 
         // pop two words from the advice stack
-        let words = host
-            .advice_provider_mut()
+        let words = self
+            .advice
             .pop_stack_dword()
             .map_err(|err| ExecutionError::advice_error(err, self.clk + op_idx, err_ctx))?;
 

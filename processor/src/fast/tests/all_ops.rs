@@ -119,6 +119,7 @@ fn test_basic_block(
     let mut slow_processor = Process::new(
         Kernel::default(),
         StackInputs::new(stack_inputs).unwrap(),
+        AdviceInputs::default(),
         ExecutionOptions::default(),
     );
     let slow_stack_outputs = slow_processor.execute(&program, &mut host);

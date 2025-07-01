@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use assembly::{Assembler, DefaultSourceManager};
-use processor::{ExecutionOptions, Program};
+use processor::{AdviceInputs, ExecutionOptions, Program};
 use prover::StackInputs;
 
 use super::TestHost;
@@ -23,6 +23,7 @@ fn test_event_handling() {
     processor::execute(
         &program,
         StackInputs::default(),
+        AdviceInputs::default(),
         &mut host,
         ExecutionOptions::default(),
         Arc::new(DefaultSourceManager::default()),
@@ -53,6 +54,7 @@ fn test_trace_handling() {
     processor::execute(
         &program,
         StackInputs::default(),
+        AdviceInputs::default(),
         &mut host,
         ExecutionOptions::default(),
         Arc::new(DefaultSourceManager::default()),
@@ -65,6 +67,7 @@ fn test_trace_handling() {
     processor::execute(
         &program,
         StackInputs::default(),
+        AdviceInputs::default(),
         &mut host,
         ExecutionOptions::default().with_tracing(),
         Arc::new(DefaultSourceManager::default()),
@@ -91,6 +94,7 @@ fn test_debug_with_debugging() {
     processor::execute(
         &program,
         StackInputs::default(),
+        AdviceInputs::default(),
         &mut host,
         ExecutionOptions::default().with_debugging(true),
         Arc::new(DefaultSourceManager::default()),
@@ -118,6 +122,7 @@ fn test_debug_without_debugging() {
     processor::execute(
         &program,
         StackInputs::default(),
+        AdviceInputs::default(),
         &mut host,
         ExecutionOptions::default(),
         Arc::new(DefaultSourceManager::default()),
@@ -147,6 +152,7 @@ fn test_parsing_debug_advice_stack() {
     processor::execute(
         &program,
         StackInputs::default(),
+        AdviceInputs::default(),
         &mut host,
         ExecutionOptions::default().with_debugging(true),
         Arc::new(DefaultSourceManager::default()),

@@ -3,7 +3,7 @@ use vm_core::{
 };
 
 use super::FastProcessor;
-use crate::{ErrorContext, ExecutionError, Host};
+use crate::{ErrorContext, ExecutionError};
 
 impl FastProcessor {
     /// Applies a permutation of the Rpo256 hash function to the top 12 elements of the stack.
@@ -27,7 +27,6 @@ impl FastProcessor {
     pub fn op_mpverify(
         &mut self,
         err_code: Felt,
-        host: &mut impl Host,
         program: &MastForest,
         err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
@@ -38,8 +37,8 @@ impl FastProcessor {
         let root = self.stack_get_word(6);
 
         // get a Merkle path from the advice provider for the specified root and node index
-        let path = host
-            .advice_provider_mut()
+        let path = self
+            .advice
             .get_merkle_path(root, &depth, &index)
             .map_err(|err| ExecutionError::advice_error(err, self.clk, err_ctx))?;
 
@@ -56,11 +55,7 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_mrupdate`.
-    pub fn op_mrupdate(
-        &mut self,
-        host: &mut impl Host,
-        err_ctx: &impl ErrorContext,
-    ) -> Result<(), ExecutionError> {
+    pub fn op_mrupdate(&mut self, err_ctx: &impl ErrorContext) -> Result<(), ExecutionError> {
         // read old node value, depth, index, tree root and new node values from the stack
         let old_node = self.stack_get_word(0);
         let depth = self.stack_get(4);
@@ -72,10 +67,10 @@ impl FastProcessor {
         // get a Merkle path to it. The length of the returned path is expected to match the
         // specified depth. If the new node is the root of a tree, this instruction will append the
         // whole sub-tree to this node.
-        let (path, new_root) = host
-            .advice_provider_mut()
-            .update_merkle_node(old_root, &depth, &index, new_node)
-            .map_err(|err| ExecutionError::advice_error(err, self.clk, err_ctx))?;
+        let (path, new_root) =
+            self.advice
+                .update_merkle_node(old_root, &depth, &index, new_node)
+                .map_err(|err| ExecutionError::advice_error(err, self.clk, err_ctx))?;
 
         assert_eq!(path.len(), depth.as_int() as usize);
 

@@ -22,7 +22,12 @@ mod stack;
 pub fn build_trace_from_program(program: &Program, stack_inputs: &[u64]) -> ExecutionTrace {
     let stack_inputs = StackInputs::try_from_ints(stack_inputs.iter().copied()).unwrap();
     let mut host = DefaultHost::default();
-    let mut process = Process::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
+    let mut process = Process::new(
+        Kernel::default(),
+        stack_inputs,
+        AdviceInputs::default(),
+        ExecutionOptions::default(),
+    );
     process.execute(program, &mut host).unwrap();
     ExecutionTrace::new(process, StackOutputs::default())
 }
@@ -48,8 +53,9 @@ pub fn build_trace_from_ops_with_inputs(
     stack_inputs: StackInputs,
     advice_inputs: AdviceInputs,
 ) -> ExecutionTrace {
-    let mut host = DefaultHost::new(advice_inputs.into());
-    let mut process = Process::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
+    let mut host = DefaultHost::default();
+    let mut process =
+        Process::new(Kernel::default(), stack_inputs, advice_inputs, ExecutionOptions::default());
 
     let mut mast_forest = MastForest::new();
     let basic_block_id = mast_forest.add_block(operations, None).unwrap();

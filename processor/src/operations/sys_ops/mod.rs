@@ -29,7 +29,7 @@ impl Process {
         H: Host,
     {
         if self.stack.get(0) != ONE {
-            let state = ProcessState::from(self);
+            let state = &mut ProcessState::from(self);
             host.on_assert_failed(state, err_code);
             let err_msg = program.resolve_error_message(err_code);
             return Err(ExecutionError::failed_assertion(state.clk(), err_code, err_msg, err_ctx));
@@ -140,9 +140,9 @@ impl Process {
 
         // If it's a system event, handle it directly. Otherwise, forward it to the host.
         if let Some(system_event) = SystemEvent::from_event_id(event_id) {
-            self.handle_system_event(system_event, host, err_ctx)
+            self.handle_system_event(system_event, err_ctx)
         } else {
-            host.on_event(self.into(), event_id, err_ctx)
+            host.on_event(&mut self.into(), event_id, err_ctx)
         }
     }
 }

@@ -60,6 +60,7 @@ pub use winter_prover::{Proof, crypto::MerkleTree as MerkleTreeVC};
 pub fn prove(
     program: &Program,
     stack_inputs: StackInputs,
+    advice_inputs: AdviceInputs,
     host: &mut impl Host,
     options: ProvingOptions,
     source_manager: Arc<dyn SourceManager>,
@@ -70,6 +71,7 @@ pub fn prove(
     let trace = processor::execute(
         program,
         stack_inputs.clone(),
+        advice_inputs,
         host,
         *options.execution_options(),
         source_manager,

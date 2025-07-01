@@ -2,7 +2,7 @@ use alloc::sync::Arc;
 
 use assembly::{Assembler, DefaultSourceManager};
 use miden_vm::DefaultHost;
-use processor::{AdviceError, ExecutionOptions, MastForest};
+use processor::{AdviceError, AdviceInputs, ExecutionOptions, MastForest};
 use prover::{StackInputs, Word};
 use vm_core::{ONE, Program, assert_matches};
 
@@ -24,6 +24,7 @@ fn advice_map_loaded_before_execution() {
     match processor::execute(
         &program_without_advice_map,
         StackInputs::default(),
+        AdviceInputs::default(),
         &mut host,
         ExecutionOptions::default(),
         Arc::new(DefaultSourceManager::default()),
@@ -55,6 +56,7 @@ fn advice_map_loaded_before_execution() {
     processor::execute(
         &program_with_advice_map,
         StackInputs::default(),
+        AdviceInputs::default(),
         &mut host,
         ExecutionOptions::default(),
         Arc::new(DefaultSourceManager::default()),
