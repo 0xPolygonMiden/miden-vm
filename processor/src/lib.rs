@@ -759,10 +759,13 @@ pub enum ProcessState<'a> {
 }
 
 impl<'a> ProcessState<'a> {
+    #[inline(always)]
     pub fn new_fast(processor: &'a mut FastProcessor, op_idx: usize) -> Self {
         Self::Fast(FastProcessState { processor, op_idx })
     }
 
+    /// Returns a reference to the advice provider.
+    #[inline(always)]
     pub fn advice_provider(&self) -> &AdviceProvider {
         match self {
             ProcessState::Slow(state) => state.advice,
@@ -770,6 +773,8 @@ impl<'a> ProcessState<'a> {
         }
     }
 
+    /// Returns a mutable reference to the advice provider.
+    #[inline(always)]
     pub fn advice_provider_mut(&mut self) -> &mut AdviceProvider {
         match self {
             ProcessState::Slow(state) => state.advice,
