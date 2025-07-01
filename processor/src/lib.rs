@@ -66,7 +66,7 @@ use trace::TraceFragment;
 pub use trace::{ChipletsLengths, ExecutionTrace, NUM_RAND_ROWS, TraceLenSummary};
 
 mod errors;
-pub use errors::{ErrorContext, ExecutionError, Ext2InttError};
+pub use errors::{ErrorContext, ExecutionError};
 
 pub mod utils;
 
