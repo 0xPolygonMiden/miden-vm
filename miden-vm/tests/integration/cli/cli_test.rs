@@ -43,7 +43,7 @@ fn cli_run() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 use assembly::Library;
-use vm_core::Decorator;
+use vm_core::{Decorator, OperationId};
 
 #[test]
 fn cli_bundle_debug() {
@@ -58,8 +58,11 @@ fn cli_bundle_debug() {
 
     let lib = Library::deserialize_from_file(&output_file).unwrap();
     // If there are any AsmOp decorators in the forest, the bundle is in debug mode.
-    let found_one_asm_op =
-        lib.mast_forest().decorators().iter().any(|d| matches!(d, Decorator::AsmOp(_)));
+    let found_one_asm_op = lib
+        .mast_forest()
+        .get_decorators(&OperationId::new(0, 0, 0))
+        .iter()
+        .any(|d| matches!(d, Decorator::AsmOp(_)));
     assert!(found_one_asm_op);
     fs::remove_file(&output_file).unwrap();
 }
