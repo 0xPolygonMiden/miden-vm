@@ -138,13 +138,13 @@ where
 /// A default [Host] implementation that provides the essential functionality required by the VM.
 #[derive(Debug, Clone, Default)]
 pub struct DefaultHost {
-    mast_forsts: Vec<Arc<MastForest>>,
+    mast_forests: Vec<Arc<MastForest>>,
     store: MemMastForestStore,
 }
 
 impl DefaultHost {
     pub fn load_mast_forest(&mut self, mast_forest: Arc<MastForest>) -> Result<(), ExecutionError> {
-        self.mast_forsts.push(mast_forest.clone());
+        self.mast_forests.push(mast_forest.clone());
 
         self.store.insert(mast_forest);
         Ok(())
@@ -157,7 +157,7 @@ impl Host for DefaultHost {
     }
 
     fn iter_mast_forests(&self) -> impl Iterator<Item = Arc<MastForest>> {
-        self.mast_forsts.iter().cloned()
+        self.mast_forests.iter().cloned()
     }
 
     fn on_event(
