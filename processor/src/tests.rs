@@ -2,7 +2,9 @@
 use alloc::string::ToString;
 
 use assembly::{
-    Assembler,
+    Assembler, LibraryPath,
+    ast::Module,
+    diagnostics::SourceLanguage,
     testing::{TestContext, assert_diagnostic_lines, regex, source_file},
 };
 use test_utils::{
@@ -12,6 +14,7 @@ use test_utils::{
 use vm_core::{
     AdviceMap,
     crypto::merkle::{MerkleStore, MerkleTree},
+    debuginfo::{SourceContent, Uri},
 };
 
 use super::*;
@@ -689,30 +692,35 @@ fn test_diagnostic_merkle_store_lookup_failed() {
 fn test_diagnostic_no_mast_forest_with_procedure() {
     let source_manager = Arc::new(DefaultSourceManager::default());
 
-    let lib_source = {
+    let lib_module = {
         let module_name = "foo::bar";
         let src = "
         export.dummy_proc
             push.1
         end
     ";
-        source_manager.load(module_name, src.to_string())
+        let uri = Uri::from("src.masm");
+        let content = SourceContent::new(SourceLanguage::Masm, uri.clone(), src);
+        let source_file = source_manager.load_from_raw_parts(uri.clone(), content);
+        Module::parse(
+            LibraryPath::new(module_name).unwrap(),
+            assembly::ast::ModuleKind::Library,
+            source_file,
+        )
+        .unwrap()
     };
 
-    let program_source = {
-        let src = "
+    let program_source = "
         use.foo::bar
 
         begin
             call.bar::dummy_proc
         end
     ";
-        source_manager.load("test_program", src.to_string())
-    };
 
     let library = Assembler::new(source_manager.clone())
         .with_debug_mode(true)
-        .assemble_library([lib_source])
+        .assemble_library([lib_module])
         .unwrap();
 
     let program = Assembler::new(source_manager.clone())
@@ -732,7 +740,7 @@ fn test_diagnostic_no_mast_forest_with_procedure() {
     assert_diagnostic_lines!(
         err,
         "no MAST forest contains the procedure with root digest 0x1b0a6d4b3976737badf180f3df558f45e06e6d1803ea5ad3b95fa7428caccd02",
-        regex!(r#",-\[test_program:5:13\]"#),
+        regex!(r#",-\[\$exec:5:13\]"#),
         " 4 |         begin",
         " 5 |             call.bar::dummy_proc",
         "   :             ^^^^^^^^^^^^^^^^^^^^",
@@ -928,14 +936,11 @@ fn test_diagnostic_syscall_target_not_in_kernel() {
         end
     ";
 
-    let program_source = {
-        let src = "
+    let program_source = "
         begin
             syscall.dummy_proc
         end
     ";
-        source_manager.load("test_program", src.to_string())
-    };
 
     let kernel_library = Assembler::new(source_manager.clone())
         .with_debug_mode(true)
@@ -958,7 +963,7 @@ fn test_diagnostic_syscall_target_not_in_kernel() {
     assert_diagnostic_lines!(
         err,
         "syscall failed: procedure with root d754f5422c74afd0b094889be6b288f9ffd2cc630e3c44d412b1408b2be3b99c was not found in the kernel",
-        regex!(r#",-\[test_program:3:13\]"#),
+        regex!(r#",-\[\$exec:3:13\]"#),
         " 2 |         begin",
         " 3 |             syscall.dummy_proc",
         "   :             ^^^^^^^^^^^^^^^^^^",
