@@ -51,7 +51,7 @@ For example:
 
 ```rust
 use std::sync::Arc;
-use miden_vm::{assembly::DefaultSourceManager, Assembler, execute, execute_iter, DefaultHost, Program, StackInputs};
+use miden_vm::{assembly::DefaultSourceManager, AdviceInputs, Assembler, execute, execute_iter, DefaultHost, Program, StackInputs};
 use processor::ExecutionOptions;
 
 // instantiate default source manager
@@ -66,6 +66,9 @@ let program = assembler.assemble_program("begin push.3 push.5 add swap drop end"
 // use an empty list as initial stack
 let stack_inputs = StackInputs::default();
 
+// do not include any initial advice data
+let advice_inputs = AdviceInputs::default();
+
 // instantiate a default host (with an empty advice provider)
 let mut host = DefaultHost::default();
 
@@ -73,10 +76,10 @@ let mut host = DefaultHost::default();
 let exec_options = ExecutionOptions::default();
 
 // execute the program with no inputs
-let trace = execute(&program, stack_inputs.clone(), &mut host, exec_options, source_manager.clone()).unwrap();
+let trace = execute(&program, stack_inputs.clone(), advice_inputs.clone(), &mut host, exec_options, source_manager.clone()).unwrap();
 
 // now, execute the same program in debug mode and iterate over VM states
-for vm_state in execute_iter(&program, stack_inputs, &mut host, source_manager) {
+for vm_state in execute_iter(&program, stack_inputs, advice_inputs, &mut host, source_manager) {
     match vm_state {
         Ok(vm_state) => println!("{:?}", vm_state),
         Err(_) => println!("something went terribly wrong!"),
@@ -104,7 +107,7 @@ Here is a simple example of executing a program which pushes two numbers onto th
 
 ```rust
 use std::sync::Arc;
-use miden_vm::{assembly::DefaultSourceManager, Assembler, DefaultHost, ProvingOptions, Program, prove, StackInputs};
+use miden_vm::{assembly::DefaultSourceManager, AdviceInputs, Assembler, DefaultHost, ProvingOptions, Program, prove, StackInputs};
 
 // instantiate default source manager
 let source_manager = Arc::new(DefaultSourceManager::default());
@@ -119,6 +122,7 @@ let program = assembler.assemble_program("begin push.3 push.5 add swap drop end"
 let (outputs, proof) = prove(
     &program,
     StackInputs::default(),       // we won't provide any inputs
+    AdviceInputs::default(),      // we don't need any initial advice inputs
     &mut DefaultHost::default(),  // we'll be using a default host
     ProvingOptions::default(),    // we'll be using default options
     source_manager,
@@ -187,7 +191,7 @@ Notice that except for the first 2 operations which initialize the stack, the se
 
 ```rust
 use std::sync::Arc;
-use miden_vm::{assembly::DefaultSourceManager, Assembler, DefaultHost, Program, ProvingOptions, StackInputs};
+use miden_vm::{assembly::DefaultSourceManager, AdviceInputs, Assembler, DefaultHost, Program, ProvingOptions, StackInputs};
 
 // set the number of terms to compute
 let n = 50;
@@ -215,6 +219,7 @@ let stack_inputs = StackInputs::try_from_ints([0, 1]).unwrap();
 let (outputs, proof) = miden_vm::prove(
     &program,
     stack_inputs,
+    AdviceInputs::default(), // without initial advice inputs
     &mut host,
     ProvingOptions::default(), // use default proving options
     Arc::new(DefaultSourceManager::default()), // use default source manager
