@@ -10,7 +10,7 @@ use.std::crypto::stark::constants
 const.NUM_FIXED_LEN_PUBLIC_INPUTS=40
 
 # Op label for kernel procedures table messages
-const.KERNEL_OP_LABEL=0
+const.KERNEL_OP_LABEL=48
 
 # CONSTANTS GETTERS
 # =================================================================================================
