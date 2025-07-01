@@ -32,7 +32,7 @@ harness = false
 
 [[bench]]
 name = "program_execution_fast"
-required-features = ["internal"]
+required-features = ["internal", "no_err_ctx"]
 harness = false
 
 [[bench]]
