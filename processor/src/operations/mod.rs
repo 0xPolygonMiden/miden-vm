@@ -1,7 +1,4 @@
-use vm_core::{
-    mast::{BasicBlockNode, MastForest},
-    stack::MIN_STACK_DEPTH,
-};
+use vm_core::{mast::MastForest, stack::MIN_STACK_DEPTH};
 
 use super::{ExecutionError, Felt, FieldElement, Host, Operation, Process};
 use crate::errors::ErrorContext;
@@ -36,7 +33,7 @@ impl Process {
         program: &MastForest,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
-        self.execute_op_with_error_ctx(op, program, host, &ErrorContext::default())
+        self.execute_op_with_error_ctx(op, program, host, &())
     }
 
     /// Executes the specified operation.
@@ -48,7 +45,7 @@ impl Process {
         op: Operation,
         program: &MastForest,
         host: &mut impl Host,
-        error_ctx: &ErrorContext<'_, BasicBlockNode>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         // make sure there is enough memory allocated to hold the execution trace
         self.ensure_trace_capacity();
@@ -57,7 +54,7 @@ impl Process {
         match op {
             // ----- system operations ------------------------------------------------------------
             Operation::Noop => self.stack.copy_state(0),
-            Operation::Assert(err_code) => self.op_assert(err_code, program, host, error_ctx)?,
+            Operation::Assert(err_code) => self.op_assert(err_code, program, host, err_ctx)?,
 
             Operation::FmpAdd => self.op_fmpadd()?,
             Operation::FmpUpdate => self.op_fmpupdate()?,
@@ -66,7 +63,7 @@ impl Process {
             Operation::Caller => self.op_caller()?,
 
             Operation::Clk => self.op_clk()?,
-            Operation::Emit(event_id) => self.op_emit(event_id, host, error_ctx)?,
+            Operation::Emit(event_id) => self.op_emit(event_id, host, err_ctx)?,
 
             // ----- flow control operations ------------------------------------------------------
             // control flow operations are never executed directly
@@ -87,12 +84,12 @@ impl Process {
             Operation::Add => self.op_add()?,
             Operation::Neg => self.op_neg()?,
             Operation::Mul => self.op_mul()?,
-            Operation::Inv => self.op_inv(error_ctx)?,
+            Operation::Inv => self.op_inv(err_ctx)?,
             Operation::Incr => self.op_incr()?,
 
-            Operation::And => self.op_and(error_ctx)?,
-            Operation::Or => self.op_or(error_ctx)?,
-            Operation::Not => self.op_not(error_ctx)?,
+            Operation::And => self.op_and(err_ctx)?,
+            Operation::Or => self.op_or(err_ctx)?,
+            Operation::Not => self.op_not(err_ctx)?,
 
             Operation::Eq => self.op_eq()?,
             Operation::Eqz => self.op_eqz()?,
@@ -104,16 +101,16 @@ impl Process {
 
             // ----- u32 operations ---------------------------------------------------------------
             Operation::U32split => self.op_u32split()?,
-            Operation::U32add => self.op_u32add(error_ctx)?,
-            Operation::U32add3 => self.op_u32add3(error_ctx)?,
-            Operation::U32sub => self.op_u32sub(error_ctx)?,
-            Operation::U32mul => self.op_u32mul(error_ctx)?,
-            Operation::U32madd => self.op_u32madd(error_ctx)?,
-            Operation::U32div => self.op_u32div(error_ctx)?,
+            Operation::U32add => self.op_u32add(err_ctx)?,
+            Operation::U32add3 => self.op_u32add3(err_ctx)?,
+            Operation::U32sub => self.op_u32sub(err_ctx)?,
+            Operation::U32mul => self.op_u32mul(err_ctx)?,
+            Operation::U32madd => self.op_u32madd(err_ctx)?,
+            Operation::U32div => self.op_u32div(err_ctx)?,
 
-            Operation::U32and => self.op_u32and(error_ctx)?,
-            Operation::U32xor => self.op_u32xor(error_ctx)?,
-            Operation::U32assert2(err_code) => self.op_u32assert2(err_code, error_ctx)?,
+            Operation::U32and => self.op_u32and(err_ctx)?,
+            Operation::U32xor => self.op_u32xor(err_ctx)?,
+            Operation::U32assert2(err_code) => self.op_u32assert2(err_code, err_ctx)?,
 
             // ----- stack manipulation -----------------------------------------------------------
             Operation::Pad => self.op_pad()?,
@@ -154,34 +151,32 @@ impl Process {
             Operation::MovDn7 => self.op_movdn(7)?,
             Operation::MovDn8 => self.op_movdn(8)?,
 
-            Operation::CSwap => self.op_cswap(error_ctx)?,
-            Operation::CSwapW => self.op_cswapw(error_ctx)?,
+            Operation::CSwap => self.op_cswap(err_ctx)?,
+            Operation::CSwapW => self.op_cswapw(err_ctx)?,
 
             // ----- input / output ---------------------------------------------------------------
             Operation::Push(value) => self.op_push(value)?,
 
-            Operation::AdvPop => self.op_advpop(host, error_ctx)?,
-            Operation::AdvPopW => self.op_advpopw(host, error_ctx)?,
+            Operation::AdvPop => self.op_advpop(host, err_ctx)?,
+            Operation::AdvPopW => self.op_advpopw(host, err_ctx)?,
 
-            Operation::MLoadW => self.op_mloadw(error_ctx)?,
-            Operation::MStoreW => self.op_mstorew(error_ctx)?,
+            Operation::MLoadW => self.op_mloadw(err_ctx)?,
+            Operation::MStoreW => self.op_mstorew(err_ctx)?,
 
-            Operation::MLoad => self.op_mload(error_ctx)?,
-            Operation::MStore => self.op_mstore(error_ctx)?,
+            Operation::MLoad => self.op_mload(err_ctx)?,
+            Operation::MStore => self.op_mstore(err_ctx)?,
 
-            Operation::MStream => self.op_mstream(error_ctx)?,
-            Operation::Pipe => self.op_pipe(host, error_ctx)?,
+            Operation::MStream => self.op_mstream(err_ctx)?,
+            Operation::Pipe => self.op_pipe(host, err_ctx)?,
 
             // ----- cryptographic operations -----------------------------------------------------
             Operation::HPerm => self.op_hperm()?,
-            Operation::MpVerify(err_code) => {
-                self.op_mpverify(err_code, host, program, error_ctx)?
-            },
-            Operation::MrUpdate => self.op_mrupdate(host, error_ctx)?,
+            Operation::MpVerify(err_code) => self.op_mpverify(err_code, host, program, err_ctx)?,
+            Operation::MrUpdate => self.op_mrupdate(host, err_ctx)?,
             Operation::FriE2F4 => self.op_fri_ext2fold4()?,
-            Operation::HornerBase => self.op_horner_eval_base(error_ctx)?,
-            Operation::HornerExt => self.op_horner_eval_ext(error_ctx)?,
-            Operation::ArithmeticCircuitEval => self.arithmetic_circuit_eval(error_ctx)?,
+            Operation::HornerBase => self.op_horner_eval_base(err_ctx)?,
+            Operation::HornerExt => self.op_horner_eval_ext(err_ctx)?,
+            Operation::ArithmeticCircuitEval => self.arithmetic_circuit_eval(err_ctx)?,
         }
 
         self.advance_clock()?;
@@ -209,7 +204,7 @@ pub mod testing {
     use vm_core::{StackInputs, mast::MastForest};
 
     use super::*;
-    use crate::{AdviceInputs, DefaultHost, MemAdviceProvider};
+    use crate::{AdviceInputs, DefaultHost};
 
     impl Process {
         /// Instantiates a new blank process for testing purposes. The stack in the process is
@@ -230,14 +225,11 @@ pub mod testing {
         }
 
         /// Instantiates a new process with an advice stack for testing purposes.
-        pub fn new_dummy_with_advice_stack(
-            advice_stack: &[u64],
-        ) -> (Self, DefaultHost<MemAdviceProvider>) {
+        pub fn new_dummy_with_advice_stack(advice_stack: &[u64]) -> (Self, DefaultHost) {
             let stack_inputs = StackInputs::default();
             let advice_inputs =
                 AdviceInputs::default().with_stack_values(advice_stack.iter().copied()).unwrap();
-            let advice_provider = MemAdviceProvider::from(advice_inputs);
-            let mut host = DefaultHost::new(advice_provider);
+            let mut host = DefaultHost::new(advice_inputs.into());
             let mut process =
                 Self::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
             let program = &MastForest::default();
@@ -269,9 +261,8 @@ pub mod testing {
         pub fn new_dummy_with_inputs_and_decoder_helpers(
             stack_inputs: StackInputs,
             advice_inputs: AdviceInputs,
-        ) -> (Self, DefaultHost<MemAdviceProvider>) {
-            let advice_provider = MemAdviceProvider::from(advice_inputs);
-            let mut host = DefaultHost::new(advice_provider);
+        ) -> (Self, DefaultHost) {
+            let mut host = DefaultHost::new(advice_inputs.into());
             let mut process =
                 Self::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
             let program = &MastForest::default();

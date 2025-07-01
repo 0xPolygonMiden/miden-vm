@@ -19,7 +19,6 @@ use utils::resolve_external_node;
 pub use vm_core::{
     AssemblyOp, EMPTY_WORD, Felt, Kernel, ONE, Operation, Program, ProgramInfo, QuadExtension,
     StackInputs, StackOutputs, Word, ZERO,
-    chiplets::hasher::Digest,
     crypto::merkle::SMT_DEPTH,
     debuginfo::{DefaultSourceManager, SourceManager, SourceSpan},
     errors::InputError,
@@ -30,8 +29,7 @@ pub use vm_core::{
 use vm_core::{
     Decorator, DecoratorIterator, FieldElement, WORD_SIZE,
     mast::{
-        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastNodeExt, OP_GROUP_SIZE, OpBatch,
-        SplitNode,
+        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, OP_GROUP_SIZE, OpBatch, SplitNode,
     },
 };
 pub use winter_prover::matrix::ColMatrix;
@@ -56,7 +54,7 @@ use range::RangeChecker;
 mod host;
 pub use host::{
     DefaultHost, Host, MastForestStore, MemMastForestStore,
-    advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, RecAdviceProvider},
+    advice::{AdviceError, AdviceInputs, AdviceProvider, AdviceSource},
 };
 
 mod chiplets;
@@ -88,9 +86,7 @@ pub mod math {
 
 pub mod crypto {
     pub use vm_core::crypto::{
-        hash::{
-            Blake3_192, Blake3_256, ElementHasher, Hasher, Rpo256, RpoDigest, Rpx256, RpxDigest,
-        },
+        hash::{Blake3_192, Blake3_256, ElementHasher, Hasher, Rpo256, Rpx256},
         merkle::{
             MerkleError, MerklePath, MerkleStore, MerkleTree, NodeIndex, PartialMerkleTree,
             SimpleSmt,
@@ -304,20 +300,9 @@ impl Process {
             return Err(ExecutionError::ProgramAlreadyExecuted);
         }
 
-        // Load the program's advice data into the advice provider
-        for (digest, values) in program.mast_forest().advice_map().iter() {
-            if let Some(stored_values) = host.advice_provider().get_mapped_values(digest) {
-                if stored_values != values {
-                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent {
-                        key: digest.into(),
-                        prev_values: stored_values.to_vec(),
-                        new_values: values.clone(),
-                    });
-                }
-            } else {
-                host.advice_provider_mut().insert_into_map(digest.into(), values.clone());
-            }
-        }
+        host.advice_provider_mut()
+            .merge_advice_map(program.mast_forest().advice_map())
+            .map_err(|err| ExecutionError::advice_error(err, RowIndex::from(0), &()))?;
 
         self.execute_mast_node(program.entrypoint(), &program.mast_forest().clone(), host)?;
 
@@ -347,14 +332,14 @@ impl Process {
             MastNode::Split(node) => self.execute_split_node(node, program, host)?,
             MastNode::Loop(node) => self.execute_loop_node(node, program, host)?,
             MastNode::Call(node) => {
-                let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+                let err_ctx = err_ctx!(program, node, self.source_manager.clone());
                 add_error_ctx_to_external_error(
                     self.execute_call_node(node, program, host),
                     err_ctx,
                 )?
             },
             MastNode::Dyn(node) => {
-                let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+                let err_ctx = err_ctx!(program, node, self.source_manager.clone());
                 add_error_ctx_to_external_error(
                     self.execute_dyn_node(node, program, host),
                     err_ctx,
@@ -408,7 +393,7 @@ impl Process {
         } else if condition == ZERO {
             self.execute_mast_node(node.on_false(), program, host)?;
         } else {
-            let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+            let err_ctx = err_ctx!(program, node, self.source_manager.clone());
             return Err(ExecutionError::not_binary_value_if(condition, &err_ctx));
         }
 
@@ -441,7 +426,7 @@ impl Process {
             }
 
             if self.stack.peek() != ZERO {
-                let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+                let err_ctx = err_ctx!(program, node, self.source_manager.clone());
                 return Err(ExecutionError::not_binary_value_loop(self.stack.peek(), &err_ctx));
             }
 
@@ -452,7 +437,7 @@ impl Process {
             // already dropped when we started the LOOP block
             self.end_loop_node(node, false, program, host)
         } else {
-            let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+            let err_ctx = err_ctx!(program, node, self.source_manager.clone());
             Err(ExecutionError::not_binary_value_loop(condition, &err_ctx))
         }
     }
@@ -476,10 +461,10 @@ impl Process {
             let callee = program.get_node_by_id(call_node.callee()).ok_or_else(|| {
                 ExecutionError::MastNodeNotFoundInForest { node_id: call_node.callee() }
             })?;
-            let err_ctx = ErrorContext::new(program, call_node, self.source_manager.clone());
+            let err_ctx = err_ctx!(program, call_node, self.source_manager.clone());
             self.chiplets.kernel_rom.access_proc(callee.digest(), &err_ctx)?;
         }
-        let err_ctx = ErrorContext::new(program, call_node, self.source_manager.clone());
+        let err_ctx = err_ctx!(program, call_node, self.source_manager.clone());
 
         self.start_call_node(call_node, program, host)?;
         self.execute_mast_node(call_node.callee(), program, host)?;
@@ -502,39 +487,36 @@ impl Process {
             return Err(ExecutionError::CallInSyscall("dyncall"));
         }
 
-        let error_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+        let err_ctx = err_ctx!(program, node, self.source_manager.clone());
 
         let callee_hash = if node.is_dyncall() {
-            self.start_dyncall_node(node, &error_ctx)?
+            self.start_dyncall_node(node, &err_ctx)?
         } else {
-            self.start_dyn_node(node, program, host, &error_ctx)?
+            self.start_dyn_node(node, program, host, &err_ctx)?
         };
 
         // if the callee is not in the program's MAST forest, try to find a MAST forest for it in
         // the host (corresponding to an external library loaded in the host); if none are
         // found, return an error.
-        match program.find_procedure_root(callee_hash.into()) {
+        match program.find_procedure_root(callee_hash) {
             Some(callee_id) => self.execute_mast_node(callee_id, program, host)?,
             None => {
-                let mast_forest = host.get_mast_forest(&callee_hash.into()).ok_or_else(|| {
-                    ExecutionError::dynamic_node_not_found(callee_hash.into(), &error_ctx)
-                })?;
+                let mast_forest = host
+                    .get_mast_forest(&callee_hash)
+                    .ok_or_else(|| ExecutionError::dynamic_node_not_found(callee_hash, &err_ctx))?;
 
                 // We limit the parts of the program that can be called externally to procedure
                 // roots, even though MAST doesn't have that restriction.
-                let root_id = mast_forest.find_procedure_root(callee_hash.into()).ok_or(
-                    ExecutionError::malfored_mast_forest_in_host(
-                        callee_hash.into(),
-                        &ErrorContext::default(),
-                    ),
-                )?;
+                let root_id = mast_forest
+                    .find_procedure_root(callee_hash)
+                    .ok_or(ExecutionError::malfored_mast_forest_in_host(callee_hash, &()))?;
 
                 self.execute_mast_node(root_id, &mast_forest, host)?
             },
         }
 
         if node.is_dyncall() {
-            self.end_dyncall_node(node, program, host, &error_ctx)
+            self.end_dyncall_node(node, program, host, &err_ctx)
         } else {
             self.end_dyn_node(node, program, host)
         }
@@ -633,14 +615,10 @@ impl Process {
             }
 
             // decode and execute the operation
-            let error_ctx = ErrorContext::new_with_op_idx(
-                program,
-                basic_block,
-                self.source_manager.clone(),
-                i + op_offset,
-            );
+            let err_ctx =
+                err_ctx!(program, basic_block, self.source_manager.clone(), i + op_offset);
             self.decoder.execute_user_op(op, op_idx);
-            self.execute_op_with_error_ctx(op, program, host, &error_ctx)?;
+            self.execute_op_with_error_ctx(op, program, host, &err_ctx)?;
 
             // if the operation carries an immediate value, the value is stored at the next group
             // pointer; so, we advance the pointer to the following group
@@ -841,13 +819,11 @@ impl<'a> ProcessState<'a> {
     /// # Errors
     /// - If the address is not word aligned.
     #[inline(always)]
-    pub fn get_mem_word(&self, ctx: ContextId, addr: u32) -> Result<Option<Word>, ExecutionError> {
+    pub fn get_mem_word(&self, ctx: ContextId, addr: u32) -> Result<Option<Word>, MemoryError> {
         match self {
-            ProcessState::Slow(state) => {
-                state.chiplets.memory.get_word(ctx, addr).map_err(ExecutionError::MemoryError)
-            },
+            ProcessState::Slow(state) => state.chiplets.memory.get_word(ctx, addr),
             ProcessState::Fast(state) => {
-                Ok(state.processor.memory.read_word_impl(ctx, addr, None)?.copied())
+                state.processor.memory.read_word_impl(ctx, addr, None, &())
             },
         }
     }
@@ -896,9 +872,9 @@ impl<'a> From<&'a mut Process> for ProcessState<'a> {
 
 /// For errors generated from processing an `ExternalNode`, returns the same error except with
 /// proper error context.
-fn add_error_ctx_to_external_error(
+pub(crate) fn add_error_ctx_to_external_error(
     result: Result<(), ExecutionError>,
-    err_ctx: ErrorContext<impl MastNodeExt>,
+    err_ctx: impl ErrorContext,
 ) -> Result<(), ExecutionError> {
     match result {
         Ok(_) => Ok(()),

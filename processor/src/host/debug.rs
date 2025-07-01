@@ -4,14 +4,14 @@ use std::{print, println};
 use miden_air::RowIndex;
 use vm_core::{DebugOptions, Felt};
 
-use super::ProcessState;
-use crate::{MemoryAddress, system::ContextId};
+use super::{Host, ProcessState};
+use crate::{AdviceProvider, MemoryAddress, system::ContextId};
 
 // DEBUG HANDLER
 // ================================================================================================
 
 /// Prints the info about the VM state specified by the provided options to stdout.
-pub fn print_debug_info(process: ProcessState, options: &DebugOptions) {
+pub fn print_debug_info(host: impl Host, process: ProcessState, options: &DebugOptions) {
     let printer = Printer::new(process.clk(), process.ctx(), process.fmp());
     match options {
         DebugOptions::StackAll => {
@@ -28,6 +28,9 @@ pub fn print_debug_info(process: ProcessState, options: &DebugOptions) {
         },
         DebugOptions::LocalInterval(n, m, num_locals) => {
             printer.print_local_interval(process, (*n as u32, *m as u32), *num_locals as u32);
+        },
+        DebugOptions::AdvStackTop(length) => {
+            printer.print_vm_adv_stack(host.advice_provider(), *length as usize);
         },
     }
 }
@@ -69,6 +72,28 @@ impl Printer {
             println!("├── {i:>2}: {}", stack[i]);
             println!("└── ({} more items)\n", stack.len() - num_items);
         }
+    }
+
+    /// Prints length items from the top of the  advice stack. If length is 0 it returns the whole
+    /// stack.
+    fn print_vm_adv_stack(&self, advice_provider: &AdviceProvider, length: usize) {
+        let stack = advice_provider.peek_stack(length);
+
+        // we may have less elements than requested
+        let num_items = stack.len();
+        if num_items == 0 {
+            println!("Advice Stack empty before step {}.", self.clk);
+            return;
+        };
+
+        // print all items except for the last one
+        println!("Advice Stack state before step {}:", self.clk);
+        for (i, element) in stack.iter().take(num_items - 1).enumerate() {
+            println!("├── {i:>2}: {element}");
+        }
+
+        let i = num_items - 1;
+        println!("└── {i:>2}: {}\n", stack[i]);
     }
 
     /// Prints the whole memory state at the cycle `clk` in context `ctx`.
@@ -116,33 +141,34 @@ impl Printer {
     }
 
     /// Prints locals in provided indexes interval.
+    ///
+    /// The interval given is inclusive on *both* ends.
     fn print_local_interval(&self, process: ProcessState, interval: (u32, u32), num_locals: u32) {
-        let mut local_mem_interval = Vec::new();
-        let local_memory_offset = self.fmp - num_locals + 1;
+        let local_memory_offset = self.fmp - num_locals;
 
-        // in case start index is 0 and end index is 2^16, we should print all available locals.
-        let (start, end) = if interval.0 == 0 && interval.1 == u16::MAX as u32 {
+        let (start, end) = interval;
+        // Account for a case where start is 0 and end is 2^16. In that case we should simply print
+        // all available locals.
+        let (start, end) = if start == 0 && end == u16::MAX as u32 {
             (0, num_locals - 1)
         } else {
-            interval
+            (start, end)
         };
-        for index in start..end + 1 {
-            local_mem_interval
-                .push((index, process.get_mem_value(self.ctx, index + local_memory_offset)))
-        }
 
-        if interval.0 == 0 && interval.1 == u16::MAX as u32 {
-            println!("State of procedure locals before step {}:", self.clk)
-        } else if interval.0 == interval.1 {
-            println!("State of procedure local at index {} before step {}:", interval.0, self.clk,)
+        let locals: Vec<(u32, Option<Felt>)> = (start..=end)
+            .map(|local_idx| {
+                let addr = local_memory_offset + local_idx;
+                let value = process.get_mem_value(self.ctx, addr);
+                (local_idx, value)
+            })
+            .collect();
+
+        if start != end {
+            println!("State of procedure locals [{start}, {end}] before step {}:", self.clk);
         } else {
-            println!(
-                "State of procedure locals [{}, {}] before step {}:",
-                interval.0, interval.1, self.clk,
-            )
-        };
-
-        print_interval(local_mem_interval, true);
+            println!("State of procedure local {start} before step {}:", self.clk);
+        }
+        print_interval(locals, true);
     }
 }
 

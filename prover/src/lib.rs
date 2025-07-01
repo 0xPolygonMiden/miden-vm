@@ -37,8 +37,8 @@ mod gpu;
 
 pub use air::{DeserializationError, ExecutionProof, FieldExtension, HashFunction, ProvingOptions};
 pub use processor::{
-    AdviceInputs, Digest, ExecutionError, Host, InputError, MemAdviceProvider, StackInputs,
-    StackOutputs, Word, crypto, math, utils,
+    AdviceInputs, ExecutionError, Host, InputError, StackInputs, StackOutputs, Word, crypto, math,
+    utils,
 };
 pub use winter_prover::{Proof, crypto::MerkleTree as MerkleTreeVC};
 

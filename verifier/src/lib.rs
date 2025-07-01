@@ -14,7 +14,7 @@ use vm_core::crypto::{
 };
 // EXPORTS
 // ================================================================================================
-pub use vm_core::{Kernel, ProgramInfo, StackInputs, StackOutputs, Word, chiplets::hasher::Digest};
+pub use vm_core::{Kernel, ProgramInfo, StackInputs, StackOutputs, Word};
 pub use winter_verifier::{AcceptableOptions, VerifierError};
 use winter_verifier::{crypto::MerkleTree, verify as verify_proof};
 pub mod math {
@@ -110,7 +110,7 @@ pub fn verify(
 #[derive(Debug, thiserror::Error)]
 pub enum VerificationError {
     #[error("failed to verify proof for program with hash {0}")]
-    ProgramVerificationError(Digest, #[source] VerifierError),
+    ProgramVerificationError(Word, #[source] VerifierError),
     #[error("the input {0} is not a valid field element")]
     InputNotFieldElement(u64),
     #[error("the output {0} is not a valid field element")]

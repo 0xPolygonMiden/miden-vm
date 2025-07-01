@@ -10,8 +10,7 @@ use rand::{Rng, RngCore, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use rstest::rstest;
 use test_utils::{
-    AdviceInputs, MemAdviceProvider, ProvingOptions, StackInputs, VerifierError,
-    proptest::proptest, prove,
+    AdviceInputs, ProvingOptions, StackInputs, VerifierError, proptest::proptest, prove,
 };
 use verifier_recursive::{QuadExt, VerifierData, generate_advice_inputs};
 use vm_core::{Felt, FieldElement, WORD_SIZE, Word, ZERO};
@@ -22,9 +21,7 @@ mod verifier_recursive;
 // in `stdlib/asm/crypto/stark/verifier.masm` are violated.
 #[rstest]
 #[case(None)]
-#[ignore = "see-https://github.com/0xMiden/air-script/issues/399"]
 #[case(Some(KERNEL_EVEN_NUM_PROC))]
-#[ignore = "see-https://github.com/0xMiden/air-script/issues/399"]
 #[case(Some(KERNEL_ODD_NUM_PROC))]
 fn stark_verifier_e2f4(#[case] kernel: Option<&str>) {
     // An example MASM program to be verified inside Miden VM.
@@ -86,8 +83,7 @@ pub fn generate_recursive_verifier_data(
     };
     let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
     let advice_inputs = AdviceInputs::default();
-    let advice_provider = MemAdviceProvider::from(advice_inputs);
-    let mut host = DefaultHost::new(advice_provider);
+    let mut host = DefaultHost::new(advice_inputs.into());
 
     let options =
         ProvingOptions::new(27, 8, 16, FieldExtension::Quadratic, 4, 127, HashFunction::Rpo256);
@@ -298,7 +294,9 @@ fn reduce_kernel_procedures_digests(
 }
 
 fn reduce_digest(digest: &[u64], alpha: QuadExt, beta: QuadExt) -> QuadExt {
+    const KERNEL_OP_LABEL: Felt = Felt::new(48);
     alpha
+        + KERNEL_OP_LABEL.into()
         + beta
             * digest
                 .iter()

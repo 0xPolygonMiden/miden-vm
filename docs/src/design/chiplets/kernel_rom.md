@@ -8,10 +8,17 @@ More background about Miden VM execution contexts can be found [here](../../user
 ## Kernel ROM trace
 
 The kernel ROM table consists of five columns.
+The following example table shows the execution trace of the kernel ROM with procedure digests $a, b, c$, which were called 1, 2, and 0 times, respectively.
+Each digest is included once to respond to the initialization request by the public inputs, and then repeated for each call made by the decoder. 
 
-_**Note**: The following diagram is outdated (see [issue #1829](https://github.com/0xMiden/miden-vm/issues/1829)_
-
-![kernel_rom_execution_trace](../../assets/design/chiplets/kernel_rom/kernel_rom_execution_trace.png)
+| $s_{first}$ | $r_0$ | $r_1$ | $r_2$ | $r_3$ |
+|-------------|-------|-------|-------|-------|
+| 1           | $a_0$ | $a_1$ | $a_2$ | $a_3$ |
+| 0           | $a_0$ | $a_1$ | $a_2$ | $a_3$ |
+| 1           | $b_0$ | $b_1$ | $b_2$ | $b_3$ |
+| 0           | $b_0$ | $b_1$ | $b_2$ | $b_3$ |
+| 0           | $b_0$ | $b_1$ | $b_2$ | $b_3$ |
+| 1           | $c_0$ | $c_1$ | $c_2$ | $c_3$ |
 
 The meaning of columns in the above is as follows:
 
@@ -79,12 +86,12 @@ Denoting the random values received from the verifier as $\alpha_0, \alpha_1$, e
 $$
 \begin{aligned}
 \tilde{r} &= \sum_{i=0}^3 (\alpha_{i + 2} \cdot r_i) \\
-v_{init} &= \alpha_0 + \alpha_1 \cdot \textsf{KERNEL_PROC_INIT_LABEL} + \tilde{r} \\
-v_{call} &= \alpha_0 + \alpha_1 \cdot \textsf{KERNEL_PROC_CALL_LABEL} + \tilde{r}
+v_{init} &= \alpha_0 + \alpha_1 \cdot \textsf{KERNEL\_PROC\_INIT} + \tilde{r} \\
+v_{call} &= \alpha_0 + \alpha_1 \cdot \textsf{KERNEL\_PROC\_CALL} + \tilde{r}
 \end{aligned}
 $$
 
-Here, $\textsf{KERNEL_PROC_INIT}$ and $\textsf{KERNEL_PROC_CALL}$ are the unique [operation labels](./main.md#operation-labels) for the kernel ROM bus message.
+Here, $\textsf{KERNEL\_PROC\_INIT}$ and $\textsf{KERNEL\_PROC\_CALL}$ are the unique [operation labels](./main.md#operation-labels) for the kernel ROM bus message.
 
 Each row of the kernel ROM chiplet trace responds to either a procedure digest initialization or decoder call request.
 Since the $s_{first}$ column defines which type of response is sent to the bus, it is used to combine both requests into a single constraint given by
@@ -95,8 +102,8 @@ $$
 
 The above simplifies to
 
-- $s_{first} = 1$: $b'_{chip} = b_{chip} \cdot v_{init}$, when responding to a $\textsf{KERNEL_PROC_INIT}$ request.
-- $s_{first} = 0$: $b'_{chip} = b_{chip} \cdot v_{call}$, when responding to a $\textsf{KERNEL_PROC_CALL}$ request.
+- $s_{first} = 1$: $b'_{chip} = b_{chip} \cdot v_{init}$, when responding to a $\textsf{KERNEL\_PROC\_INIT}$ request.
+- $s_{first} = 0$: $b'_{chip} = b_{chip} \cdot v_{call}$, when responding to a $\textsf{KERNEL\_PROC\_CALL}$ request.
 
 The kernel procedure digests initialization requests are implemented by imposing a boundary constraint in the first row of the $b_{chip}$ column.
 This is described in the [chiplets bus constraints](../chiplets/main.md#chiplets-bus-constraints).

@@ -4,10 +4,10 @@ use miden_air::ProcessorAir;
 use processor::crypto::RpoRandomCoin;
 use test_utils::{
     MIN_STACK_DEPTH, VerifierError,
-    crypto::{MerkleStore, RandomCoin, Rpo256, RpoDigest},
+    crypto::{MerkleStore, RandomCoin, Rpo256},
     math::{FieldElement, QuadExtension, ToElements},
 };
-use vm_core::{Felt, WORD_SIZE};
+use vm_core::{Felt, WORD_SIZE, Word};
 use winter_air::{
     Air,
     proof::{Proof, merge_ood_evaluations},
@@ -24,7 +24,7 @@ pub struct VerifierData {
     pub initial_stack: Vec<u64>,
     pub advice_stack: Vec<u64>,
     pub store: MerkleStore,
-    pub advice_map: Vec<(RpoDigest, Vec<Felt>)>,
+    pub advice_map: Vec<(Word, Vec<Felt>)>,
 }
 
 pub fn generate_advice_inputs(
@@ -39,6 +39,9 @@ pub fn generate_advice_inputs(
     // 3. The program hash (4 field elements).
     let pub_inputs_elements = pub_inputs.to_elements();
     let num_elements_pi = pub_inputs_elements.len();
+    // note that since we are padding the fixed length inputs, in our case the program digest, to
+    // be double-word aligned, we have to subtract `2 * WORD_SIZE` instead of `WORD_SIZE` for
+    // the program digest
     let digests_elements = num_elements_pi - MIN_STACK_DEPTH * 2 - 2 * WORD_SIZE;
     assert_eq!(digests_elements % WORD_SIZE, 0);
     let num_kernel_procedures_digests = digests_elements / (2 * WORD_SIZE);
@@ -55,7 +58,6 @@ pub fn generate_advice_inputs(
     // from the prover
     let mut advice_stack = vec![digests_elements as u64];
     let mut public_coin_seed = proof.context.to_elements();
-    let pub_inputs_elements = pub_inputs.to_elements();
     public_coin_seed.extend_from_slice(&pub_inputs_elements);
 
     // add the public inputs, which is nothing but the input and output stacks to the VM as well as
@@ -72,7 +74,7 @@ pub fn generate_advice_inputs(
     // create AIR instance for the computation specified in the proof
     let air = ProcessorAir::new(proof.trace_info().to_owned(), pub_inputs, proof.options().clone());
     let seed_digest = Rpo256::hash_elements(&public_coin_seed);
-    let mut public_coin: RpoRandomCoin = RpoRandomCoin::new(seed_digest.into());
+    let mut public_coin: RpoRandomCoin = RpoRandomCoin::new(seed_digest);
     let mut channel = VerifierChannel::new(&air, proof)?;
 
     // 1 ----- main segment trace -----------------------------------------------------------------
@@ -216,7 +218,7 @@ pub fn generate_advice_inputs(
 // HELPER FUNCTIONS
 // ================================================================================================
 
-pub fn digest_to_int_vec(digest: &[RpoDigest]) -> Vec<u64> {
+pub fn digest_to_int_vec(digest: &[Word]) -> Vec<u64> {
     digest
         .iter()
         .flat_map(|digest| digest.as_elements().iter().map(|e| e.as_int()))

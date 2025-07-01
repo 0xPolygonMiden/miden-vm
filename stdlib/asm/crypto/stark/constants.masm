@@ -171,12 +171,18 @@ const.CURRENT_TRACE_ROW_PTR=3238002688
 
 export.get_root_unity
     push.ROOT_UNITY
+export.get_root_unity
+    push.ROOT_UNITY
 end
 
 export.get_domain_offset
     push.DOMAIN_OFFSET
+export.get_domain_offset
+    push.DOMAIN_OFFSET
 end
 
+export.get_domain_offset_inv
+    push.DOMAIN_OFFSET_INV
 export.get_domain_offset_inv
     push.DOMAIN_OFFSET_INV
 end
@@ -231,6 +237,22 @@ export.get_lde_domain_size
     push.LDE_DOMAIN_SIZE_PTR mem_load
 end
 
+export.set_lde_domain_log_size
+    push.LDE_DOMAIN_LOG_SIZE_PTR mem_store 
+end
+
+export.get_lde_domain_log_size
+    push.LDE_DOMAIN_LOG_SIZE_PTR mem_load
+end
+
+export.set_lde_domain_size
+    push.LDE_DOMAIN_SIZE_PTR mem_store
+end
+
+export.get_lde_domain_size
+    push.LDE_DOMAIN_SIZE_PTR mem_load
+end
+
 export.set_number_queries
     push.NUM_QUERIES_PTR mem_store
 end
@@ -261,6 +283,14 @@ end
 
 export.get_remainder_poly_address
     push.REMAINDER_POLY_ADDRESS_PTR mem_load
+end
+
+export.set_trace_length
+    push.TRACE_LENGTH_PTR mem_store
+end
+
+export.get_trace_length
+    push.TRACE_LENGTH_PTR mem_load
 end
 
 export.set_trace_length
@@ -397,6 +427,108 @@ export.ood_evaluations_ptr
     push.OOD_EVALUATIONS_PTR
 end
 
+export.main_trace_com_ptr
+    push.MAIN_TRACE_COM_PTR
+end
+
+export.aux_trace_com_ptr
+    push.AUX_TRACE_COM_PTR
+end
+
+export.composition_poly_com_ptr
+    push.COMPOSITION_POLY_COM_PTR
+end
+
+#! Address for the point `z` and its exponentiation `z^N` where `N=trace_len`.
+#!
+#! The word stored is `[z_0, z_1, z^n_0, z^n_1]`.
+export.z_ptr
+    push.Z_PTR
+end
+
+export.zero_word_ptr
+    push.ZERO_WORD_PTR
+end
+
+export.deep_rand_alpha_nd_ptr
+    push.ALPHA_DEEP_ND_PTR
+end
+
+export.ood_fixed_term_horner_evaluations_ptr
+    push.OOD_FIXED_TERM_HORNER_EVALS_PTR
+end
+
+export.num_public_inputs_ptr
+    push.NUM_PUBLIC_INPUTS_PTR
+end
+
+export.set_trace_domain_generator
+    push.TRACE_DOMAIN_GENERATOR_PTR mem_store
+end
+
+export.get_trace_domain_generator
+    push.TRACE_DOMAIN_GENERATOR_PTR mem_load
+end
+
+export.variable_length_public_inputs_address_ptr
+    push.VARIABLE_LEN_PUBLIC_INPUTS_ADDRESS_PTR
+end
+
+export.public_inputs_address_ptr
+    push.PUBLIC_INPUTS_ADDRESS_PTR
+end
+
+#! Returns the pointer to the capacity word of the RPO-based random coin.
+export.c_ptr
+    push.C_PTR
+end
+
+#! Returns the pointer to the first rate word of the RPO-based random coin.
+export.r1_ptr
+    push.R1_PTR
+end
+
+#! Returns the pointer to the second rate word of the RPO-based random coin.
+export.r2_ptr
+    push.R2_PTR
+end
+
+export.tmp1
+    push.TMP1
+end
+
+export.tmp2
+    push.TMP2
+end
+
+export.tmp3
+    push.TMP3
+end
+
+export.tmp4
+    push.TMP4
+end
+
+export.aux_rand_nd_ptr
+    push.AUX_RAND_ND_PTR
+end
+
+export.composition_coef_ptr
+    push.COMPOSITION_COEF_PTR
+end
+
+export.deep_rand_coef_ptr
+    push.DEEP_RAND_CC_PTR
+end
+
+export.aux_rand_elem_ptr
+    push.AUX_RAND_ELEM_PTR
+end
+
+export.ood_evaluations_ptr
+    push.OOD_EVALUATIONS_PTR
+end
+
 export.auxiliary_ace_inputs_ptr
     push.AUXILIARY_ACE_INPUTS_PTR
 end
@@ -405,6 +537,8 @@ export.get_arithmetic_circuit_ptr
     push.ACE_CIRCUIT_PTR
 end
 
+export.fri_com_ptr
+    push.FRI_COM_PTR
 export.fri_com_ptr
     push.FRI_COM_PTR
 end

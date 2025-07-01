@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 use core::fmt;
 
-use miden_crypto::hash::rpo::RpoDigest;
+use miden_crypto::Word;
 use miden_formatting::{
     hex::ToHex,
     prettier::{Document, PrettyPrint, const_text, nl, text},
@@ -23,14 +23,14 @@ use crate::mast::{DecoratorId, MastForest};
 /// node can be swapped with the actual subtree that it represents without changing the MAST root.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExternalNode {
-    digest: RpoDigest,
+    digest: Word,
     before_enter: Vec<DecoratorId>,
     after_exit: Vec<DecoratorId>,
 }
 
 impl ExternalNode {
     /// Returns a new [`ExternalNode`] instantiated with the specified procedure hash.
-    pub fn new(procedure_hash: RpoDigest) -> Self {
+    pub fn new(procedure_hash: Word) -> Self {
         Self {
             digest: procedure_hash,
             before_enter: Vec::new(),
@@ -41,7 +41,7 @@ impl ExternalNode {
 
 impl ExternalNode {
     /// Returns the commitment to the MAST node referenced by this external node.
-    pub fn digest(&self) -> RpoDigest {
+    pub fn digest(&self) -> Word {
         self.digest
     }
 
