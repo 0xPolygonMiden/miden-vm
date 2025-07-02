@@ -1,17 +1,9 @@
-use vm_core::{Felt, ZERO, mast::MastForest, sys_events::SystemEvent};
+use vm_core::{Felt, mast::MastForest, sys_events::SystemEvent};
 
 use super::{ExecutionError, FastProcessor, ONE};
 use crate::{
     ErrorContext, FMP_MIN, Host, ProcessState,
-    operations::sys_ops::sys_event_handlers::{
-        HDWORD_TO_MAP_WITH_DOMAIN_DOMAIN_OFFSET, copy_map_value_to_adv_stack,
-        copy_merkle_node_to_adv_stack, insert_hdword_into_adv_map, insert_hperm_into_adv_map,
-        insert_mem_values_into_adv_map, merge_merkle_nodes, push_ext2_intt_result,
-        push_ext2_inv_result, push_falcon_mod_result, push_ilog2, push_leading_ones,
-        push_leading_zeros, push_smtpeek_result, push_trailing_ones, push_trailing_zeros,
-        push_u64_div_result,
-    },
-    system::FMP_MAX,
+    operations::sys_ops::sys_event_handlers::handle_system_event, system::FMP_MAX,
 };
 
 impl FastProcessor {
@@ -97,51 +89,12 @@ impl FastProcessor {
         host: &mut impl Host,
         err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
+        let process_state = &mut ProcessState::new_fast(self, op_idx);
         // If it's a system event, handle it directly. Otherwise, forward it to the host.
         if let Some(system_event) = SystemEvent::from_event_id(event_id) {
-            self.handle_system_event(system_event, op_idx, err_ctx)
+            handle_system_event(process_state, system_event, err_ctx)
         } else {
-            host.on_event(&mut ProcessState::new_fast(self, op_idx), event_id, err_ctx)
-        }
-    }
-
-    // HELPERS
-    // ------------------------------------------------------------------------------------------
-
-    pub(super) fn handle_system_event(
-        &mut self,
-        system_event: SystemEvent,
-        op_idx: usize,
-        err_ctx: &impl ErrorContext,
-    ) -> Result<(), ExecutionError> {
-        let process_state = &mut ProcessState::new_fast(self, op_idx);
-        match system_event {
-            SystemEvent::MerkleNodeMerge => merge_merkle_nodes(process_state, err_ctx),
-            SystemEvent::MerkleNodeToStack => copy_merkle_node_to_adv_stack(process_state, err_ctx),
-            SystemEvent::MapValueToStack => {
-                copy_map_value_to_adv_stack(process_state, false, err_ctx)
-            },
-            SystemEvent::MapValueToStackN => {
-                copy_map_value_to_adv_stack(process_state, true, err_ctx)
-            },
-            SystemEvent::U64Div => push_u64_div_result(process_state, err_ctx),
-            SystemEvent::FalconDiv => push_falcon_mod_result(process_state, err_ctx),
-            SystemEvent::Ext2Inv => push_ext2_inv_result(process_state, err_ctx),
-            SystemEvent::Ext2Intt => push_ext2_intt_result(process_state, err_ctx),
-            SystemEvent::SmtPeek => push_smtpeek_result(process_state, err_ctx),
-            SystemEvent::U32Clz => push_leading_zeros(process_state, err_ctx),
-            SystemEvent::U32Ctz => push_trailing_zeros(process_state, err_ctx),
-            SystemEvent::U32Clo => push_leading_ones(process_state, err_ctx),
-            SystemEvent::U32Cto => push_trailing_ones(process_state, err_ctx),
-            SystemEvent::ILog2 => push_ilog2(process_state, err_ctx),
-
-            SystemEvent::MemToMap => insert_mem_values_into_adv_map(process_state),
-            SystemEvent::HdwordToMap => insert_hdword_into_adv_map(process_state, ZERO),
-            SystemEvent::HdwordToMapWithDomain => {
-                let domain = process_state.get_stack_item(HDWORD_TO_MAP_WITH_DOMAIN_DOMAIN_OFFSET);
-                insert_hdword_into_adv_map(process_state, domain)
-            },
-            SystemEvent::HpermToMap => insert_hperm_into_adv_map(process_state),
+            host.on_event(process_state, event_id, err_ctx)
         }
     }
 }

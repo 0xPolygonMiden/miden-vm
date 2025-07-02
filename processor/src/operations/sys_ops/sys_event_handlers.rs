@@ -11,7 +11,7 @@ use vm_core::{
 use winter_prover::math::fft;
 
 use crate::{
-    AdviceSource, ExecutionError, Ext2InttError, MemoryError, Process, ProcessState, QuadFelt,
+    AdviceSource, ExecutionError, Ext2InttError, MemoryError, ProcessState, QuadFelt,
     errors::ErrorContext,
 };
 
@@ -21,41 +21,34 @@ pub const HDWORD_TO_MAP_WITH_DOMAIN_DOMAIN_OFFSET: usize = 8;
 /// Falcon signature prime.
 const M: u64 = 12289;
 
-impl Process {
-    pub(super) fn handle_system_event(
-        &mut self,
-        system_event: SystemEvent,
-        err_ctx: &impl ErrorContext,
-    ) -> Result<(), ExecutionError> {
-        let process_state: &mut ProcessState = &mut self.into();
-        match system_event {
-            SystemEvent::MerkleNodeMerge => merge_merkle_nodes(process_state, err_ctx),
-            SystemEvent::MerkleNodeToStack => copy_merkle_node_to_adv_stack(process_state, err_ctx),
-            SystemEvent::MapValueToStack => {
-                copy_map_value_to_adv_stack(process_state, false, err_ctx)
-            },
-            SystemEvent::MapValueToStackN => {
-                copy_map_value_to_adv_stack(process_state, true, err_ctx)
-            },
-            SystemEvent::U64Div => push_u64_div_result(process_state, err_ctx),
-            SystemEvent::FalconDiv => push_falcon_mod_result(process_state, err_ctx),
-            SystemEvent::Ext2Inv => push_ext2_inv_result(process_state, err_ctx),
-            SystemEvent::Ext2Intt => push_ext2_intt_result(process_state, err_ctx),
-            SystemEvent::SmtPeek => push_smtpeek_result(process_state, err_ctx),
-            SystemEvent::U32Clz => push_leading_zeros(process_state, err_ctx),
-            SystemEvent::U32Ctz => push_trailing_zeros(process_state, err_ctx),
-            SystemEvent::U32Clo => push_leading_ones(process_state, err_ctx),
-            SystemEvent::U32Cto => push_trailing_ones(process_state, err_ctx),
-            SystemEvent::ILog2 => push_ilog2(process_state, err_ctx),
+pub fn handle_system_event(
+    process_state: &mut ProcessState,
+    system_event: SystemEvent,
+    err_ctx: &impl ErrorContext,
+) -> Result<(), ExecutionError> {
+    match system_event {
+        SystemEvent::MerkleNodeMerge => merge_merkle_nodes(process_state, err_ctx),
+        SystemEvent::MerkleNodeToStack => copy_merkle_node_to_adv_stack(process_state, err_ctx),
+        SystemEvent::MapValueToStack => copy_map_value_to_adv_stack(process_state, false, err_ctx),
+        SystemEvent::MapValueToStackN => copy_map_value_to_adv_stack(process_state, true, err_ctx),
+        SystemEvent::U64Div => push_u64_div_result(process_state, err_ctx),
+        SystemEvent::FalconDiv => push_falcon_mod_result(process_state, err_ctx),
+        SystemEvent::Ext2Inv => push_ext2_inv_result(process_state, err_ctx),
+        SystemEvent::Ext2Intt => push_ext2_intt_result(process_state, err_ctx),
+        SystemEvent::SmtPeek => push_smtpeek_result(process_state, err_ctx),
+        SystemEvent::U32Clz => push_leading_zeros(process_state, err_ctx),
+        SystemEvent::U32Ctz => push_trailing_zeros(process_state, err_ctx),
+        SystemEvent::U32Clo => push_leading_ones(process_state, err_ctx),
+        SystemEvent::U32Cto => push_trailing_ones(process_state, err_ctx),
+        SystemEvent::ILog2 => push_ilog2(process_state, err_ctx),
 
-            SystemEvent::MemToMap => insert_mem_values_into_adv_map(process_state),
-            SystemEvent::HdwordToMap => insert_hdword_into_adv_map(process_state, ZERO),
-            SystemEvent::HdwordToMapWithDomain => {
-                let domain = process_state.get_stack_item(HDWORD_TO_MAP_WITH_DOMAIN_DOMAIN_OFFSET);
-                insert_hdword_into_adv_map(process_state, domain)
-            },
-            SystemEvent::HpermToMap => insert_hperm_into_adv_map(process_state),
-        }
+        SystemEvent::MemToMap => insert_mem_values_into_adv_map(process_state),
+        SystemEvent::HdwordToMap => insert_hdword_into_adv_map(process_state, ZERO),
+        SystemEvent::HdwordToMapWithDomain => {
+            let domain = process_state.get_stack_item(HDWORD_TO_MAP_WITH_DOMAIN_DOMAIN_OFFSET);
+            insert_hdword_into_adv_map(process_state, domain)
+        },
+        SystemEvent::HpermToMap => insert_hperm_into_adv_map(process_state),
     }
 }
 
@@ -77,7 +70,7 @@ impl Process {
 /// - `start_addr` is greater than or equal to 2^32.
 /// - `end_addr` is greater than or equal to 2^32.
 /// - `start_addr` > `end_addr`.
-pub fn insert_mem_values_into_adv_map(process: &mut ProcessState) -> Result<(), ExecutionError> {
+fn insert_mem_values_into_adv_map(process: &mut ProcessState) -> Result<(), ExecutionError> {
     let (start_addr, end_addr) =
         get_mem_addr_range(process, 4, 5).map_err(ExecutionError::MemoryError)?;
     let ctx = process.ctx();
@@ -107,7 +100,7 @@ pub fn insert_mem_values_into_adv_map(process: &mut ProcessState) -> Result<(), 
 ///
 /// Where KEY is computed as hash(A || B, domain), where domain is provided via the immediate
 /// value.
-pub fn insert_hdword_into_adv_map(
+fn insert_hdword_into_adv_map(
     process: &mut ProcessState,
     domain: Felt,
 ) -> Result<(), ExecutionError> {
@@ -139,7 +132,7 @@ pub fn insert_hdword_into_adv_map(
 ///
 /// Where KEY is computed by extracting the digest elements from hperm([C, A, B]). For example,
 /// if C is [0, d, 0, 0], KEY will be set as hash(A || B, d).
-pub fn insert_hperm_into_adv_map(process: &mut ProcessState) -> Result<(), ExecutionError> {
+fn insert_hperm_into_adv_map(process: &mut ProcessState) -> Result<(), ExecutionError> {
     // read the state from the stack
     let mut state = [
         process.get_stack_item(11),
@@ -187,7 +180,7 @@ pub fn insert_hperm_into_adv_map(process: &mut ProcessState) -> Result<(), Execu
 /// provider (i.e., the input trees are not removed).
 ///
 /// It is not checked whether the provided roots exist as Merkle trees in the advide providers.
-pub fn merge_merkle_nodes(
+fn merge_merkle_nodes(
     process: &mut ProcessState,
     err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
@@ -223,7 +216,7 @@ pub fn merge_merkle_nodes(
 /// - The specified depth is either zero or greater than the depth of the Merkle tree identified by
 ///   the specified root.
 /// - Value of the node at the specified depth and index is not known to the advice provider.
-pub fn copy_merkle_node_to_adv_stack(
+fn copy_merkle_node_to_adv_stack(
     process: &mut ProcessState,
     err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
@@ -285,7 +278,7 @@ pub fn copy_merkle_node_to_adv_stack(
 /// # Errors
 /// Returns an error if the required key was not found in the key-value map or if stack offset
 /// is greater than 12.
-pub fn copy_map_value_to_adv_stack(
+fn copy_map_value_to_adv_stack(
     process: &mut ProcessState,
     include_len: bool,
     err_ctx: &impl ErrorContext,
@@ -322,7 +315,7 @@ pub fn copy_map_value_to_adv_stack(
 ///
 /// # Errors
 /// Returns an error if the divisor is ZERO.
-pub fn push_u64_div_result(
+fn push_u64_div_result(
     process: &mut ProcessState,
     err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
@@ -406,7 +399,7 @@ pub fn push_u64_div_result(
 /// # Errors
 /// - Returns an error if the divisor is ZERO.
 /// - Returns an error if either a0 or a1 is not a u32.
-pub fn push_falcon_mod_result(
+fn push_falcon_mod_result(
     process: &mut ProcessState,
     err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
@@ -458,7 +451,7 @@ pub fn push_falcon_mod_result(
 ///
 /// # Errors
 /// Returns an error if the input is a zero element in the extension field.
-pub fn push_ext2_inv_result(
+fn push_ext2_inv_result(
     process: &mut ProcessState,
     err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
@@ -511,7 +504,7 @@ pub fn push_ext2_inv_result(
 /// - `output_size` is 0 or is greater than the `input_size`.
 /// - `input_ptr` is greater than 2^32, or is not aligned on a word boundary.
 /// - `input_ptr + input_size * 2` is greater than 2^32.
-pub fn push_ext2_intt_result(
+fn push_ext2_intt_result(
     process: &mut ProcessState,
     err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
@@ -580,7 +573,7 @@ pub fn push_ext2_intt_result(
 /// Outputs:
 ///   Operand stack: [n, ...]
 ///   Advice stack: [leading_zeros, ...]
-pub fn push_leading_zeros(
+fn push_leading_zeros(
     process: &mut ProcessState,
     err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
@@ -596,7 +589,7 @@ pub fn push_leading_zeros(
 /// Outputs:
 ///   Operand stack: [n, ...]
 ///   Advice stack: [trailing_zeros, ...]
-pub fn push_trailing_zeros(
+fn push_trailing_zeros(
     process: &mut ProcessState,
     err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
@@ -612,7 +605,7 @@ pub fn push_trailing_zeros(
 /// Outputs:
 ///   Operand stack: [n, ...]
 ///   Advice stack: [leading_ones, ...]
-pub fn push_leading_ones(
+fn push_leading_ones(
     process: &mut ProcessState,
     err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
@@ -628,7 +621,7 @@ pub fn push_leading_ones(
 /// Outputs:
 ///   Operand stack: [n, ...]
 ///   Advice stack: [trailing_ones, ...]
-pub fn push_trailing_ones(
+fn push_trailing_ones(
     process: &mut ProcessState,
     err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
@@ -646,7 +639,7 @@ pub fn push_trailing_ones(
 ///
 /// # Errors
 /// Returns an error if the logarithm argument (top stack element) equals ZERO.
-pub fn push_ilog2(
+fn push_ilog2(
     process: &mut ProcessState,
     err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
@@ -681,7 +674,7 @@ pub fn push_ilog2(
 ///
 /// # Panics
 /// Will panic as unimplemented if the target depth is `64`.
-pub fn push_smtpeek_result(
+fn push_smtpeek_result(
     process: &mut ProcessState,
     err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {

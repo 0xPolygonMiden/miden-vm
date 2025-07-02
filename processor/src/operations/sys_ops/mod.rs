@@ -7,7 +7,11 @@ use super::{
     },
     ExecutionError, Process,
 };
-use crate::{Host, ProcessState, errors::ErrorContext};
+use crate::{
+    Host, ProcessState, errors::ErrorContext,
+    operations::sys_ops::sys_event_handlers::handle_system_event,
+};
+
 pub(crate) mod sys_event_handlers;
 
 // SYSTEM OPERATIONS
@@ -138,11 +142,12 @@ impl Process {
         self.stack.copy_state(0);
         self.decoder.set_user_op_helpers(Operation::Emit(event_id), &[event_id.into()]);
 
+        let process_state: &mut ProcessState = &mut self.into();
         // If it's a system event, handle it directly. Otherwise, forward it to the host.
         if let Some(system_event) = SystemEvent::from_event_id(event_id) {
-            self.handle_system_event(system_event, err_ctx)
+            handle_system_event(process_state, system_event, err_ctx)
         } else {
-            host.on_event(&mut self.into(), event_id, err_ctx)
+            host.on_event(process_state, event_id, err_ctx)
         }
     }
 }
