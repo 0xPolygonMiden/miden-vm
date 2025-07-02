@@ -1,9 +1,13 @@
-use alloc::boxed::Box;
-use std::error::Error;
+use alloc::{
+    boxed::Box,
+    collections::{BTreeMap, btree_map::Entry},
+    vec::Vec,
+};
+use core::{error::Error, fmt, fmt::Debug};
 
 use vm_core::DebugOptions;
 
-use crate::{ExecutionError, ProcessState};
+use crate::{ErrorContext, ExecutionError, ProcessState};
 
 // EVENT HANDLER TRAIT
 // ================================================================================================
@@ -62,6 +66,76 @@ where
 /// }
 /// ```
 pub type EventError = Box<dyn Error + Send + Sync + 'static>;
+
+// EVENT HANDLER REGISTRY
+// ================================================================================================
+
+/// Registry for maintaining event handlers.
+///
+/// ```rust, ignore
+/// impl Host for MyHost {
+///     fn on_event(
+///         &mut self,
+///         process: &mut ProcessState,
+///         event_id: u32,
+///         err_ctx: &impl ErrorContext,
+///     ) -> Result<(), ExecutionError> {
+///         if self.event_handlers.handle_event(event_id, process, err_ctx)? {
+///             // the event was handled by the registered event handlers; just return
+///             return Ok(())
+///         }
+///         
+///         // implement custom error handling
+///         
+///         Err(ExecutionError::invalid_event_id_error(event_id, err_ctx))
+///     }
+/// }
+/// ```
+#[derive(Default)]
+pub struct EventHandlerRegistry {
+    handlers: BTreeMap<u32, Box<dyn EventHandler>>,
+}
+
+impl EventHandlerRegistry {
+    pub fn new() -> Self {
+        Self { handlers: BTreeMap::new() }
+    }
+
+    pub fn register(
+        &mut self,
+        id: u32,
+        handler: Box<dyn EventHandler>,
+    ) -> Result<(), ExecutionError> {
+        match self.handlers.entry(id) {
+            Entry::Vacant(e) => e.insert(handler),
+            Entry::Occupied(_) => return Err(ExecutionError::DuplicateEventHandler { id }),
+        };
+        Ok(())
+    }
+
+    pub fn handle_event(
+        &self,
+        id: u32,
+        process: &mut ProcessState,
+        err_ctx: &impl ErrorContext,
+    ) -> Result<bool, ExecutionError> {
+        if let Some(handler) = self.handlers.get(&id) {
+            handler
+                .on_event(process)
+                .map_err(|err| ExecutionError::event_error(err, err_ctx))?;
+            return Ok(true);
+        }
+
+        Ok(false)
+    }
+}
+
+impl Debug for EventHandlerRegistry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let keys: Vec<_> = self.handlers.keys().collect();
+        f.debug_struct("EventHandlerRegistry").field("handlers", &keys).finish()
+    }
+}
 
 // DEBUG HANDLER
 // ================================================================================================

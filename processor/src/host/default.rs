@@ -1,19 +1,21 @@
-use alloc::{sync::Arc, vec::Vec};
+use alloc::{boxed::Box, sync::Arc, vec::Vec};
 
-use vm_core::{DebugOptions, mast::MastForest};
+use vm_core::{DebugOptions, Word, mast::MastForest};
 
 use crate::{
-    DebugHandler, ExecutionError, Host, MastForestStore, MemMastForestStore, ProcessState, Word,
+    DebugHandler, ErrorContext, EventHandler, EventHandlerRegistry, ExecutionError, Host,
+    MastForestStore, MemMastForestStore, ProcessState,
 };
 
 // DEFAULT HOST IMPLEMENTATION
 // ================================================================================================
 
 /// A default [Host] implementation that provides the essential functionality required by the VM.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct DefaultHost<D: DebugHandler = DefaultDebugHandler> {
     mast_forests: Vec<Arc<MastForest>>,
     store: MemMastForestStore,
+    event_handlers: EventHandlerRegistry,
     debug_handler: D,
 }
 
@@ -22,6 +24,7 @@ impl Default for DefaultHost {
         Self {
             mast_forests: Vec::default(),
             store: MemMastForestStore::default(),
+            event_handlers: EventHandlerRegistry::default(),
             debug_handler: DefaultDebugHandler,
         }
     }
@@ -35,11 +38,22 @@ impl<D: DebugHandler> DefaultHost<D> {
         Ok(())
     }
 
+    /// Loads a single [`EventHandler`] into this [`Host`]. The handler can be either a closure or a
+    /// free function accepting a `&mut ProcessState` and returning an `EventError`.
+    pub fn load_handler(
+        &mut self,
+        id: u32,
+        handler: impl EventHandler + 'static,
+    ) -> Result<(), ExecutionError> {
+        self.event_handlers.register(id, Box::new(handler))
+    }
+
     /// Replace the current [`DebugHandler`] with a custom one.
     pub fn with_debug_handler<H: DebugHandler>(self, handler: H) -> DefaultHost<H> {
         DefaultHost {
             mast_forests: self.mast_forests,
             store: self.store,
+            event_handlers: self.event_handlers,
             debug_handler: handler,
         }
     }
@@ -62,6 +76,20 @@ impl<D: DebugHandler> Host for DefaultHost<D> {
 
     fn iter_mast_forests(&self) -> impl Iterator<Item = Arc<MastForest>> {
         self.mast_forests.iter().cloned()
+    }
+
+    fn on_event(
+        &mut self,
+        process: &mut ProcessState,
+        event_id: u32,
+        err_ctx: &impl ErrorContext,
+    ) -> Result<(), ExecutionError> {
+        if self.event_handlers.handle_event(event_id, process, err_ctx)? {
+            // the event was handled by the registered event handlers; just return
+            return Ok(());
+        }
+
+        Err(ExecutionError::invalid_event_id_error(event_id, err_ctx))
     }
 
     fn on_debug(
