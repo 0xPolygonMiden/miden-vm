@@ -4,8 +4,8 @@ use core::cmp::min;
 use memory::Memory;
 use miden_air::RowIndex;
 use vm_core::{
-    Decorator, DecoratorIterator, EMPTY_WORD, Felt, Kernel, ONE, Operation, Program, StackOutputs,
-    WORD_SIZE, Word, ZERO,
+    Decorator, EMPTY_WORD, Felt, Kernel, ONE, Operation, Program, StackOutputs, WORD_SIZE, Word,
+    ZERO,
     debuginfo::{DefaultSourceManager, SourceManager},
     mast::{
         BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastForest, MastNode,
@@ -16,8 +16,9 @@ use vm_core::{
 };
 
 use crate::{
-    ContextId, ErrorContext, ExecutionError, FMP_MIN, Host, ProcessState, SYSCALL_FMP_MIN,
-    add_error_ctx_to_external_error, chiplets::Ace, err_ctx, utils::resolve_external_node,
+    ContextId, ErrorContext, ExecutionError, FMP_MIN, Host, OperationId, ProcessState,
+    SYSCALL_FMP_MIN, add_error_ctx_to_external_error, chiplets::Ace, err_ctx,
+    utils::resolve_external_node,
 };
 
 mod memory;
@@ -360,34 +361,40 @@ impl FastProcessor {
         // are removed from decorators - or if decorators are removed entirely.
         //
         // A similar reasoning applies to the "after exit" list.
-        for &decorator_id in node.before_enter() {
-            self.execute_decorator(&program[decorator_id], 0, host)?;
+        // for &decorator_id in node.before_enter() {
+        //     self.execute_decorator(&program[decorator_id], 0, host)?;
+        // }
+
+        for decorator in program.get_decorators(&OperationId::new(node_id.into(), 0, 0)) {
+            self.execute_decorator(decorator, 0, host)?;
         }
 
         match node {
             MastNode::Block(basic_block_node) => {
-                self.execute_basic_block_node(basic_block_node, program, host)?
+                self.execute_basic_block_node(node_id.into(), basic_block_node, program, host)?
             },
             MastNode::Join(join_node) => {
                 self.execute_join_node(join_node, program, kernel, host)?
             },
             MastNode::Split(split_node) => {
-                self.execute_split_node(split_node, program, kernel, host)?
+                self.execute_split_node(node_id.into(), split_node, program, kernel, host)?
             },
             MastNode::Loop(loop_node) => {
-                self.execute_loop_node(loop_node, program, kernel, host)?
+                self.execute_loop_node(node_id.into(), loop_node, program, kernel, host)?
             },
             MastNode::Call(call_node) => {
-                let err_ctx = err_ctx!(program, call_node, self.source_manager.clone());
+                let err_ctx =
+                    err_ctx!(program, call_node, node_id.into(), self.source_manager.clone());
                 add_error_ctx_to_external_error(
-                    self.execute_call_node(call_node, program, kernel, host),
+                    self.execute_call_node(node_id.into(), call_node, program, kernel, host),
                     err_ctx,
                 )?
             },
             MastNode::Dyn(dyn_node) => {
-                let err_ctx = err_ctx!(program, dyn_node, self.source_manager.clone());
+                let err_ctx =
+                    err_ctx!(program, dyn_node, node_id.into(), self.source_manager.clone());
                 add_error_ctx_to_external_error(
-                    self.execute_dyn_node(dyn_node, program, kernel, host),
+                    self.execute_dyn_node(node_id.into(), dyn_node, program, kernel, host),
                     err_ctx,
                 )?
             },
@@ -396,8 +403,8 @@ impl FastProcessor {
             },
         }
 
-        for &decorator_id in node.after_exit() {
-            self.execute_decorator(&program[decorator_id], 0, host)?;
+        for decorator in program.get_decorators_after(&OperationId::new(node_id.into(), 0, 0)) {
+            self.execute_decorator(decorator, 0, host)?;
         }
 
         Ok(())
@@ -424,6 +431,7 @@ impl FastProcessor {
 
     fn execute_split_node(
         &mut self,
+        node_id: usize,
         split_node: &SplitNode,
         program: &MastForest,
         kernel: &Kernel,
@@ -443,7 +451,7 @@ impl FastProcessor {
         } else if condition == ZERO {
             self.execute_mast_node(split_node.on_false(), program, kernel, host)
         } else {
-            let err_ctx = err_ctx!(program, split_node, self.source_manager.clone());
+            let err_ctx = err_ctx!(program, split_node, node_id, self.source_manager.clone());
             Err(ExecutionError::not_binary_value_if(condition, &err_ctx))
         };
 
@@ -455,6 +463,7 @@ impl FastProcessor {
 
     fn execute_loop_node(
         &mut self,
+        node_id: usize,
         loop_node: &LoopNode,
         program: &MastForest,
         kernel: &Kernel,
@@ -492,19 +501,20 @@ impl FastProcessor {
         if condition == ZERO {
             Ok(())
         } else {
-            let err_ctx = err_ctx!(program, loop_node, self.source_manager.clone());
+            let err_ctx = err_ctx!(program, loop_node, node_id, self.source_manager.clone());
             Err(ExecutionError::not_binary_value_loop(condition, &err_ctx))
         }
     }
 
     fn execute_call_node(
         &mut self,
+        node_id: usize,
         call_node: &CallNode,
         program: &MastForest,
         kernel: &Kernel,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
-        let err_ctx = err_ctx!(program, call_node, self.source_manager.clone());
+        let err_ctx = err_ctx!(program, call_node, node_id, self.source_manager.clone());
 
         // Corresponds to the row inserted for the CALL or SYSCALL operation added to the trace.
         self.clk += 1_u32;
@@ -555,6 +565,7 @@ impl FastProcessor {
 
     fn execute_dyn_node(
         &mut self,
+        node_id: usize,
         dyn_node: &DynNode,
         program: &MastForest,
         kernel: &Kernel,
@@ -568,7 +579,7 @@ impl FastProcessor {
             return Err(ExecutionError::CallInSyscall("dyncall"));
         }
 
-        let err_ctx = err_ctx!(program, dyn_node, self.source_manager.clone());
+        let err_ctx = err_ctx!(program, dyn_node, node_id, self.source_manager.clone());
 
         // Retrieve callee hash from memory, using stack top as the memory address.
         let callee_hash = {
@@ -638,6 +649,7 @@ impl FastProcessor {
     #[inline(always)]
     fn execute_basic_block_node(
         &mut self,
+        node_id: usize,
         basic_block_node: &BasicBlockNode,
         program: &MastForest,
         host: &mut impl Host,
@@ -647,14 +659,13 @@ impl FastProcessor {
 
         let mut batch_offset_in_block = 0;
         let mut op_batches = basic_block_node.op_batches().iter();
-        let mut decorator_ids = basic_block_node.decorator_iter();
 
         // execute first op batch
         if let Some(first_op_batch) = op_batches.next() {
             self.execute_op_batch(
                 basic_block_node,
+                node_id,
                 first_op_batch,
-                &mut decorator_ids,
                 batch_offset_in_block,
                 program,
                 host,
@@ -669,8 +680,8 @@ impl FastProcessor {
 
             self.execute_op_batch(
                 basic_block_node,
+                node_id,
                 op_batch,
-                &mut decorator_ids,
                 batch_offset_in_block,
                 program,
                 host,
@@ -688,12 +699,12 @@ impl FastProcessor {
         // happen for decorators appearing after all operations in a block. these decorators are
         // executed after SPAN block is closed to make sure the VM clock cycle advances beyond the
         // last clock cycle of the SPAN block ops.
-        for &decorator_id in decorator_ids {
-            let decorator = program
-                .get_decorator_by_id(decorator_id)
-                .ok_or(ExecutionError::DecoratorNotFoundInForest { decorator_id })?;
-            self.execute_decorator(decorator, 0, host)?;
-        }
+        // for &decorator_id in decorator_ids {
+        //     let decorator = program
+        //         .get_decorator_by_id(decorator_id)
+        //         .ok_or(ExecutionError::DecoratorNotFoundInForest { decorator_id })?;
+        //     self.execute_decorator(decorator, 0, host)?;
+        // }
 
         Ok(())
     }
@@ -702,8 +713,8 @@ impl FastProcessor {
     fn execute_op_batch(
         &mut self,
         basic_block: &BasicBlockNode,
+        node_id: usize,
         batch: &OpBatch,
-        decorators: &mut DecoratorIterator,
         batch_offset_in_block: usize,
         program: &MastForest,
         host: &mut impl Host,
@@ -720,19 +731,20 @@ impl FastProcessor {
 
         // execute operations in the batch one by one
         for (op_idx_in_batch, op) in batch.ops().iter().enumerate() {
-            while let Some(&decorator_id) =
-                decorators.next_filtered(batch_offset_in_block + op_idx_in_batch)
+            for decorator in program.get_decorators(&OperationId::new(node_id, 0, op_idx_in_batch))
             {
-                let decorator = program
-                    .get_decorator_by_id(decorator_id)
-                    .ok_or(ExecutionError::DecoratorNotFoundInForest { decorator_id })?;
                 self.execute_decorator(decorator, op_idx_in_batch, host)?;
             }
 
             // decode and execute the operation
             let op_idx_in_block = batch_offset_in_block + op_idx_in_batch;
-            let err_ctx =
-                err_ctx!(program, basic_block, self.source_manager.clone(), op_idx_in_block);
+            let err_ctx = err_ctx!(
+                program,
+                basic_block,
+                self.source_manager.clone(),
+                node_id,
+                op_idx_in_block
+            );
             self.execute_op(op, op_idx_in_block, program, host, &err_ctx)?;
 
             // if the operation carries an immediate value, the value is stored at the next group

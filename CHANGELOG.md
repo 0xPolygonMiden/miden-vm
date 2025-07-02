@@ -40,6 +40,7 @@
 - Simplify processing of OOD evaluations in the recursive verifier (#1848).
 - Make `ErrorContext` zero-cost ([#1910](https://github.com/0xMiden/miden-vm/issues/1910)).
 - Make `FastProcessor` output rich error diagnostics ([#1914](https://github.com/0xMiden/miden-vm/issues/1914)).
+- Add `clear_debug_info` to `Program` and `Library` to reduce their size (#1889).
 
 #### Fixes
 

@@ -66,6 +66,16 @@ impl Program {
             ..self
         }
     }
+
+    /// Clears all debug information in order to reduce the program size.
+    pub fn clear_debug_info(self) -> Self {
+        let mut mast_forest = (*self.mast_forest).clone();
+        mast_forest.clear_debug_info();
+        Self {
+            mast_forest: Arc::new(mast_forest),
+            ..self
+        }
+    }
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -180,7 +190,8 @@ impl Deserializable for Program {
 impl crate::prettier::PrettyPrint for Program {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
-        let entrypoint = self.mast_forest[self.entrypoint()].to_pretty_print(&self.mast_forest);
+        let entrypoint = self.mast_forest[self.entrypoint()]
+            .to_pretty_print(&self.mast_forest, self.entrypoint().into());
 
         indent(4, const_text("begin") + nl() + entrypoint.render()) + nl() + const_text("end")
     }

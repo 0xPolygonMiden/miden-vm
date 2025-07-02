@@ -37,6 +37,7 @@
 //! (before enter and after exit decorators section)
 //! - before enter decorators (`Vec<(MastNodeId, Vec<DecoratorId>)>`)
 //! - after exit decorators (`Vec<(MastNodeId, Vec<DecoratorId>)>`)
+// TODO update comment
 
 use alloc::{
     collections::BTreeMap,
@@ -50,7 +51,7 @@ use string_table::StringTable;
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 use super::{DecoratorId, MastForest, MastNode, MastNodeId};
-use crate::AdviceMap;
+use crate::{AdviceMap, debuginfo::DebugInfo};
 
 mod decorator;
 
@@ -184,6 +185,8 @@ impl Serializable for MastForest {
         // Write "before enter" and "after exit" decorators
         before_enter_decorators.write_into(target);
         after_exit_decorators.write_into(target);
+
+        self.debug_info.write_into(target);
     }
 }
 
@@ -289,6 +292,8 @@ impl Deserializable for MastForest {
         }
 
         mast_forest.error_codes = error_codes;
+
+        mast_forest.debug_info = DebugInfo::read_from(source)?;
 
         Ok(mast_forest)
     }

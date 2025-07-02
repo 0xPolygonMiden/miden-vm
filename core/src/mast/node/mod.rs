@@ -29,7 +29,7 @@ pub use loop_node::LoopNode;
 
 use super::{DecoratorId, MastForestError};
 use crate::{
-    AssemblyOp, Decorator, DecoratorList, Operation,
+    AssemblyOp, Decorator, DecoratorList, Operation, OperationId,
     mast::{MastForest, MastNodeId, Remapping},
 };
 
@@ -180,29 +180,33 @@ impl MastNode {
         }
     }
 
-    pub fn to_pretty_print<'a>(&'a self, mast_forest: &'a MastForest) -> impl PrettyPrint + 'a {
+    pub fn to_pretty_print<'a>(
+        &'a self,
+        mast_forest: &'a MastForest,
+        node_id: usize,
+    ) -> impl PrettyPrint + 'a {
         match self {
-            MastNode::Block(basic_block_node) => {
-                MastNodePrettyPrint::new(Box::new(basic_block_node.to_pretty_print(mast_forest)))
-            },
+            MastNode::Block(basic_block_node) => MastNodePrettyPrint::new(Box::new(
+                basic_block_node.to_pretty_print(mast_forest, node_id),
+            )),
             MastNode::Join(join_node) => {
-                MastNodePrettyPrint::new(Box::new(join_node.to_pretty_print(mast_forest)))
+                MastNodePrettyPrint::new(Box::new(join_node.to_pretty_print(mast_forest, node_id)))
             },
             MastNode::Split(split_node) => {
-                MastNodePrettyPrint::new(Box::new(split_node.to_pretty_print(mast_forest)))
+                MastNodePrettyPrint::new(Box::new(split_node.to_pretty_print(mast_forest, node_id)))
             },
             MastNode::Loop(loop_node) => {
-                MastNodePrettyPrint::new(Box::new(loop_node.to_pretty_print(mast_forest)))
+                MastNodePrettyPrint::new(Box::new(loop_node.to_pretty_print(mast_forest, node_id)))
             },
             MastNode::Call(call_node) => {
-                MastNodePrettyPrint::new(Box::new(call_node.to_pretty_print(mast_forest)))
+                MastNodePrettyPrint::new(Box::new(call_node.to_pretty_print(mast_forest, node_id)))
             },
             MastNode::Dyn(dyn_node) => {
-                MastNodePrettyPrint::new(Box::new(dyn_node.to_pretty_print(mast_forest)))
+                MastNodePrettyPrint::new(Box::new(dyn_node.to_pretty_print(mast_forest, node_id)))
             },
-            MastNode::External(external_node) => {
-                MastNodePrettyPrint::new(Box::new(external_node.to_pretty_print(mast_forest)))
-            },
+            MastNode::External(external_node) => MastNodePrettyPrint::new(Box::new(
+                external_node.to_pretty_print(mast_forest, node_id),
+            )),
         }
     }
 
@@ -230,15 +234,19 @@ impl MastNode {
         }
     }
 
-    pub fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+    pub fn to_display<'a>(
+        &'a self,
+        mast_forest: &'a MastForest,
+        node_id: usize,
+    ) -> impl fmt::Display + 'a {
         match self {
-            MastNode::Block(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
-            MastNode::Join(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
-            MastNode::Split(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
-            MastNode::Loop(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
-            MastNode::Call(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
-            MastNode::Dyn(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
-            MastNode::External(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
+            MastNode::Block(node) => MastNodeDisplay::new(node.to_display(mast_forest, node_id)),
+            MastNode::Join(node) => MastNodeDisplay::new(node.to_display(mast_forest, node_id)),
+            MastNode::Split(node) => MastNodeDisplay::new(node.to_display(mast_forest, node_id)),
+            MastNode::Loop(node) => MastNodeDisplay::new(node.to_display(mast_forest, node_id)),
+            MastNode::Call(node) => MastNodeDisplay::new(node.to_display(mast_forest, node_id)),
+            MastNode::Dyn(node) => MastNodeDisplay::new(node.to_display(mast_forest, node_id)),
+            MastNode::External(node) => MastNodeDisplay::new(node.to_display(mast_forest, node_id)),
         }
     }
 
@@ -361,40 +369,25 @@ pub trait MastNodeExt {
     fn get_assembly_op<'m>(
         &self,
         mast_forest: &'m MastForest,
-        target_op_idx: Option<usize>,
+        node_id: usize,
+        op_idx: usize,
     ) -> Option<&'m AssemblyOp> {
-        match target_op_idx {
-            // If a target operation index is provided, return the assembly op associated with that
-            // operation.
-            Some(target_op_idx) => {
-                for (op_idx, decorator_id) in self.decorators() {
-                    if let Some(Decorator::AsmOp(assembly_op)) =
-                        mast_forest.get_decorator_by_id(decorator_id)
-                    {
-                        // when an instruction compiles down to multiple operations, only the first
-                        // operation is associated with the assembly op. We need to check if the
-                        // target operation index falls within the range of operations associated
-                        // with the assembly op.
-                        if target_op_idx >= op_idx
-                            && target_op_idx < op_idx + assembly_op.num_cycles() as usize
-                        {
-                            return Some(assembly_op);
-                        }
-                    }
-                }
-            },
-            // If no target operation index is provided, return the first assembly op found.
-            None => {
-                for (_, decorator_id) in self.decorators() {
-                    if let Some(Decorator::AsmOp(assembly_op)) =
-                        mast_forest.get_decorator_by_id(decorator_id)
-                    {
+        for i in (0..=op_idx).rev() {
+            let op_id = OperationId::new(node_id, 0, i);
+            for decorator in mast_forest.get_decorators(&op_id) {
+                if let Decorator::AsmOp(assembly_op) = decorator {
+                    // when an instruction compiles down to multiple operations, only the first
+                    // operation is associated with the assembly op. We need to check if the
+                    // target operation index falls within the range of operations associated
+                    // with the assembly op.
+                    // if target_op_idx >= op_idx
+                    //     && target_op_idx < op_idx + assembly_op.num_cycles() as usize
+                    if op_idx <= i + assembly_op.num_cycles() as usize {
                         return Some(assembly_op);
                     }
                 }
-            },
+            }
         }
-
         None
     }
 }

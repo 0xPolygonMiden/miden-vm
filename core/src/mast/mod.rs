@@ -8,7 +8,10 @@ use core::{
     ops::{Index, IndexMut},
 };
 
-use crate::crypto::hash::{Blake3_256, Blake3Digest, Digest};
+use crate::{
+    OperationId,
+    crypto::hash::{Blake3_256, Blake3Digest, Digest},
+};
 
 mod node;
 pub use node::{
@@ -17,7 +20,7 @@ pub use node::{
 };
 use winter_utils::{ByteWriter, DeserializationError, Serializable};
 
-use crate::{AdviceMap, Decorator, DecoratorList, Felt, Operation, Word};
+use crate::{AdviceMap, Decorator, DecoratorList, Felt, Operation, Word, debuginfo::DebugInfo};
 
 mod serialization;
 
@@ -59,6 +62,9 @@ pub struct MastForest {
     /// codes, so they are stored in order to provide a useful message to the user in case a error
     /// code is triggered.
     error_codes: BTreeMap<u64, Arc<str>>,
+
+    /// TODO make option?
+    debug_info: DebugInfo,
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -261,6 +267,7 @@ impl MastForest {
     /// which is effectively deduplication. Decorators are ignored when it comes to merging
     /// External nodes. This means that an External node with decorators may be replaced by a node
     /// without decorators or vice versa.
+    // TODO
     pub fn merge<'forest>(
         forests: impl IntoIterator<Item = &'forest MastForest>,
     ) -> Result<(MastForest, MastForestRootMap), MastForestError> {
@@ -279,6 +286,32 @@ impl MastForest {
     ) -> Result<MastNodeId, MastForestError> {
         let block = MastNode::new_basic_block_with_raw_decorators(operations, decorators, self)?;
         self.add_node(block)
+    }
+
+    pub fn clear_debug_info_legacy(&mut self) {
+        self.decorators.clear();
+        self.error_codes.clear();
+
+        for node in self.nodes.iter_mut() {
+            match node {
+                MastNode::Block(n) => n.clear_decorators(),
+                MastNode::Join(n) => n.clear_decorators(),
+                MastNode::Split(n) => n.clear_decorators(),
+                MastNode::Loop(n) => n.clear_decorators(),
+                MastNode::Call(n) => n.clear_decorators(),
+                MastNode::Dyn(n) => n.clear_decorators(),
+                MastNode::External(n) => n.clear_decorators(),
+            }
+        }
+    }
+
+    /// Clears all debug information: decorators and error_codes.
+    pub fn clear_debug_info(&mut self) {
+        self.clear_debug_info_legacy();
+
+        self.debug_info.decorators.clear();
+        self.debug_info.op_decorators.clear();
+        self.debug_info.error_codes.clear();
     }
 }
 
@@ -363,6 +396,31 @@ impl MastForest {
             self.make_root(new_root_id);
         }
     }
+
+    pub fn build_debug_info(&mut self) {
+        self.debug_info.decorators = self.decorators.clone();
+        for (node_id, node) in self.nodes.iter().enumerate() {
+            for decorator_id in node.before_enter() {
+                let operation_id = OperationId::new(node_id, 0, 0);
+                self.debug_info.add_decorator_id(operation_id, *decorator_id, true);
+            }
+
+            if let MastNode::Block(basic_block) = node {
+                // Each decorator is accompanied by the operation index specifying the operation
+                // prior to which the decorator should be executed.
+                for (pos, decorator_id) in basic_block.decorators() {
+                    let operation_id = OperationId::new(node_id, 0, *pos);
+                    self.debug_info.add_decorator_id(operation_id, *decorator_id, true);
+                }
+            }
+
+            for decorator_id in node.after_exit() {
+                let operation_id = OperationId::new(node_id, 0, 0);
+                self.debug_info.add_decorator_id(operation_id, *decorator_id, false);
+            }
+        }
+        self.debug_info.error_codes = self.error_codes.clone();
+    }
 }
 
 /// Returns the set of nodes that are live, as well as the mapping from "old ID" to "new ID" for all
@@ -395,16 +453,34 @@ fn remove_nodes(
 
 /// Public accessors
 impl MastForest {
-    /// Returns the [`Decorator`] associated with the provided [`DecoratorId`] if valid, or else
-    /// `None`.
-    ///
-    /// This is the fallible version of indexing (e.g. `mast_forest[decorator_id]`).
-    #[inline(always)]
-    pub fn get_decorator_by_id(&self, decorator_id: DecoratorId) -> Option<&Decorator> {
-        let idx = decorator_id.0 as usize;
-
-        self.decorators.get(idx)
+    pub fn get_decorators(&self, op_id: &OperationId) -> Vec<&Decorator> {
+        if let Some(ids) = self.debug_info.get_decorator_ids_before(op_id) {
+            ids.iter().map(|id| &self.debug_info.decorators[*id]).collect()
+        } else {
+            vec![]
+        }
     }
+
+    pub fn get_decorators_after(&self, op_id: &OperationId) -> Vec<&Decorator> {
+        if let Some(ids) = self.debug_info.get_decorator_ids_after(op_id) {
+            ids.iter().map(|id| &self.debug_info.decorators[*id]).collect()
+        } else {
+            vec![]
+        }
+    }
+
+    /*
+        /// Returns the [`Decorator`] associated with the provided [`DecoratorId`] if valid, or else
+        /// `None`.
+        ///
+        /// This is the fallible version of indexing (e.g. `mast_forest[decorator_id]`).
+        // #[inline(always)]
+        // pub fn get_decorator_by_id(&self, decorator_id: DecoratorId) -> Option<&Decorator> {
+        //     let idx = decorator_id.0 as usize;
+
+        //     self.decorators.get(idx)
+        // }
+    */
 
     /// Returns the [`MastNode`] associated with the provided [`MastNodeId`] if valid, or else
     /// `None`.
@@ -490,7 +566,7 @@ impl MastForest {
     /// Given an error code as a Felt, resolves it to its corresponding error message.
     pub fn resolve_error_message(&self, code: Felt) -> Option<Arc<str>> {
         let key = u64::from(code);
-        self.error_codes.get(&key).cloned()
+        self.debug_info.error_codes.get(&key).cloned()
     }
 }
 

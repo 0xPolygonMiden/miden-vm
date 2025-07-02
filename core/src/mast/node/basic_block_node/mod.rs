@@ -5,8 +5,9 @@ use miden_crypto::{Felt, Word, ZERO};
 use miden_formatting::prettier::PrettyPrint;
 
 use crate::{
-    DecoratorIterator, DecoratorList, Operation,
+    Decorator, DecoratorIterator, DecoratorList, Operation, OperationId,
     chiplets::hasher,
+    debuginfo::DebugInfo,
     mast::{DecoratorId, MastForest, MastForestError},
 };
 
@@ -198,8 +199,12 @@ impl BasicBlockNode {
 
     /// Returns an iterator over all operations and decorator, in the order in which they appear in
     /// the program.
-    pub fn iter(&self) -> impl Iterator<Item = OperationOrDecorator<'_>> {
-        OperationOrDecoratorIterator::new(self)
+    pub fn iter<'a>(
+        &'a self,
+        node_id: usize,
+        debug_info: &'a DebugInfo,
+    ) -> impl Iterator<Item = OperationOrDecorator<'a>> {
+        OperationOrDecoratorIterator::new(self, node_id, debug_info)
     }
 }
 
@@ -227,6 +232,11 @@ impl BasicBlockNode {
     pub fn set_decorators(&mut self, decorator_list: DecoratorList) {
         self.decorators = decorator_list;
     }
+
+    /// Clears the decorators.
+    pub fn clear_decorators(&mut self) {
+        self.decorators.clear();
+    }
 }
 
 impl MastNodeExt for BasicBlockNode {
@@ -239,19 +249,25 @@ impl MastNodeExt for BasicBlockNode {
 // ================================================================================================
 
 impl BasicBlockNode {
-    pub(super) fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
-        BasicBlockNodePrettyPrint { block_node: self, mast_forest }
+    pub(super) fn to_display<'a>(
+        &'a self,
+        mast_forest: &'a MastForest,
+        node_id: usize,
+    ) -> impl fmt::Display + 'a {
+        BasicBlockNodePrettyPrint { block_node: self, mast_forest, node_id }
     }
 
     pub(super) fn to_pretty_print<'a>(
         &'a self,
         mast_forest: &'a MastForest,
+        node_id: usize,
     ) -> impl PrettyPrint + 'a {
-        BasicBlockNodePrettyPrint { block_node: self, mast_forest }
+        BasicBlockNodePrettyPrint { block_node: self, mast_forest, node_id }
     }
 }
 
 struct BasicBlockNodePrettyPrint<'a> {
+    node_id: usize,
     block_node: &'a BasicBlockNode,
     mast_forest: &'a MastForest,
 }
@@ -266,10 +282,10 @@ impl PrettyPrint for BasicBlockNodePrettyPrint<'_> {
             + const_text(" ")
             + self.
                 block_node
-                .iter()
+                .iter(self.node_id, &self.mast_forest.debug_info)
                 .map(|op_or_dec| match op_or_dec {
                     OperationOrDecorator::Operation(op) => op.render(),
-                    OperationOrDecorator::Decorator(&decorator_id) => self.mast_forest[decorator_id].render(),
+                    OperationOrDecorator::Decorator(decorator) => decorator.render(),
                 })
                 .reduce(|acc, doc| acc + const_text(" ") + doc)
                 .unwrap_or_default()
@@ -290,10 +306,10 @@ impl PrettyPrint for BasicBlockNodePrettyPrint<'_> {
                 + nl()
                 + self
                     .block_node
-                    .iter()
+                .iter(self.node_id, &self.mast_forest.debug_info)
                     .map(|op_or_dec| match op_or_dec {
                         OperationOrDecorator::Operation(op) => op.render(),
-                        OperationOrDecorator::Decorator(&decorator_id) => self.mast_forest[decorator_id].render(),
+                        OperationOrDecorator::Decorator(decorator) => decorator.render(),
                     })
                     .reduce(|acc, doc| acc + nl() + doc)
                     .unwrap_or_default(),
@@ -318,12 +334,14 @@ impl fmt::Display for BasicBlockNodePrettyPrint<'_> {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum OperationOrDecorator<'a> {
     Operation(&'a Operation),
-    Decorator(&'a DecoratorId),
+    Decorator(&'a Decorator),
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
 struct OperationOrDecoratorIterator<'a> {
+    debug_info: &'a DebugInfo,
     node: &'a BasicBlockNode,
-
+    node_id: usize,
     /// The index of the current batch
     batch_index: usize,
 
@@ -338,9 +356,11 @@ struct OperationOrDecoratorIterator<'a> {
 }
 
 impl<'a> OperationOrDecoratorIterator<'a> {
-    fn new(node: &'a BasicBlockNode) -> Self {
+    fn new(node: &'a BasicBlockNode, node_id: usize, debug_info: &'a DebugInfo) -> Self {
         Self {
+            debug_info,
             node,
+            node_id,
             batch_index: 0,
             op_index_in_batch: 0,
             op_index: 0,
@@ -352,19 +372,29 @@ impl<'a> OperationOrDecoratorIterator<'a> {
 impl<'a> Iterator for OperationOrDecoratorIterator<'a> {
     type Item = OperationOrDecorator<'a>;
 
+    // here there is some logic
     fn next(&mut self) -> Option<Self::Item> {
-        // check if there's a decorator to execute
-        if let Some((op_index, decorator)) =
-            self.node.decorators.get(self.decorator_list_next_index)
-        {
-            if *op_index == self.op_index {
-                self.decorator_list_next_index += 1;
-                return Some(OperationOrDecorator::Decorator(decorator));
-            }
-        }
-
-        // If no decorator needs to be executed, then execute the operation
         if let Some(batch) = self.node.op_batches.get(self.batch_index) {
+            // check if there's a decorator to execute
+            let op_id = OperationId {
+                node: self.node_id,
+                batch_idx: 0,
+                op_id_in_batch: self.batch_index + self.op_index_in_batch,
+            };
+            if let Some(decorator_ids) = self.debug_info.get_decorator_ids_before(&op_id) {
+                if self.decorator_list_next_index < decorator_ids.len() {
+                    let decorator_id = decorator_ids[self.decorator_list_next_index];
+                    self.decorator_list_next_index += 1;
+                    return Some(OperationOrDecorator::Decorator(
+                        &self.debug_info.decorators[decorator_id],
+                    ));
+                } else {
+                    // if the decorators are finished, reset the counter
+                    self.decorator_list_next_index = 0
+                }
+            }
+
+            // If no decorator needs to be executed, then execute the operation
             if let Some(operation) = batch.ops.get(self.op_index_in_batch) {
                 self.op_index_in_batch += 1;
                 self.op_index += 1;

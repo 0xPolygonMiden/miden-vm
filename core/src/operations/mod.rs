@@ -1010,3 +1010,53 @@ impl Deserializable for Operation {
         Ok(operation)
     }
 }
+
+//use crate::mast::MastNodeId;
+
+// TODO make OperationId(u64)
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct OperationId {
+    pub node: usize,           // 32 bits
+    pub batch_idx: usize,      // 24 bit
+    pub op_id_in_batch: usize, // 8bit
+}
+
+impl OperationId {
+    pub fn new(node: usize, batch_idx: usize, op_id_in_batch: usize) -> Self {
+        OperationId { node, batch_idx, op_id_in_batch }
+    }
+
+    // pub fn new(node: usize, batch_idx: u32, op_id_in_batch: u8) -> Self {
+    //     assert!(batch_idx < (1 << 24)); // TODO make error
+    //     OperationId { node, batch_idx, op_id_in_batch }
+    // }
+
+    // pub fn get_node_id(&self) -> usize {
+    //     self.node
+    // }
+
+    // pub fn get_batch_idx(&self) -> u32 {
+    //     self.batch_idx
+    // }
+
+    // pub fn get_op_id_in_batch(&self) -> u8 {
+    //     self.op_id_in_batch
+    // }
+}
+
+impl Serializable for OperationId {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write_usize(self.node);
+        target.write_usize(self.batch_idx);
+        target.write_usize(self.op_id_in_batch);
+    }
+}
+
+impl Deserializable for OperationId {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let node = source.read_usize()?;
+        let batch_idx = source.read_usize()?;
+        let op_id_in_batch = source.read_usize()?;
+        Ok(Self { node, batch_idx, op_id_in_batch })
+    }
+}

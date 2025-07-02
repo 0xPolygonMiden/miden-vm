@@ -6,7 +6,7 @@ use miden_formatting::prettier::PrettyPrint;
 
 use super::MastNodeExt;
 use crate::{
-    OPCODE_SPLIT,
+    OPCODE_SPLIT, OperationId,
     chiplets::hasher,
     mast::{DecoratorId, MastForest, MastForestError, MastNodeId, Remapping},
 };
@@ -109,6 +109,12 @@ impl SplitNode {
     pub fn after_exit(&self) -> &[DecoratorId] {
         &self.after_exit
     }
+
+    /// Clears the decorators.
+    pub fn clear_decorators(&mut self) {
+        self.before_enter.clear();
+        self.after_exit.clear();
+    }
 }
 
 /// Mutators
@@ -141,60 +147,84 @@ impl MastNodeExt for SplitNode {
 // ================================================================================================
 
 impl SplitNode {
-    pub(super) fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
-        SplitNodePrettyPrint { split_node: self, mast_forest }
+    pub(super) fn to_display<'a>(
+        &'a self,
+        mast_forest: &'a MastForest,
+        node_id: usize,
+    ) -> impl fmt::Display + 'a {
+        SplitNodePrettyPrint { split_node: self, mast_forest, node_id }
     }
 
     pub(super) fn to_pretty_print<'a>(
         &'a self,
         mast_forest: &'a MastForest,
+        node_id: usize,
     ) -> impl PrettyPrint + 'a {
-        SplitNodePrettyPrint { split_node: self, mast_forest }
+        SplitNodePrettyPrint { split_node: self, mast_forest, node_id }
     }
 }
 
 struct SplitNodePrettyPrint<'a> {
+    node_id: usize,
     split_node: &'a SplitNode,
     mast_forest: &'a MastForest,
 }
 
 impl PrettyPrint for SplitNodePrettyPrint<'_> {
-    #[rustfmt::skip]
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
 
-        let pre_decorators = {
-            let mut pre_decorators = self
-                .split_node
-                .before_enter()
-                .iter()
-                .map(|&decorator_id| self.mast_forest[decorator_id].render())
-                .reduce(|acc, doc| acc + const_text(" ") + doc)
-                .unwrap_or_default();
-            if !pre_decorators.is_empty() {
-                pre_decorators += nl();
-            }
+        let op_id = OperationId {
+            node: self.node_id,
+            batch_idx: 0,
+            op_id_in_batch: 0,
+        };
 
-            pre_decorators
+        let pre_decorators = {
+            if let Some(decorator_ids) =
+                self.mast_forest.debug_info.get_decorator_ids_before(&op_id)
+            {
+                let mut pre_decorators = decorator_ids
+                    .iter()
+                    .map(|&decorator_id| {
+                        self.mast_forest.debug_info.decorators[decorator_id].render()
+                    })
+                    .reduce(|acc, doc| acc + const_text(" ") + doc)
+                    .unwrap_or_default();
+                if !pre_decorators.is_empty() {
+                    pre_decorators += nl();
+                }
+
+                pre_decorators
+            } else {
+                Document::default()
+            }
         };
 
         let post_decorators = {
-            let mut post_decorators = self
-                .split_node
-                .after_exit()
-                .iter()
-                .map(|&decorator_id| self.mast_forest[decorator_id].render())
-                .reduce(|acc, doc| acc + const_text(" ") + doc)
-                .unwrap_or_default();
-            if !post_decorators.is_empty() {
-                post_decorators = nl() + post_decorators;
-            }
+            if let Some(decorator_ids) = self.mast_forest.debug_info.get_decorator_ids_after(&op_id)
+            {
+                let mut post_decorators = decorator_ids
+                    .iter()
+                    .map(|&decorator_id| {
+                        self.mast_forest.debug_info.decorators[decorator_id].render()
+                    })
+                    .reduce(|acc, doc| acc + const_text(" ") + doc)
+                    .unwrap_or_default();
+                if !post_decorators.is_empty() {
+                    post_decorators = nl() + post_decorators;
+                }
 
-            post_decorators
+                post_decorators
+            } else {
+                Document::default()
+            }
         };
 
-        let true_branch = self.mast_forest[self.split_node.on_true()].to_pretty_print(self.mast_forest);
-        let false_branch = self.mast_forest[self.split_node.on_false()].to_pretty_print(self.mast_forest);
+        let true_branch = self.mast_forest[self.split_node.on_true()]
+            .to_pretty_print(self.mast_forest, self.split_node.on_true().into());
+        let false_branch = self.mast_forest[self.split_node.on_false()]
+            .to_pretty_print(self.mast_forest, self.split_node.on_false().into());
 
         let mut doc = pre_decorators;
         doc += indent(4, const_text("if.true") + nl() + true_branch.render()) + nl();

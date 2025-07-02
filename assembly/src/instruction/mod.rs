@@ -34,6 +34,7 @@ impl Assembler {
         // this will allow us to map the instruction to the sequence of operations which were
         // executed as a part of this instruction.
         if self.in_debug_mode() {
+            //
             block_builder.track_instruction(instruction, proc_ctx)?;
         }
 
@@ -536,12 +537,14 @@ impl Assembler {
             Instruction::Breakpoint => {
                 if self.in_debug_mode() {
                     block_builder.push_op(Noop);
+                    //
                     block_builder.track_instruction(instruction, proc_ctx)?;
                 }
             },
 
             Instruction::Debug(options) => {
                 if self.in_debug_mode() {
+                    //
                     block_builder.push_decorator(Decorator::Debug(debug::compile_options(
                         options, proc_ctx,
                     )?))?;
@@ -555,6 +558,7 @@ impl Assembler {
 
             // ----- trace instruction ------------------------------------------------------------
             Instruction::Trace(trace_id) => {
+                //
                 block_builder.push_decorator(Decorator::Trace(trace_id.expect_value()))?;
             },
         }
