@@ -7,6 +7,7 @@ use vm_core::{
         merkle::{EmptySubtreeRoots, SMT_DEPTH, Smt},
     },
     sys_events::SystemEvent,
+    utils::collections::KvMap,
 };
 use winter_prover::math::fft;
 
@@ -42,6 +43,9 @@ impl Process {
             },
             SystemEvent::MapValueToStackN => {
                 copy_map_value_to_adv_stack(advice_provider, process_state, true, err_ctx)
+            },
+            SystemEvent::HasMapKey => {
+                push_key_presence_flag(advice_provider, process_state, err_ctx)
             },
             SystemEvent::U64Div => push_u64_div_result(advice_provider, process_state, err_ctx),
             SystemEvent::FalconDiv => {
@@ -312,6 +316,37 @@ pub fn copy_map_value_to_adv_stack(
     ];
     advice_provider
         .push_stack(AdviceSource::Map { key: key.into(), include_len })
+        .map_err(|err| ExecutionError::advice_error(err, process.clk(), err_ctx))?;
+
+    Ok(())
+}
+
+/// Checks whether the key placed at the top of the operand stack exists in the advice map and
+/// pushes the resulting flag onto the advice stack. If the advice map has the provided key, `1`
+/// will be pushed to the advice stack, `0` otherwise.
+///
+/// Inputs:
+///   Operand stack: [KEY, ...]
+///   Advice stack:  [...]
+///
+/// Outputs:
+///   Operand stack: [KEY, ...]
+///   Advice stack: [is_key_exist, ...]
+pub fn push_key_presence_flag(
+    advice_provider: &mut AdviceProvider,
+    process: ProcessState,
+    err_ctx: &impl ErrorContext,
+) -> Result<(), ExecutionError> {
+    let map_key = [
+        process.get_stack_item(3),
+        process.get_stack_item(2),
+        process.get_stack_item(1),
+        process.get_stack_item(0),
+    ];
+
+    let presence_flag = advice_provider.map.contains_key(&map_key.into());
+    advice_provider
+        .push_stack(AdviceSource::Value(Felt::from(presence_flag)))
         .map_err(|err| ExecutionError::advice_error(err, process.clk(), err_ctx))?;
 
     Ok(())

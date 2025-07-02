@@ -7,9 +7,9 @@ use crate::{
         HDWORD_TO_MAP_WITH_DOMAIN_DOMAIN_OFFSET, copy_map_value_to_adv_stack,
         copy_merkle_node_to_adv_stack, insert_hdword_into_adv_map, insert_hperm_into_adv_map,
         insert_mem_values_into_adv_map, merge_merkle_nodes, push_ext2_intt_result,
-        push_ext2_inv_result, push_falcon_mod_result, push_ilog2, push_leading_ones,
-        push_leading_zeros, push_smtpeek_result, push_trailing_ones, push_trailing_zeros,
-        push_u64_div_result,
+        push_ext2_inv_result, push_falcon_mod_result, push_ilog2, push_key_presence_flag,
+        push_leading_ones, push_leading_zeros, push_smtpeek_result, push_trailing_ones,
+        push_trailing_zeros, push_u64_div_result,
     },
     system::FMP_MAX,
 };
@@ -129,6 +129,9 @@ impl FastProcessor {
             },
             SystemEvent::MapValueToStackN => {
                 copy_map_value_to_adv_stack(advice_provider, process_state, true, err_ctx)
+            },
+            SystemEvent::HasMapKey => {
+                push_key_presence_flag(advice_provider, process_state, err_ctx)
             },
             SystemEvent::U64Div => push_u64_div_result(advice_provider, process_state, err_ctx),
             SystemEvent::FalconDiv => {

@@ -2978,6 +2978,25 @@ end";
     Ok(())
 }
 
+#[test]
+fn test_adv_has_map_key() -> TestResult {
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+adv_map.A(0x0200000000000000020000000000000002000000000000000200000000000000)=[0x01]
+begin adv.has_mapkey assert end"
+    );
+
+    let program = context.assemble(source)?;
+    let expected = "\
+begin
+    basic_block emit(652777600) assert(0) end
+end";
+    assert_str_eq!(format!("{program}"), expected);
+    Ok(())
+}
+
 // ERRORS
 // ================================================================================================
 
