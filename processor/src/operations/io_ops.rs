@@ -298,7 +298,7 @@ mod tests {
         super::{MIN_STACK_DEPTH, Operation},
         Felt, Process,
     };
-    use crate::{AdviceSource, ContextId, DefaultHost, ExecutionError, Host, MemoryError};
+    use crate::{ContextId, DefaultHost, ExecutionError, Host, MemoryError};
 
     #[test]
     fn op_push() {
@@ -595,7 +595,7 @@ mod tests {
         let word2_felts: [Felt; WORD_SIZE] = word2.to_elements().try_into().unwrap();
         for element in word2_felts.iter().rev().chain(word1_felts.iter().rev()).copied() {
             // reverse the word order, since elements are pushed onto the advice stack.
-            process.advice.push_stack(AdviceSource::Value(element)).unwrap();
+            process.advice.push_stack(element);
         }
 
         // arrange the stack such that:

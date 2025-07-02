@@ -8,9 +8,6 @@ use vm_core::{
 mod inputs;
 pub use inputs::AdviceInputs;
 
-mod source;
-pub use source::AdviceSource;
-
 mod errors;
 pub use errors::AdviceError;
 
@@ -92,29 +89,44 @@ impl AdviceProvider {
         Ok([word0, word1])
     }
 
-    /// Pushes the value(s) specified by the source onto the advice stack.
+    /// Pushes a single value onto the advice stack.
+    pub fn push_stack(&mut self, value: Felt) {
+        self.stack.push(value)
+    }
+
+    /// Pushes a word (4 elements) onto the stack.
+    pub fn push_stack_word(&mut self, word: &Word) {
+        self.stack.extend(word.iter().rev())
+    }
+
+    /// Fetches a list of elements under the specified key from the advice map and pushes them onto
+    /// the advice stack.
+    ///
+    /// If `include_len` is set to true, this also pushes the number of elements onto the advice
+    /// stack.
+    ///
+    /// Note: this operation doesn't consume the map element so it can be called multiple times
+    /// for the same key.
+    ///
+    /// # Example
+    /// Given an advice stack `[a, b, c, ...]`, and a map `x |-> [d, e, f]`:
+    ///
+    /// A call `push_stack(AdviceSource::Map { key: x, include_len: false })` will result in
+    /// advice stack: `[d, e, f, a, b, c, ...]`.
+    ///
+    /// A call `push_stack(AdviceSource::Map { key: x, include_len: true })` will result in
+    /// advice stack: `[3, d, e, f, a, b, c, ...]`.
     ///
     /// # Errors
-    /// Returns an error if the value specified by the advice source cannot be obtained.
-    pub fn push_stack(&mut self, source: AdviceSource) -> Result<(), AdviceError> {
-        match source {
-            AdviceSource::Value(value) => {
-                self.stack.push(value);
-            },
-            AdviceSource::Word(word) => {
-                self.stack.extend(word.iter().rev());
-            },
-            AdviceSource::Map { key, include_len } => {
-                let values = self.map.get(&key).ok_or(AdviceError::MapKeyNotFound { key })?;
+    /// Returns an error if the key was not found in the key-value map.
+    pub fn push_from_map(&mut self, key: Word, include_len: bool) -> Result<(), AdviceError> {
+        let values = self.map.get(&key).ok_or(AdviceError::MapKeyNotFound { key })?;
 
-                self.stack.extend(values.iter().rev());
-                if include_len {
-                    self.stack
-                        .push(Felt::try_from(values.len() as u64).expect("value length too big"));
-                }
-            },
+        self.stack.extend(values.iter().rev());
+        if include_len {
+            self.stack
+                .push(Felt::try_from(values.len() as u64).expect("value length too big"));
         }
-
         Ok(())
     }
 

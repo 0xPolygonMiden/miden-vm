@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
 
-use processor::{AdviceSource, DefaultHost, ErrorContext, MastForest, ProcessState};
+use processor::{DefaultHost, ErrorContext, MastForest, ProcessState};
 use prover::{ExecutionError, Host, Word};
 use stdlib::{EVENT_FALCON_SIG_TO_STACK, falcon_sign};
 
@@ -71,10 +71,7 @@ pub fn push_falcon_signature(
         .ok_or_else(|| ExecutionError::malformed_signature_key("RPO Falcon512", err_ctx))?;
 
     for r in result {
-        process
-            .advice_provider_mut()
-            .push_stack(AdviceSource::Value(r))
-            .map_err(|err| ExecutionError::advice_error(err, process.clk(), err_ctx))?;
+        process.advice_provider_mut().push_stack(r);
     }
     Ok(())
 }

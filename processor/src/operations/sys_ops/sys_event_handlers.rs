@@ -11,8 +11,7 @@ use vm_core::{
 use winter_prover::math::fft;
 
 use crate::{
-    AdviceSource, ExecutionError, Ext2InttError, MemoryError, ProcessState, QuadFelt,
-    errors::ErrorContext,
+    ExecutionError, Ext2InttError, MemoryError, ProcessState, QuadFelt, errors::ErrorContext,
 };
 
 /// The offset of the domain value on the stack in the `hdword_to_map_with_domain` system event.
@@ -34,7 +33,7 @@ pub fn handle_system_event(
         SystemEvent::U64Div => push_u64_div_result(process, err_ctx),
         SystemEvent::FalconDiv => push_falcon_mod_result(process, err_ctx),
         SystemEvent::Ext2Inv => push_ext2_inv_result(process, err_ctx),
-        SystemEvent::Ext2Intt => push_ext2_intt_result(process, err_ctx),
+        SystemEvent::Ext2Intt => push_ext2_intt_result(process),
         SystemEvent::SmtPeek => push_smtpeek_result(process, err_ctx),
         SystemEvent::U32Clz => push_leading_zeros(process, err_ctx),
         SystemEvent::U32Ctz => push_trailing_zeros(process, err_ctx),
@@ -234,22 +233,7 @@ fn copy_merkle_node_to_adv_stack(
         .get_tree_node(root.into(), &depth, &index)
         .map_err(|err| ExecutionError::advice_error(err, process.clk(), err_ctx))?;
 
-    process
-        .advice_provider_mut()
-        .push_stack(AdviceSource::Value(node[3]))
-        .map_err(|err| ExecutionError::advice_error(err, process.clk(), err_ctx))?;
-    process
-        .advice_provider_mut()
-        .push_stack(AdviceSource::Value(node[2]))
-        .map_err(|err| ExecutionError::advice_error(err, process.clk(), err_ctx))?;
-    process
-        .advice_provider_mut()
-        .push_stack(AdviceSource::Value(node[1]))
-        .map_err(|err| ExecutionError::advice_error(err, process.clk(), err_ctx))?;
-    process
-        .advice_provider_mut()
-        .push_stack(AdviceSource::Value(node[0]))
-        .map_err(|err| ExecutionError::advice_error(err, process.clk(), err_ctx))?;
+    process.advice_provider_mut().push_stack_word(&node);
 
     Ok(())
 }
@@ -291,7 +275,7 @@ fn copy_map_value_to_adv_stack(
     ];
     process
         .advice_provider_mut()
-        .push_stack(AdviceSource::Map { key: key.into(), include_len })
+        .push_from_map(key.into(), include_len)
         .map_err(|err| ExecutionError::advice_error(err, process.clk(), err_ctx))?;
 
     Ok(())
@@ -361,23 +345,10 @@ fn push_u64_div_result(
     let (q_hi, q_lo) = u64_to_u32_elements(quotient);
     let (r_hi, r_lo) = u64_to_u32_elements(remainder);
 
-    process
-        .advice_provider_mut()
-        .push_stack(AdviceSource::Value(r_hi))
-        .map_err(|err| ExecutionError::advice_error(err, process.clk(), err_ctx))?;
-    process
-        .advice_provider_mut()
-        .push_stack(AdviceSource::Value(r_lo))
-        .map_err(|err| ExecutionError::advice_error(err, process.clk(), err_ctx))?;
-    process
-        .advice_provider_mut()
-        .push_stack(AdviceSource::Value(q_hi))
-        .map_err(|err| ExecutionError::advice_error(err, process.clk(), err_ctx))?;
-    process
-        .advice_provider_mut()
-        .push_stack(AdviceSource::Value(q_lo))
-        .map_err(|err| ExecutionError::advice_error(err, process.clk(), err_ctx))?;
-
+    process.advice_provider_mut().push_stack(r_hi);
+    process.advice_provider_mut().push_stack(r_lo);
+    process.advice_provider_mut().push_stack(q_hi);
+    process.advice_provider_mut().push_stack(q_lo);
     Ok(())
 }
 
@@ -419,19 +390,9 @@ fn push_falcon_mod_result(
     let (r_hi, r_lo) = u64_to_u32_elements(remainder);
     assert_eq!(r_hi, ZERO);
 
-    process
-        .advice_provider_mut()
-        .push_stack(AdviceSource::Value(r_lo))
-        .map_err(|err| ExecutionError::advice_error(err, process.clk(), err_ctx))?;
-    process
-        .advice_provider_mut()
-        .push_stack(AdviceSource::Value(q_lo))
-        .map_err(|err| ExecutionError::advice_error(err, process.clk(), err_ctx))?;
-    process
-        .advice_provider_mut()
-        .push_stack(AdviceSource::Value(q_hi))
-        .map_err(|err| ExecutionError::advice_error(err, process.clk(), err_ctx))?;
-
+    process.advice_provider_mut().push_stack(r_lo);
+    process.advice_provider_mut().push_stack(q_lo);
+    process.advice_provider_mut().push_stack(q_hi);
     Ok(())
 }
 
@@ -464,15 +425,8 @@ fn push_ext2_inv_result(
     }
     let result = element.inv().to_base_elements();
 
-    process
-        .advice_provider_mut()
-        .push_stack(AdviceSource::Value(result[1]))
-        .map_err(|err| ExecutionError::advice_error(err, process.clk(), err_ctx))?;
-    process
-        .advice_provider_mut()
-        .push_stack(AdviceSource::Value(result[0]))
-        .map_err(|err| ExecutionError::advice_error(err, process.clk(), err_ctx))?;
-
+    process.advice_provider_mut().push_stack(result[1]);
+    process.advice_provider_mut().push_stack(result[0]);
     Ok(())
 }
 
@@ -504,10 +458,7 @@ fn push_ext2_inv_result(
 /// - `output_size` is 0 or is greater than the `input_size`.
 /// - `input_ptr` is greater than 2^32, or is not aligned on a word boundary.
 /// - `input_ptr + input_size * 2` is greater than 2^32.
-fn push_ext2_intt_result(
-    process: &mut ProcessState,
-    err_ctx: &impl ErrorContext,
-) -> Result<(), ExecutionError> {
+fn push_ext2_intt_result(process: &mut ProcessState) -> Result<(), ExecutionError> {
     let output_size = process.get_stack_item(0).as_int() as usize;
     let input_size = process.get_stack_item(1).as_int() as usize;
     let input_start_ptr = process.get_stack_item(2).as_int();
@@ -555,10 +506,7 @@ fn push_ext2_intt_result(
     fft::interpolate_poly::<Felt, QuadFelt>(&mut poly, &twiddles);
 
     for element in QuadFelt::slice_as_base_elements(&poly[..output_size]).iter().rev() {
-        process
-            .advice_provider_mut()
-            .push_stack(AdviceSource::Value(*element))
-            .map_err(|err| ExecutionError::advice_error(err, process.clk(), err_ctx))?;
+        process.advice_provider_mut().push_stack(*element);
     }
 
     Ok(())
@@ -648,10 +596,8 @@ fn push_ilog2(
         return Err(ExecutionError::log_argument_zero(process.clk(), err_ctx));
     }
     let ilog2 = Felt::from(n.ilog2());
-    process
-        .advice_provider_mut()
-        .push_stack(AdviceSource::Value(ilog2))
-        .map_err(|err| ExecutionError::advice_error(err, process.clk(), err_ctx))?;
+    process.advice_provider_mut().push_stack(ilog2);
+
     Ok(())
 }
 
@@ -693,20 +639,14 @@ fn push_smtpeek_result(
     if node == *empty_leaf {
         // if the node is a root of an empty subtree, then there is no value associated with
         // the specified key
-        process
-            .advice_provider_mut()
-            .push_stack(AdviceSource::Word(Smt::EMPTY_VALUE))
-            .map_err(|err| ExecutionError::advice_error(err, process.clk(), err_ctx))?;
+        process.advice_provider_mut().push_stack_word(&Smt::EMPTY_VALUE);
     } else {
         let leaf_preimage = get_smt_leaf_preimage(process, node, err_ctx)?;
 
         for (key_in_leaf, value_in_leaf) in leaf_preimage {
             if key == key_in_leaf {
                 // Found key - push value associated with key, and return
-                process
-                    .advice_provider_mut()
-                    .push_stack(AdviceSource::Word(value_in_leaf))
-                    .map_err(|err| ExecutionError::advice_error(err, process.clk(), err_ctx))?;
+                process.advice_provider_mut().push_stack_word(&value_in_leaf);
 
                 return Ok(());
             }
@@ -714,10 +654,7 @@ fn push_smtpeek_result(
 
         // if we can't find any key in the leaf that matches `key`, it means no value is
         // associated with `key`
-        process
-            .advice_provider_mut()
-            .push_stack(AdviceSource::Word(Smt::EMPTY_VALUE))
-            .map_err(|err| ExecutionError::advice_error(err, process.clk(), err_ctx))?;
+        process.advice_provider_mut().push_stack_word(&Smt::EMPTY_VALUE);
     }
     Ok(())
 }
@@ -768,10 +705,7 @@ fn push_transformed_stack_top(
         .try_into()
         .map_err(|_| ExecutionError::not_u32_value(stack_top, ZERO, err_ctx))?;
     let transformed_stack_top = f(stack_top);
-    process
-        .advice_provider_mut()
-        .push_stack(AdviceSource::Value(transformed_stack_top))
-        .map_err(|err| ExecutionError::advice_error(err, process.clk(), err_ctx))?;
+    process.advice_provider_mut().push_stack(transformed_stack_top);
     Ok(())
 }
 
