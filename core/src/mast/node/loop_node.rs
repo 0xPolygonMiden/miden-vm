@@ -160,44 +160,43 @@ impl crate::prettier::PrettyPrint for LoopNodePrettyPrint<'_> {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
 
-        let pre_decorators = {
-            let mut pre_decorators = self
-                .loop_node
-                .before_enter()
-                .iter()
-                .map(|&decorator_id| self.mast_forest[decorator_id].render())
-                .reduce(|acc, doc| acc + const_text(" ") + doc)
-                .unwrap_or_default();
-            if !pre_decorators.is_empty() {
-                pre_decorators += nl();
-            }
+        // TODO
+        // let pre_decorators = {
+        //     let mut pre_decorators = self
+        //         .loop_node
+        //         .before_enter()
+        //         .iter()
+        //         .map(|&decorator_id| self.mast_forest[decorator_id].render())
+        //         .reduce(|acc, doc| acc + const_text(" ") + doc)
+        //         .unwrap_or_default();
+        //     if !pre_decorators.is_empty() {
+        //         pre_decorators += nl();
+        //     }
 
-            pre_decorators
-        };
+        //     pre_decorators
+        // };
 
-        let post_decorators = {
-            let mut post_decorators = self
-                .loop_node
-                .after_exit()
-                .iter()
-                .map(|&decorator_id| self.mast_forest[decorator_id].render())
-                .reduce(|acc, doc| acc + const_text(" ") + doc)
-                .unwrap_or_default();
-            if !post_decorators.is_empty() {
-                post_decorators = nl() + post_decorators;
-            }
+        // let post_decorators = {
+        //     let mut post_decorators = self
+        //         .loop_node
+        //         .after_exit()
+        //         .iter()
+        //         .map(|&decorator_id| self.mast_forest[decorator_id].render())
+        //         .reduce(|acc, doc| acc + const_text(" ") + doc)
+        //         .unwrap_or_default();
+        //     if !post_decorators.is_empty() {
+        //         post_decorators = nl() + post_decorators;
+        //     }
 
-            post_decorators
-        };
+        //     post_decorators
+        // };
 
         let loop_body =
             self.mast_forest[self.loop_node.body].to_pretty_print(self.mast_forest, self.node_id);
 
-        pre_decorators
-            + indent(4, const_text("while.true") + nl() + loop_body.render())
-            + nl()
-            + const_text("end")
-            + post_decorators
+        // pre_decorators +
+        indent(4, const_text("while.true") + nl() + loop_body.render()) + nl() + const_text("end")
+        // + post_decorators
     }
 }
 
