@@ -53,8 +53,10 @@ use range::RangeChecker;
 
 mod host;
 pub use host::{
-    DefaultHost, Host, MastForestStore, MemMastForestStore,
+    Host, MastForestStore, MemMastForestStore,
     advice::{AdviceError, AdviceInputs, AdviceProvider},
+    default::{DefaultDebugHandler, DefaultHost},
+    handlers::DebugHandler,
 };
 
 mod chiplets;

@@ -2,16 +2,19 @@ use alloc::sync::Arc;
 
 use vm_core::{DebugOptions, Felt, Word, mast::MastForest};
 
-use crate::{ExecutionError, ProcessState, errors::ErrorContext};
+use crate::{DebugHandler, ExecutionError, ProcessState, errors::ErrorContext};
 
 pub(super) mod advice;
 
 #[cfg(feature = "std")]
 mod debug;
 
-mod default;
+pub mod default;
+use default::DefaultDebugHandler;
+
+pub mod handlers;
+
 mod mast_forest_store;
-pub use default::DefaultHost;
 pub use mast_forest_store::{MastForestStore, MemMastForestStore};
 
 // HOST TRAIT
@@ -58,10 +61,7 @@ pub trait Host {
         process: &mut ProcessState,
         options: &DebugOptions,
     ) -> Result<(), ExecutionError> {
-        let _ = (&process, options);
-        #[cfg(feature = "std")]
-        debug::print_debug_info(process, options);
-        Ok(())
+        DefaultDebugHandler.on_debug(process, options)
     }
 
     /// Handles the trace emitted from the VM.
@@ -70,15 +70,7 @@ pub trait Host {
         process: &mut ProcessState,
         trace_id: u32,
     ) -> Result<(), ExecutionError> {
-        let _ = (&process, trace_id);
-        #[cfg(feature = "std")]
-        std::println!(
-            "Trace with id {} emitted at step {} in context {}",
-            trace_id,
-            process.clk(),
-            process.ctx()
-        );
-        Ok(())
+        DefaultDebugHandler.on_trace(process, trace_id)
     }
 
     /// Handles the failure of the assertion instruction.
