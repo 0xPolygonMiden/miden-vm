@@ -1,11 +1,12 @@
 use alloc::{sync::Arc, vec::Vec};
 
+use miden_air::RowIndex;
 use vm_core::mast::{ExternalNode, MastForest, MastNodeId};
 // RE-EXPORTS
 // ================================================================================================
 pub use vm_core::utils::*;
 
-use super::Felt;
+use super::{AdviceProvider, Felt};
 use crate::{ExecutionError, Host};
 
 // HELPER FUNCTIONS
@@ -54,7 +55,8 @@ pub(crate) fn split_u32_into_u16(value: u64) -> (u16, u16) {
 /// [`crate::fast::FastProcessor`] resolve external nodes in the same way.
 pub(crate) fn resolve_external_node(
     external_node: &ExternalNode,
-    host: &mut impl Host,
+    advice_provider: &mut AdviceProvider,
+    host: &impl Host,
 ) -> Result<(MastNodeId, Arc<MastForest>), ExecutionError> {
     let node_digest = external_node.digest();
     let mast_forest = host
@@ -72,6 +74,12 @@ pub(crate) fn resolve_external_node(
     if mast_forest[root_id].is_external() {
         return Err(ExecutionError::CircularExternalNode(node_digest));
     }
+
+    // TODO: We should keep track which MastForest AdviceMaps were inserted to avoid
+    //       the duplicate check over the looked up forest.
+    advice_provider
+        .merge_advice_map(mast_forest.advice_map())
+        .map_err(|err| ExecutionError::advice_error(err, RowIndex::from(0), &()))?;
 
     Ok((root_id, mast_forest))
 }

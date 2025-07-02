@@ -224,7 +224,6 @@ struct ConsistencyHost {
     /// A map of trace ID to a list of snapshots. A single trace ID can be associated with multiple
     /// snapshots for example if it's used in a loop.
     snapshots: BTreeMap<u32, Vec<ProcessStateSnapshot>>,
-    kernel_forest: Arc<MastForest>,
     store: MemMastForestStore,
 }
 
@@ -233,21 +232,13 @@ impl ConsistencyHost {
         let mut store = MemMastForestStore::default();
         store.insert(kernel_forest.clone());
 
-        Self {
-            snapshots: BTreeMap::new(),
-            kernel_forest,
-            store,
-        }
+        Self { snapshots: BTreeMap::new(), store }
     }
 }
 
 impl Host for ConsistencyHost {
-    fn get_mast_forest(&mut self, node_digest: &Word) -> Option<Arc<MastForest>> {
+    fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>> {
         self.store.get(node_digest)
-    }
-
-    fn iter_mast_forests(&self) -> impl Iterator<Item = Arc<MastForest>> {
-        [self.kernel_forest.clone()].into_iter()
     }
 
     fn on_trace(

@@ -337,12 +337,6 @@ impl FastProcessor {
         program: &Program,
         host: &mut impl Host,
     ) -> Result<StackOutputs, ExecutionError> {
-        for mast_forest in host.iter_mast_forests() {
-            self.advice
-                .merge_advice_map(mast_forest.advice_map())
-                .map_err(|err| ExecutionError::advice_error(err, RowIndex::from(0), &()))?;
-        }
-
         self.execute_mast_node(
             program.entrypoint(),
             program.mast_forest(),
@@ -651,7 +645,7 @@ impl FastProcessor {
         kernel: &Kernel,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
-        let (root_id, mast_forest) = resolve_external_node(external_node, host)?;
+        let (root_id, mast_forest) = resolve_external_node(external_node, &mut self.advice, host)?;
 
         self.execute_mast_node(root_id, &mast_forest, kernel, host)
     }

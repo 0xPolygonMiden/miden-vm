@@ -1,4 +1,4 @@
-use alloc::{sync::Arc, vec::Vec};
+use alloc::sync::Arc;
 
 use vm_core::{DebugOptions, Felt, Word, mast::MastForest};
 
@@ -28,10 +28,7 @@ pub trait Host {
 
     /// Returns MAST forest corresponding to the specified digest, or None if the MAST forest for
     /// this digest could not be found in this [Host].
-    fn get_mast_forest(&mut self, node_digest: &Word) -> Option<Arc<MastForest>>;
-
-    /// TODO: Docs and find better name.
-    fn iter_mast_forests(&self) -> impl Iterator<Item = Arc<MastForest>>;
+    fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>>;
 
     // PROVIDED METHODS
     // --------------------------------------------------------------------------------------------
@@ -94,12 +91,8 @@ impl<H> Host for &mut H
 where
     H: Host,
 {
-    fn get_mast_forest(&mut self, node_digest: &Word) -> Option<Arc<MastForest>> {
+    fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>> {
         H::get_mast_forest(self, node_digest)
-    }
-
-    fn iter_mast_forests(&self) -> impl Iterator<Item = Arc<MastForest>> {
-        H::iter_mast_forests(self)
     }
 
     fn on_event(
@@ -138,26 +131,19 @@ where
 /// A default [Host] implementation that provides the essential functionality required by the VM.
 #[derive(Debug, Clone, Default)]
 pub struct DefaultHost {
-    mast_forests: Vec<Arc<MastForest>>,
     store: MemMastForestStore,
 }
 
 impl DefaultHost {
     pub fn load_mast_forest(&mut self, mast_forest: Arc<MastForest>) -> Result<(), ExecutionError> {
-        self.mast_forests.push(mast_forest.clone());
-
         self.store.insert(mast_forest);
         Ok(())
     }
 }
 
 impl Host for DefaultHost {
-    fn get_mast_forest(&mut self, node_digest: &Word) -> Option<Arc<MastForest>> {
+    fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>> {
         self.store.get(node_digest)
-    }
-
-    fn iter_mast_forests(&self) -> impl Iterator<Item = Arc<MastForest>> {
-        self.mast_forests.iter().cloned()
     }
 
     fn on_event(

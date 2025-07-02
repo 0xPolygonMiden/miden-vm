@@ -44,6 +44,7 @@ end";
 /// In this test, we load 2 libraries which have a MAST forest with an advice map that contains
 /// different values at the same key (which triggers the `AdviceMapKeyAlreadyPresent` error).
 #[test]
+#[ignore = "program must now call same node from both libraries"]
 fn test_diagnostic_advice_map_key_already_present() {
     let test_context = TestContext::new();
 

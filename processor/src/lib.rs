@@ -316,12 +316,6 @@ impl Process {
             return Err(ExecutionError::ProgramAlreadyExecuted);
         }
 
-        for mast_forest in host.iter_mast_forests() {
-            self.advice
-                .merge_advice_map(mast_forest.advice_map())
-                .map_err(|err| ExecutionError::advice_error(err, RowIndex::from(0), &()))?;
-        }
-
         self.advice
             .merge_advice_map(program.mast_forest().advice_map())
             .map_err(|err| ExecutionError::advice_error(err, RowIndex::from(0), &()))?;
@@ -368,7 +362,8 @@ impl Process {
                 )?
             },
             MastNode::External(external_node) => {
-                let (root_id, mast_forest) = resolve_external_node(external_node, host)?;
+                let (root_id, mast_forest) =
+                    resolve_external_node(external_node, &mut self.advice, host)?;
 
                 self.execute_mast_node(root_id, &mast_forest, host)?;
             },

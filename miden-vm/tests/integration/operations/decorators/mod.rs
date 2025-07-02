@@ -18,13 +18,9 @@ pub struct TestHost {
 }
 
 impl Host for TestHost {
-    fn get_mast_forest(&mut self, _node_digest: &Word) -> Option<Arc<MastForest>> {
+    fn get_mast_forest(&self, _node_digest: &Word) -> Option<Arc<MastForest>> {
         // Empty MAST forest store
         None
-    }
-
-    fn iter_mast_forests(&self) -> impl Iterator<Item = Arc<MastForest>> {
-        [].into_iter()
     }
 
     fn on_event(

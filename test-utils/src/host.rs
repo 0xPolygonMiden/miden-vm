@@ -16,12 +16,8 @@ impl TestHost {
 }
 
 impl Host for TestHost {
-    fn get_mast_forest(&mut self, node_digest: &Word) -> Option<Arc<MastForest>> {
+    fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>> {
         self.host.get_mast_forest(node_digest)
-    }
-
-    fn iter_mast_forests(&self) -> impl Iterator<Item = Arc<MastForest>> {
-        self.host.iter_mast_forests()
     }
 
     fn on_event(
