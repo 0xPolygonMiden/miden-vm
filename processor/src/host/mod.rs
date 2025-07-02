@@ -9,7 +9,9 @@ pub(super) mod advice;
 #[cfg(feature = "std")]
 mod debug;
 
+mod default;
 mod mast_forest_store;
+pub use default::DefaultHost;
 pub use mast_forest_store::{MastForestStore, MemMastForestStore};
 
 // HOST TRAIT
@@ -118,44 +120,5 @@ where
 
     fn on_assert_failed(&mut self, process: &mut ProcessState, err_code: Felt) {
         H::on_assert_failed(self, process, err_code)
-    }
-}
-
-// DEFAULT HOST IMPLEMENTATION
-// ================================================================================================
-
-/// A default [Host] implementation that provides the essential functionality required by the VM.
-#[derive(Debug, Clone, Default)]
-pub struct DefaultHost {
-    store: MemMastForestStore,
-}
-
-impl DefaultHost {
-    pub fn load_mast_forest(&mut self, mast_forest: Arc<MastForest>) -> Result<(), ExecutionError> {
-        self.store.insert(mast_forest);
-        Ok(())
-    }
-}
-
-impl Host for DefaultHost {
-    fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>> {
-        self.store.get(node_digest)
-    }
-
-    fn on_event(
-        &mut self,
-        process: &mut ProcessState,
-        event_id: u32,
-        err_ctx: &impl ErrorContext,
-    ) -> Result<(), ExecutionError> {
-        let _ = (&process, event_id, err_ctx);
-        #[cfg(feature = "std")]
-        std::println!(
-            "Event with id {} emitted at step {} in context {}",
-            event_id,
-            process.clk(),
-            process.ctx()
-        );
-        Ok(())
     }
 }
