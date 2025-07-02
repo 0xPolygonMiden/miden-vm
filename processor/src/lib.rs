@@ -539,7 +539,6 @@ impl Process {
         program: &MastForest,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
-        std::dbg!(&program.nodes());
         self.start_basic_block_node(basic_block, program, host)?;
 
         let mut op_offset = 0;
@@ -610,8 +609,6 @@ impl Process {
 
         // execute operations in the batch one by one
         for (i, &op) in batch.ops().iter().enumerate() {
-            std::dbg!(OperationId::new(node_id, 0, i + op_offset));
-
             // the decorator offset
             for decorator in program.get_decorators(&OperationId::new(node_id, 0, i + op_offset)) {
                 self.execute_decorator(decorator, host)?;
@@ -632,7 +629,6 @@ impl Process {
 
             // determine if we've executed all non-decorator operations in a group
             if op_idx == op_counts[group_idx] - 1 {
-                std::dbg!("CHECKING GROUP");
                 // if we are at the end of the group, first check if the operation carries an
                 // immediate value
                 if has_imm {
@@ -640,7 +636,6 @@ impl Process {
                     // so, we need execute a NOOP after it. the assert also makes sure that there
                     // is enough room in the group to execute a NOOP (if there isn't, there is a
                     // bug somewhere in the assembler)
-                    std::dbg!("NOOOOOOOOOOOOOPING");
                     debug_assert!(op_idx < OP_GROUP_SIZE - 1, "invalid op index");
                     self.decoder.execute_user_op(Operation::Noop, op_idx + 1);
                     self.execute_op(Operation::Noop, program, host)?;

@@ -400,8 +400,6 @@ impl MastForest {
     pub fn build_debug_info(&mut self) {
         self.debug_info.decorators = self.decorators.clone();
         for (node_id, node) in self.nodes.iter().enumerate() {
-            // std::dbg!(&self.decorators);
-            // std::dbg!(&node);
             for decorator_id in node.before_enter() {
                 let operation_id = OperationId::new(node_id, 0, 0);
                 self.debug_info.add_decorator_id(operation_id, *decorator_id, true);
@@ -422,7 +420,6 @@ impl MastForest {
             }
         }
         self.debug_info.error_codes = self.error_codes.clone();
-        // std::dbg!(&self);
     }
 }
 

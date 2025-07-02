@@ -50,8 +50,6 @@ impl Process {
         // make sure there is enough memory allocated to hold the execution trace
         self.ensure_trace_capacity();
 
-        //std::dbg!("basic[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[", &op);
-
         // execute the operation
         match op {
             // ----- system operations ------------------------------------------------------------

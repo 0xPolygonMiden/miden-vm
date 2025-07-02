@@ -372,17 +372,10 @@ pub trait MastNodeExt {
         node_id: usize,
         op_idx: usize,
     ) -> Option<&'m AssemblyOp> {
-        std::dbg!("[[[[[[[[[[[[[[[[[[YOAMMA");
-        std::dbg!(&node_id, op_idx);
-        std::dbg!(&mast_forest);
-
         for i in (0..=op_idx).rev() {
             let op_id = OperationId::new(node_id, 0, i);
-            //std::dbg!(&op_id);
             for decorator in mast_forest.get_decorators(&op_id) {
-                //std::dbg!(&decorator);
                 if let Decorator::AsmOp(assembly_op) = decorator {
-                    //            std::dbg!(&assembly_op);
                     // when an instruction compiles down to multiple operations, only the first
                     // operation is associated with the assembly op. We need to check if the
                     // target operation index falls within the range of operations associated
