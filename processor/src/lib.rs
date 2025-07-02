@@ -56,7 +56,7 @@ pub use host::{
     Host, MastForestStore, MemMastForestStore,
     advice::{AdviceError, AdviceInputs, AdviceProvider},
     default::{DefaultDebugHandler, DefaultHost},
-    handlers::DebugHandler,
+    handlers::{DebugHandler, EventError},
 };
 
 mod chiplets;
