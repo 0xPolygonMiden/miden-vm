@@ -35,6 +35,7 @@
 - [BREAKING] `SourceManager::get_by_path` was renamed to `get_by_uri`, and now requires a `&Uri` instead of a `&str` for the URI/path parameter ([#1937](https://github.com/0xMiden/miden-vm/pull/1937))
 - [BREAKING] The `path` parameter of `Location` and `FileLineCol` debuginfo types was renamed to `uri`, and changed from `Arc<str>` to `Uri` type. ([#1937](https://github.com/0xMiden/miden-vm/pull/1937))
 - [BREAKING] Move `AdviceProvider` from `Host` to `ProcessState` ([#1923](https://github.com/0xMiden/miden-vm/issues/1923)))
+- Moved implementation of `miden_core::debuginfo`, `miden_core::sync`, and `miden_assembly_syntax::diagnostics` into a new `miden-core-diagnostics` crate ([#1945](https://github.com/0xMiden/miden-vm/pull/1945))
 
 #### Enhancements
 
