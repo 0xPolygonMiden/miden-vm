@@ -8,8 +8,7 @@ use super::{
     ExecutionError, Process,
 };
 use crate::{
-    Host, ProcessState, errors::ErrorContext,
-    operations::sys_ops::sys_event_handlers::handle_system_event,
+    Host, errors::ErrorContext, operations::sys_ops::sys_event_handlers::handle_system_event,
 };
 
 pub(crate) mod sys_event_handlers;
@@ -33,10 +32,15 @@ impl Process {
         H: Host,
     {
         if self.stack.get(0) != ONE {
-            let state = &mut ProcessState::from(self);
-            host.on_assert_failed(state, err_code);
+            let process = &mut self.state();
+            host.on_assert_failed(process, err_code);
             let err_msg = program.resolve_error_message(err_code);
-            return Err(ExecutionError::failed_assertion(state.clk(), err_code, err_msg, err_ctx));
+            return Err(ExecutionError::failed_assertion(
+                process.clk(),
+                err_code,
+                err_msg,
+                err_ctx,
+            ));
         }
         self.stack.shift_left(1);
         Ok(())
@@ -142,12 +146,12 @@ impl Process {
         self.stack.copy_state(0);
         self.decoder.set_user_op_helpers(Operation::Emit(event_id), &[event_id.into()]);
 
-        let process_state: &mut ProcessState = &mut self.into();
+        let process = &mut self.state();
         // If it's a system event, handle it directly. Otherwise, forward it to the host.
         if let Some(system_event) = SystemEvent::from_event_id(event_id) {
-            handle_system_event(process_state, system_event, err_ctx)
+            handle_system_event(process, system_event, err_ctx)
         } else {
-            host.on_event(process_state, event_id, err_ctx)
+            host.on_event(process, event_id, err_ctx)
         }
     }
 }

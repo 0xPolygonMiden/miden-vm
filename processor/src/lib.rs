@@ -9,7 +9,6 @@ extern crate std;
 use alloc::{sync::Arc, vec::Vec};
 use core::fmt::{Display, LowerHex};
 
-use fast::FastProcessor;
 use miden_air::trace::{
     CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
     SYS_TRACE_WIDTH,
@@ -35,6 +34,7 @@ use vm_core::{
 pub use winter_prover::matrix::ColMatrix;
 
 pub mod fast;
+use fast::FastProcessState;
 
 mod operations;
 
@@ -705,7 +705,8 @@ impl Process {
         match decorator {
             Decorator::Debug(options) => {
                 if self.decoder.in_debug_mode() {
-                    host.on_debug(&mut self.into(), options)?;
+                    let process = &mut self.state();
+                    host.on_debug(process, options)?;
                 }
             },
             Decorator::AsmOp(assembly_op) => {
@@ -715,7 +716,8 @@ impl Process {
             },
             Decorator::Trace(id) => {
                 if self.enable_tracing {
-                    host.on_trace(&mut self.into(), *id)?;
+                    let process = &mut self.state();
+                    host.on_trace(process, *id)?;
                 }
             },
         };
@@ -734,9 +736,6 @@ impl Process {
     }
 }
 
-// PROCESS STATE
-// ================================================================================================
-
 #[derive(Debug)]
 pub struct SlowProcessState<'a> {
     advice: &'a mut AdviceProvider,
@@ -745,12 +744,8 @@ pub struct SlowProcessState<'a> {
     chiplets: &'a Chiplets,
 }
 
-#[derive(Debug)]
-pub struct FastProcessState<'a> {
-    processor: &'a mut FastProcessor,
-    /// the index of the operation in its basic block
-    op_idx: usize,
-}
+// PROCESS STATE
+// ================================================================================================
 
 #[derive(Debug)]
 pub enum ProcessState<'a> {
@@ -758,12 +753,19 @@ pub enum ProcessState<'a> {
     Fast(FastProcessState<'a>),
 }
 
-impl<'a> ProcessState<'a> {
+impl Process {
     #[inline(always)]
-    pub fn new_fast(processor: &'a mut FastProcessor, op_idx: usize) -> Self {
-        Self::Fast(FastProcessState { processor, op_idx })
+    fn state(&mut self) -> ProcessState<'_> {
+        ProcessState::Slow(SlowProcessState {
+            advice: &mut self.advice,
+            system: &self.system,
+            stack: &self.stack,
+            chiplets: &self.chiplets,
+        })
     }
+}
 
+impl<'a> ProcessState<'a> {
     /// Returns a reference to the advice provider.
     #[inline(always)]
     pub fn advice_provider(&self) -> &AdviceProvider {
@@ -883,20 +885,6 @@ impl<'a> ProcessState<'a> {
             },
             ProcessState::Fast(state) => state.processor.memory.get_memory_state(ctx),
         }
-    }
-}
-
-// CONVERSIONS
-// ===============================================================================================
-
-impl<'a> From<&'a mut Process> for ProcessState<'a> {
-    fn from(process: &'a mut Process) -> Self {
-        Self::Slow(SlowProcessState {
-            advice: &mut process.advice,
-            system: &process.system,
-            stack: &process.stack,
-            chiplets: &process.chiplets,
-        })
     }
 }
 

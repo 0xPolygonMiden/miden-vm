@@ -2,8 +2,8 @@ use vm_core::{Felt, mast::MastForest, sys_events::SystemEvent};
 
 use super::{ExecutionError, FastProcessor, ONE};
 use crate::{
-    ErrorContext, FMP_MIN, Host, ProcessState,
-    operations::sys_ops::sys_event_handlers::handle_system_event, system::FMP_MAX,
+    ErrorContext, FMP_MIN, Host, operations::sys_ops::sys_event_handlers::handle_system_event,
+    system::FMP_MAX,
 };
 
 impl FastProcessor {
@@ -18,10 +18,11 @@ impl FastProcessor {
         err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         if self.stack_get(0) != ONE {
-            host.on_assert_failed(&mut ProcessState::new_fast(self, op_idx), err_code);
+            let process = &mut self.state(op_idx);
+            host.on_assert_failed(process, err_code);
             let err_msg = program.resolve_error_message(err_code);
             return Err(ExecutionError::failed_assertion(
-                self.clk + op_idx,
+                process.clk(),
                 err_code,
                 err_msg,
                 err_ctx,
@@ -89,12 +90,12 @@ impl FastProcessor {
         host: &mut impl Host,
         err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
-        let process_state = &mut ProcessState::new_fast(self, op_idx);
+        let process = &mut self.state(op_idx);
         // If it's a system event, handle it directly. Otherwise, forward it to the host.
         if let Some(system_event) = SystemEvent::from_event_id(event_id) {
-            handle_system_event(process_state, system_event, err_ctx)
+            handle_system_event(process, system_event, err_ctx)
         } else {
-            host.on_event(process_state, event_id, err_ctx)
+            host.on_event(process, event_id, err_ctx)
         }
     }
 }

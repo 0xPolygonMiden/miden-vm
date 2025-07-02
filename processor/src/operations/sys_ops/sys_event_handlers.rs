@@ -22,33 +22,33 @@ pub const HDWORD_TO_MAP_WITH_DOMAIN_DOMAIN_OFFSET: usize = 8;
 const M: u64 = 12289;
 
 pub fn handle_system_event(
-    process_state: &mut ProcessState,
+    process: &mut ProcessState,
     system_event: SystemEvent,
     err_ctx: &impl ErrorContext,
 ) -> Result<(), ExecutionError> {
     match system_event {
-        SystemEvent::MerkleNodeMerge => merge_merkle_nodes(process_state, err_ctx),
-        SystemEvent::MerkleNodeToStack => copy_merkle_node_to_adv_stack(process_state, err_ctx),
-        SystemEvent::MapValueToStack => copy_map_value_to_adv_stack(process_state, false, err_ctx),
-        SystemEvent::MapValueToStackN => copy_map_value_to_adv_stack(process_state, true, err_ctx),
-        SystemEvent::U64Div => push_u64_div_result(process_state, err_ctx),
-        SystemEvent::FalconDiv => push_falcon_mod_result(process_state, err_ctx),
-        SystemEvent::Ext2Inv => push_ext2_inv_result(process_state, err_ctx),
-        SystemEvent::Ext2Intt => push_ext2_intt_result(process_state, err_ctx),
-        SystemEvent::SmtPeek => push_smtpeek_result(process_state, err_ctx),
-        SystemEvent::U32Clz => push_leading_zeros(process_state, err_ctx),
-        SystemEvent::U32Ctz => push_trailing_zeros(process_state, err_ctx),
-        SystemEvent::U32Clo => push_leading_ones(process_state, err_ctx),
-        SystemEvent::U32Cto => push_trailing_ones(process_state, err_ctx),
-        SystemEvent::ILog2 => push_ilog2(process_state, err_ctx),
+        SystemEvent::MerkleNodeMerge => merge_merkle_nodes(process, err_ctx),
+        SystemEvent::MerkleNodeToStack => copy_merkle_node_to_adv_stack(process, err_ctx),
+        SystemEvent::MapValueToStack => copy_map_value_to_adv_stack(process, false, err_ctx),
+        SystemEvent::MapValueToStackN => copy_map_value_to_adv_stack(process, true, err_ctx),
+        SystemEvent::U64Div => push_u64_div_result(process, err_ctx),
+        SystemEvent::FalconDiv => push_falcon_mod_result(process, err_ctx),
+        SystemEvent::Ext2Inv => push_ext2_inv_result(process, err_ctx),
+        SystemEvent::Ext2Intt => push_ext2_intt_result(process, err_ctx),
+        SystemEvent::SmtPeek => push_smtpeek_result(process, err_ctx),
+        SystemEvent::U32Clz => push_leading_zeros(process, err_ctx),
+        SystemEvent::U32Ctz => push_trailing_zeros(process, err_ctx),
+        SystemEvent::U32Clo => push_leading_ones(process, err_ctx),
+        SystemEvent::U32Cto => push_trailing_ones(process, err_ctx),
+        SystemEvent::ILog2 => push_ilog2(process, err_ctx),
 
-        SystemEvent::MemToMap => insert_mem_values_into_adv_map(process_state),
-        SystemEvent::HdwordToMap => insert_hdword_into_adv_map(process_state, ZERO),
+        SystemEvent::MemToMap => insert_mem_values_into_adv_map(process),
+        SystemEvent::HdwordToMap => insert_hdword_into_adv_map(process, ZERO),
         SystemEvent::HdwordToMapWithDomain => {
-            let domain = process_state.get_stack_item(HDWORD_TO_MAP_WITH_DOMAIN_DOMAIN_OFFSET);
-            insert_hdword_into_adv_map(process_state, domain)
+            let domain = process.get_stack_item(HDWORD_TO_MAP_WITH_DOMAIN_DOMAIN_OFFSET);
+            insert_hdword_into_adv_map(process, domain)
         },
-        SystemEvent::HpermToMap => insert_hperm_into_adv_map(process_state),
+        SystemEvent::HpermToMap => insert_hperm_into_adv_map(process),
     }
 }
 

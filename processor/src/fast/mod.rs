@@ -807,14 +807,16 @@ impl FastProcessor {
         match decorator {
             Decorator::Debug(options) => {
                 if self.in_debug_mode {
-                    host.on_debug(&mut ProcessState::new_fast(self, op_idx_in_batch), options)?;
+                    let process = &mut self.state(op_idx_in_batch);
+                    host.on_debug(process, options)?;
                 }
             },
             Decorator::AsmOp(_assembly_op) => {
                 // do nothing
             },
             Decorator::Trace(id) => {
-                host.on_trace(&mut ProcessState::new_fast(self, op_idx_in_batch), *id)?;
+                let process = &mut self.state(op_idx_in_batch);
+                host.on_trace(process, *id)?;
             },
         };
         Ok(())
@@ -1077,6 +1079,20 @@ impl FastProcessor {
         self.caller_hash = ctx_info.fn_hash;
 
         Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub struct FastProcessState<'a> {
+    pub(super) processor: &'a mut FastProcessor,
+    /// the index of the operation in its basic block
+    pub(super) op_idx: usize,
+}
+
+impl FastProcessor {
+    #[inline(always)]
+    pub fn state(&mut self, op_idx: usize) -> ProcessState<'_> {
+        ProcessState::Fast(FastProcessState { processor: self, op_idx })
     }
 }
 
