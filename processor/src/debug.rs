@@ -85,6 +85,8 @@ impl VmStateIterator {
     fn get_asmop(&self) -> (Option<AsmOpInfo>, bool) {
         let assembly_ops = self.decoder.debug_info().assembly_ops();
 
+        std::dbg!("YOOOOOOOOOO");
+
         if self.clk == 0 || assembly_ops.is_empty() || self.asmop_idx > assembly_ops.len() {
             return (None, false);
         }

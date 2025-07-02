@@ -372,9 +372,9 @@ pub trait MastNodeExt {
         node_id: usize,
         op_idx: usize,
     ) -> Option<&'m AssemblyOp> {
-        // std::dbg!("[[[[[[[[[[[[[[[[[[YOAMMA");
-        // std::dbg!(&node_id, op_idx);
-        // std::dbg!(&mast_forest);
+        std::dbg!("[[[[[[[[[[[[[[[[[[YOAMMA");
+        std::dbg!(&node_id, op_idx);
+        std::dbg!(&mast_forest);
 
         for i in (0..=op_idx).rev() {
             let op_id = OperationId::new(node_id, 0, i);
