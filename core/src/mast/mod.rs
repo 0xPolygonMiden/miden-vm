@@ -455,16 +455,34 @@ fn remove_nodes(
 
 /// Public accessors
 impl MastForest {
-    /// Returns the [`Decorator`] associated with the provided [`DecoratorId`] if valid, or else
-    /// `None`.
-    ///
-    /// This is the fallible version of indexing (e.g. `mast_forest[decorator_id]`).
-    #[inline(always)]
-    pub fn get_decorator_by_id(&self, decorator_id: DecoratorId) -> Option<&Decorator> {
-        let idx = decorator_id.0 as usize;
-
-        self.decorators.get(idx)
+    pub fn get_decorators(&self, op_id: &OperationId) -> Vec<&Decorator> {
+        if let Some(ids) = self.debug_info.get_decorator_ids_before(op_id) {
+            ids.iter().map(|id| &self.debug_info.decorators[*id]).collect()
+        } else {
+            vec![]
+        }
     }
+
+    pub fn get_decorators_after(&self, op_id: &OperationId) -> Vec<&Decorator> {
+        if let Some(ids) = self.debug_info.get_decorator_ids_after(op_id) {
+            ids.iter().map(|id| &self.debug_info.decorators[*id]).collect()
+        } else {
+            vec![]
+        }
+    }
+
+    /*
+        /// Returns the [`Decorator`] associated with the provided [`DecoratorId`] if valid, or else
+        /// `None`.
+        ///
+        /// This is the fallible version of indexing (e.g. `mast_forest[decorator_id]`).
+        // #[inline(always)]
+        // pub fn get_decorator_by_id(&self, decorator_id: DecoratorId) -> Option<&Decorator> {
+        //     let idx = decorator_id.0 as usize;
+
+        //     self.decorators.get(idx)
+        // }
+    */
 
     /// Returns the [`MastNode`] associated with the provided [`MastNodeId`] if valid, or else
     /// `None`.
