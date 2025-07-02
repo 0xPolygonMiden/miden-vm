@@ -268,10 +268,6 @@ impl From<AdviceInputs> for AdviceProvider {
     fn from(inputs: AdviceInputs) -> Self {
         let (mut stack, map, store) = inputs.into_parts();
         stack.reverse();
-        Self {
-            stack,
-            map: map.into_iter().collect(),
-            store: store.inner_nodes().collect(),
-        }
+        Self { stack, map, store }
     }
 }
