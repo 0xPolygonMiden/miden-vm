@@ -9,7 +9,15 @@ pub(super) mod advice;
 #[cfg(feature = "std")]
 mod debug;
 
+pub mod default;
+use default::DefaultDebugHandler;
+
+pub mod handlers;
+use handlers::DebugHandler;
+
+pub mod library;
 mod mast_forest_store;
+
 pub use mast_forest_store::{MastForestStore, MemMastForestStore};
 
 // HOST TRAIT
@@ -56,10 +64,7 @@ pub trait Host {
         process: &mut ProcessState,
         options: &DebugOptions,
     ) -> Result<(), ExecutionError> {
-        let _ = (&process, options);
-        #[cfg(feature = "std")]
-        debug::print_debug_info(process, options);
-        Ok(())
+        DefaultDebugHandler.on_debug(process, options)
     }
 
     /// Handles the trace emitted from the VM.
@@ -68,15 +73,7 @@ pub trait Host {
         process: &mut ProcessState,
         trace_id: u32,
     ) -> Result<(), ExecutionError> {
-        let _ = (&process, trace_id);
-        #[cfg(feature = "std")]
-        std::println!(
-            "Trace with id {} emitted at step {} in context {}",
-            trace_id,
-            process.clk(),
-            process.ctx()
-        );
-        Ok(())
+        DefaultDebugHandler.on_trace(process, trace_id)
     }
 
     /// Handles the failure of the assertion instruction.
@@ -118,44 +115,5 @@ where
 
     fn on_assert_failed(&mut self, process: &mut ProcessState, err_code: Felt) {
         H::on_assert_failed(self, process, err_code)
-    }
-}
-
-// DEFAULT HOST IMPLEMENTATION
-// ================================================================================================
-
-/// A default [Host] implementation that provides the essential functionality required by the VM.
-#[derive(Debug, Clone, Default)]
-pub struct DefaultHost {
-    store: MemMastForestStore,
-}
-
-impl DefaultHost {
-    pub fn load_mast_forest(&mut self, mast_forest: Arc<MastForest>) -> Result<(), ExecutionError> {
-        self.store.insert(mast_forest);
-        Ok(())
-    }
-}
-
-impl Host for DefaultHost {
-    fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>> {
-        self.store.get(node_digest)
-    }
-
-    fn on_event(
-        &mut self,
-        process: &mut ProcessState,
-        event_id: u32,
-        err_ctx: &impl ErrorContext,
-    ) -> Result<(), ExecutionError> {
-        let _ = (&process, event_id, err_ctx);
-        #[cfg(feature = "std")]
-        std::println!(
-            "Event with id {} emitted at step {} in context {}",
-            event_id,
-            process.clk(),
-            process.ctx()
-        );
-        Ok(())
     }
 }

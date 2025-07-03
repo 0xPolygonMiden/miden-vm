@@ -1,5 +1,4 @@
-use alloc::{boxed::Box, sync::Arc};
-use core::error::Error;
+use alloc::sync::Arc;
 
 use miden_air::RowIndex;
 use miette::Diagnostic;
@@ -12,7 +11,7 @@ use vm_core::{
 use winter_prover::ProverError;
 
 use super::{
-    Felt, QuadFelt, Word,
+    EventError, Felt, QuadFelt, Word,
     system::{FMP_MAX, FMP_MIN},
 };
 use crate::{MemoryError, host::advice::AdviceError};
@@ -74,8 +73,19 @@ pub enum ExecutionError {
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
         #[source]
-        error: Box<dyn Error + Send + Sync + 'static>,
+        error: EventError,
     },
+    #[error("got unexpected event_id: {id}")]
+    #[diagnostic()]
+    InvalidEventId {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        id: u32,
+    },
+    #[error("attempted to add event handler with previously inserted id: {id}")]
+    DuplicateEventHandler { id: u32 },
     #[error("failed to execute Ext2Intt operation: {0}")]
     Ext2InttError(#[from] Ext2InttError),
     #[error("assertion failed at clock cycle {clk} with error {}",
@@ -297,13 +307,16 @@ impl ExecutionError {
         Self::DynamicNodeNotFound { label, source_file, digest }
     }
 
-    pub fn event_error(
-        error: Box<dyn Error + Send + Sync + 'static>,
-        err_ctx: &impl ErrorContext,
-    ) -> Self {
+    pub fn event_error(error: EventError, err_ctx: &impl ErrorContext) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
 
         Self::EventError { label, source_file, error }
+    }
+
+    pub fn invalid_event_id_error(id: u32, err_ctx: &impl ErrorContext) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+
+        Self::InvalidEventId { label, source_file, id }
     }
 
     pub fn failed_assertion(

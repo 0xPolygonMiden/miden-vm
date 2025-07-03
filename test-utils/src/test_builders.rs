@@ -131,6 +131,7 @@ macro_rules! build_test_by_mode {
             advice_inputs,
             in_debug_mode: $in_debug_mode,
             libraries: Vec::default(),
+            handlers: Vec::default(),
             add_modules: Vec::default(),
         }
     }};
@@ -161,6 +162,7 @@ macro_rules! build_test_by_mode {
             advice_inputs,
             in_debug_mode: $in_debug_mode,
             libraries: Vec::default(),
+            handlers: Vec::default(),
             add_modules: Vec::default(),
         }
     }};
@@ -196,6 +198,7 @@ macro_rules! build_test_by_mode {
             advice_inputs,
             in_debug_mode: $in_debug_mode,
             libraries: Vec::default(),
+            handlers: Vec::default(),
             add_modules: Vec::default(),
         }
     }};
@@ -233,6 +236,7 @@ macro_rules! build_test_by_mode {
             advice_inputs,
             in_debug_mode: $in_debug_mode,
             libraries: Vec::default(),
+            handlers: Vec::default(),
             add_modules: Vec::default(),
         }
     }};
