@@ -174,9 +174,7 @@ impl MastForestMerger {
         self.mast_forest
             .advice_map
             .merge_advice_map(&other_forest.advice_map)
-            .map_or(Ok(()), |((key, _prev), _new)| {
-                Err(MastForestError::AdviceMapKeyCollisionOnMerge(key))
-            })
+            .map_err(|((key, _prev), _new)| MastForestError::AdviceMapKeyCollisionOnMerge(key))
     }
 
     fn merge_error_codes(&mut self, other_forest: &MastForest) -> Result<(), MastForestError> {
