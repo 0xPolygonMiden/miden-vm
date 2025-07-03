@@ -1,4 +1,4 @@
-use assembly::SourceManager;
+use assembly::{SourceManager, diagnostics::SourceLanguage};
 use processor::FMP_MIN;
 use test_utils::{MIN_STACK_DEPTH, StackInputs, Test, Word, build_op_test, build_test};
 use vm_core::{
@@ -29,12 +29,12 @@ fn sdepth() {
         "
     {TRUNCATE_STACK_PROC}
 
-    begin 
-        push.1 
-        push.1 
-        {test_op} 
-        
-        exec.truncate_stack 
+    begin
+        push.1
+        push.1
+        {test_op}
+
+        exec.truncate_stack
     end
     "
     );
@@ -172,10 +172,11 @@ fn caller() {
     // TODO: update and use macro?
     let mut test = Test::new(&format!("test{}", line!()), program_source, false);
     test.stack_inputs = StackInputs::try_from_ints([1, 2, 3, 4, 5]).unwrap();
-    test.kernel_source = Some(
-        test.source_manager
-            .load(&format!("kernel{}", line!()), kernel_source.to_string()),
-    );
+    test.kernel_source = Some(test.source_manager.load(
+        SourceLanguage::Masm,
+        format!("kernel{}", line!()).into(),
+        kernel_source.to_string(),
+    ));
 
     // top 4 elements should be overwritten with the hash of `bar` procedure, but the 5th
     // element should remain untouched

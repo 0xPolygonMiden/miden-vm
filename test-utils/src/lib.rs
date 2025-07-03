@@ -12,7 +12,10 @@ use alloc::{
     vec::Vec,
 };
 
-use assembly::{KernelLibrary, Library, Parse, diagnostics::reporting::PrintDiagnostic};
+use assembly::{
+    KernelLibrary, Library, Parse,
+    diagnostics::{SourceLanguage, reporting::PrintDiagnostic},
+};
 pub use assembly::{LibraryPath, SourceFile, SourceManager, diagnostics::Report};
 pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
 pub use processor::{
@@ -187,7 +190,7 @@ impl Test {
     /// Creates the simplest possible new test, with only a source string and no inputs.
     pub fn new(name: &str, source: &str, in_debug_mode: bool) -> Self {
         let source_manager = Arc::new(assembly::DefaultSourceManager::default());
-        let source = source_manager.load(name, source.to_string());
+        let source = source_manager.load(SourceLanguage::Masm, name.into(), source.to_string());
         Test {
             source_manager,
             source,

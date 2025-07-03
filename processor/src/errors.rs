@@ -571,7 +571,7 @@ impl<'a, N: MastNodeExt> ErrorContextImpl<'a, N> {
                 |location| {
                     (
                         self.source_manager.location_to_span(location.clone()).unwrap_or_default(),
-                        self.source_manager.get_by_path(&location.path),
+                        self.source_manager.get_by_uri(&location.uri),
                     )
                 },
             )

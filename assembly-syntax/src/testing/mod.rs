@@ -24,10 +24,18 @@ macro_rules! regex {
 #[macro_export]
 macro_rules! source_file {
     ($context:expr, $source:literal) => {
-        $context.source_manager().load(concat!("test", line!()), $source.to_string())
+        $context.source_manager().load(
+            $crate::diagnostics::SourceLanguage::Masm,
+            concat!("test", line!()).into(),
+            $source.to_string(),
+        )
     };
     ($context:expr, $source:expr) => {
-        $context.source_manager().load(concat!("test", line!()), $source.to_string())
+        $context.source_manager().load(
+            $crate::diagnostics::SourceLanguage::Masm,
+            concat!("test", line!()).into(),
+            $source.to_string(),
+        )
     };
 }
 
@@ -83,9 +91,11 @@ macro_rules! assert_diagnostic_lines {
 macro_rules! parse_module {
     ($context:expr, $path:literal, $source:expr) => {{
         let path = $crate::LibraryPath::new($path).expect("invalid library path");
-        let source_file = $context
-            .source_manager()
-            .load(concat!("test", line!()), ::alloc::string::String::from($source));
+        let source_file = $context.source_manager().load(
+            $crate::diagnostics::SourceLanguage::Masm,
+            concat!("test", line!()).into(),
+            ::alloc::string::String::from($source),
+        );
         $crate::ast::Module::parse(path, $crate::ast::ModuleKind::Library, source_file)
             .expect("failed to parse module")
     }};
