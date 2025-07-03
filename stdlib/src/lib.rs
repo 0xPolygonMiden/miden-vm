@@ -9,7 +9,7 @@ use assembly::{
     mast::MastForest,
     utils::{Deserializable, sync::LazyLock},
 };
-use vm_core::{Felt, Word, crypto::dsa::rpo_falcon512::SecretKey};
+use vm_core::{Felt, Word};
 // STANDARD LIBRARY
 // ================================================================================================
 
@@ -74,7 +74,10 @@ pub fn falcon_sign(sk: &[Felt], msg: Word) -> Option<Vec<Felt>> {
 
     use vm_core::{
         Felt,
-        crypto::{dsa::rpo_falcon512::Polynomial, hash::Rpo256},
+        crypto::{
+            dsa::rpo_falcon512::{Polynomial, SecretKey},
+            hash::Rpo256,
+        },
         utils::Deserializable,
     };
 
@@ -132,7 +135,7 @@ pub fn falcon_sign(sk: &[Felt], msg: Word) -> Option<Vec<Felt>> {
 }
 
 #[cfg(not(feature = "std"))]
-pub fn falcon_sign(_pk_sk: &[Felt], _msg: Word) -> Option<alloc::vec::Vec<Felt>> {
+pub fn falcon_sign(_pk_sk: &[Felt], _msg: Word) -> Option<Vec<Felt>> {
     None
 }
 

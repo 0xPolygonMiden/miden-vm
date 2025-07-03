@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, sync::Arc, vec::Vec};
+use alloc::{boxed::Box, sync::Arc};
 
 use vm_core::{DebugOptions, Word, mast::MastForest};
 
@@ -13,7 +13,6 @@ use crate::{
 /// A default [Host] implementation that provides the essential functionality required by the VM.
 #[derive(Debug)]
 pub struct DefaultHost<D: DebugHandler = DefaultDebugHandler> {
-    mast_forests: Vec<Arc<MastForest>>,
     store: MemMastForestStore,
     event_handlers: EventHandlerRegistry,
     debug_handler: D,
@@ -22,7 +21,6 @@ pub struct DefaultHost<D: DebugHandler = DefaultDebugHandler> {
 impl Default for DefaultHost {
     fn default() -> Self {
         Self {
-            mast_forests: Vec::default(),
             store: MemMastForestStore::default(),
             event_handlers: EventHandlerRegistry::default(),
             debug_handler: DefaultDebugHandler,
@@ -32,8 +30,6 @@ impl Default for DefaultHost {
 
 impl<D: DebugHandler> DefaultHost<D> {
     pub fn load_mast_forest(&mut self, mast_forest: Arc<MastForest>) -> Result<(), ExecutionError> {
-        self.mast_forests.push(mast_forest.clone());
-
         self.store.insert(mast_forest);
         Ok(())
     }
@@ -51,7 +47,6 @@ impl<D: DebugHandler> DefaultHost<D> {
     /// Replace the current [`DebugHandler`] with a custom one.
     pub fn with_debug_handler<H: DebugHandler>(self, handler: H) -> DefaultHost<H> {
         DefaultHost {
-            mast_forests: self.mast_forests,
             store: self.store,
             event_handlers: self.event_handlers,
             debug_handler: handler,
@@ -70,12 +65,8 @@ impl<D: DebugHandler> DefaultHost<D> {
 }
 
 impl<D: DebugHandler> Host for DefaultHost<D> {
-    fn get_mast_forest(&mut self, node_digest: &Word) -> Option<Arc<MastForest>> {
+    fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>> {
         self.store.get(node_digest)
-    }
-
-    fn iter_mast_forests(&self) -> impl Iterator<Item = Arc<MastForest>> {
-        self.mast_forests.iter().cloned()
     }
 
     fn on_event(

@@ -4,8 +4,8 @@ use assembly::{Assembler, DefaultSourceManager, utils::Serializable};
 use miden_air::{Felt, ProvingOptions, RowIndex};
 use miden_stdlib::{StdLibrary, falcon_sign};
 use processor::{
-    AdviceInputs, AdviceSource, EventError, ExecutionError, ProcessState, Program, ProgramInfo,
-    StackInputs, crypto::RpoRandomCoin,
+    AdviceInputs, EventError, ExecutionError, ProcessState, Program, ProgramInfo, StackInputs,
+    crypto::RpoRandomCoin,
 };
 use rand::{Rng, rng};
 use test_utils::{
@@ -73,7 +73,7 @@ pub fn push_falcon_signature(process: &mut ProcessState) -> Result<(), EventErro
         .ok_or(FalconError::MalformedSignatureKey { key_type: "RPO Falcon512" })?;
 
     for r in result {
-        process.advice_provider_mut().push_stack(AdviceSource::Value(r)).unwrap();
+        process.advice_provider_mut().push_stack(r);
     }
     Ok(())
 }
