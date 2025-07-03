@@ -2,14 +2,14 @@
 
 extern crate alloc;
 
-use alloc::sync::Arc;
+use alloc::{sync::Arc, vec::Vec};
 
 use assembly::{
     Library,
     mast::MastForest,
     utils::{Deserializable, sync::LazyLock},
 };
-
+use vm_core::{Felt, Word, crypto::dsa::rpo_falcon512::SecretKey};
 // STANDARD LIBRARY
 // ================================================================================================
 
@@ -69,18 +69,12 @@ impl Default for StdLibrary {
 ///    Miden field.
 /// 5. The nonce represented as 8 field elements.
 #[cfg(feature = "std")]
-pub fn falcon_sign(
-    sk: &[vm_core::Felt],
-    msg: vm_core::Word,
-) -> Option<alloc::vec::Vec<vm_core::Felt>> {
-    use alloc::{vec, vec::Vec};
+pub fn falcon_sign(sk: &[Felt], msg: Word) -> Option<Vec<Felt>> {
+    use alloc::vec;
 
     use vm_core::{
         Felt,
-        crypto::{
-            dsa::rpo_falcon512::{Polynomial, SecretKey},
-            hash::Rpo256,
-        },
+        crypto::{dsa::rpo_falcon512::Polynomial, hash::Rpo256},
         utils::Deserializable,
     };
 
@@ -138,10 +132,7 @@ pub fn falcon_sign(
 }
 
 #[cfg(not(feature = "std"))]
-pub fn falcon_sign(
-    _pk_sk: &[vm_core::Felt],
-    _msg: vm_core::Word,
-) -> Option<alloc::vec::Vec<vm_core::Felt>> {
+pub fn falcon_sign(_pk_sk: &[Felt], _msg: Word) -> Option<alloc::vec::Vec<Felt>> {
     None
 }
 
