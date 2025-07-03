@@ -179,9 +179,8 @@ impl FastProcessor {
         Self::initialize(stack_inputs, advice_inputs, false)
     }
 
-    /// Creates a new `FastProcessor` instance, set to debug mode, with the given stack 
+    /// Creates a new `FastProcessor` instance, set to debug mode, with the given stack
     /// and advice inputs.
-    /// 
     ///
     /// The stack inputs are expected to be stored in reverse order. For example, if `stack_inputs =
     /// [1,2,3]`, then the stack will be initialized as `[3,2,1,0,0,...]`, with `3` being on

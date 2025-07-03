@@ -17,11 +17,10 @@ pub use mast_forest_store::{MastForestStore, MemMastForestStore};
 
 /// Defines an interface by which the VM can interact with the host.
 ///
-/// There are four main categories of interactions between the VM and the host:
-/// 1. accessing the advice provider,
-/// 2. getting a library's MAST forest,
-/// 3. handling advice events (which internally mutates the advice provider), and
-/// 4. handling debug and trace events.
+/// There are three main categories of interactions between the VM and the host:
+/// 1. getting a library's MAST forest,
+/// 2. handling advice events (which mutate the process' advice provider), and
+/// 3. handling debug and trace events.
 pub trait Host {
     // REQUIRED METHODS
     // --------------------------------------------------------------------------------------------
@@ -56,10 +55,7 @@ pub trait Host {
         &mut self,
         process: &mut ProcessState,
         options: &DebugOptions,
-    ) -> Result<(), ExecutionError>
-    where
-        Self: Sized,
-    {
+    ) -> Result<(), ExecutionError> {
         let _ = (&process, options);
         #[cfg(feature = "std")]
         debug::print_debug_info(process, options);
