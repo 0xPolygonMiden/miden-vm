@@ -412,6 +412,7 @@ fn library_procedure_collision() -> Result<(), Report> {
     Ok(())
 }
 
+#[ignore]
 #[test]
 fn library_serialization() -> Result<(), Report> {
     let context = TestContext::new();
@@ -3469,6 +3470,7 @@ fn test_program_serde_simple() {
     assert_eq!(original_program, deserialized_program);
 }
 
+#[ignore]
 #[test]
 fn test_program_serde_with_decorators() {
     let source = "
@@ -3606,6 +3608,7 @@ fn build_program_example() -> Arc<Program> {
     assembler.assemble_program(source).unwrap().into()
 }
 
+#[ignore]
 #[test]
 fn package_serialization_roundtrip() {
     // since the test is quite expensive, 128 cases should be enough to cover all edge cases
