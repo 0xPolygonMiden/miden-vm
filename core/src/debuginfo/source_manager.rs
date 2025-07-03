@@ -1,10 +1,4 @@
-use alloc::{
-    boxed::Box,
-    collections::BTreeMap,
-    string::{String, ToString},
-    sync::Arc,
-    vec::Vec,
-};
+use alloc::{boxed::Box, collections::BTreeMap, string::String, sync::Arc, vec::Vec};
 use core::{error::Error, fmt::Debug};
 
 use super::*;
@@ -79,6 +73,8 @@ pub enum SourceManagerError {
     /// An attempt was made to read content using invalid byte indices
     #[error("attempted to read content out of bounds")]
     InvalidBounds,
+    #[error(transparent)]
+    InvalidContentUpdate(#[from] SourceContentUpdateError),
     /// Custom error variant for implementors of the trait.
     #[error("{error_msg}")]
     Custom {
@@ -118,24 +114,33 @@ pub trait SourceManager: Debug {
                 return found;
             }
         }
-        self.load_from_raw_parts(file.name(), file.content().clone())
+        self.load_from_raw_parts(file.uri().clone(), file.content().clone())
     }
     /// Load the given `content` into this [SourceManager] with `name`
-    fn load(&self, name: &str, content: String) -> Arc<SourceFile> {
-        let name = Arc::from(name.to_string().into_boxed_str());
-        let content = SourceContent::new(Arc::clone(&name), content.into_boxed_str());
+    fn load(&self, lang: SourceLanguage, name: Uri, content: String) -> Arc<SourceFile> {
+        let content = SourceContent::new(lang, name.clone(), content);
         self.load_from_raw_parts(name, content)
     }
     /// Load content into this [SourceManager] from raw [SourceFile] components
-    fn load_from_raw_parts(&self, name: Arc<str>, content: SourceContent) -> Arc<SourceFile>;
+    fn load_from_raw_parts(&self, name: Uri, content: SourceContent) -> Arc<SourceFile>;
+    /// Update the source file corresponding to `id` after being notified of a change event.
+    ///
+    /// The `version` indicates the new version of the document
+    fn update(
+        &self,
+        id: SourceId,
+        text: String,
+        range: Option<Selection>,
+        version: i32,
+    ) -> Result<(), SourceManagerError>;
     /// Get the [SourceFile] corresponding to `id`
     fn get(&self, id: SourceId) -> Result<Arc<SourceFile>, SourceManagerError>;
-    /// Get the most recent [SourceFile] whose path is `path`
-    fn get_by_path(&self, path: &str) -> Option<Arc<SourceFile>> {
-        self.find(path).and_then(|id| self.get(id).ok())
+    /// Get the most recent [SourceFile] whose URI is `uri`
+    fn get_by_uri(&self, uri: &Uri) -> Option<Arc<SourceFile>> {
+        self.find(uri).and_then(|id| self.get(id).ok())
     }
-    /// Search for a source file named `name`, and return its [SourceId] if found.
-    fn find(&self, name: &str) -> Option<SourceId>;
+    /// Search for a source file whose URI is `uri`, and return its [SourceId] if found.
+    fn find(&self, uri: &Uri) -> Option<SourceId>;
     /// Convert a [FileLineCol] to an equivalent [SourceSpan], if the referenced file is available
     fn file_line_col_to_span(&self, loc: FileLineCol) -> Option<SourceSpan>;
     /// Convert a [SourceSpan] to an equivalent [FileLineCol], if the span is valid
@@ -160,24 +165,34 @@ impl<T: ?Sized + SourceManager> SourceManager for Arc<T> {
         (**self).copy_into(file)
     }
     #[inline(always)]
-    fn load(&self, name: &str, content: String) -> Arc<SourceFile> {
-        (**self).load(name, content)
+    fn load(&self, lang: SourceLanguage, uri: Uri, content: String) -> Arc<SourceFile> {
+        (**self).load(lang, uri, content)
     }
     #[inline(always)]
-    fn load_from_raw_parts(&self, name: Arc<str>, content: SourceContent) -> Arc<SourceFile> {
-        (**self).load_from_raw_parts(name, content)
+    fn load_from_raw_parts(&self, uri: Uri, content: SourceContent) -> Arc<SourceFile> {
+        (**self).load_from_raw_parts(uri, content)
+    }
+    #[inline(always)]
+    fn update(
+        &self,
+        id: SourceId,
+        text: String,
+        range: Option<Selection>,
+        version: i32,
+    ) -> Result<(), SourceManagerError> {
+        (**self).update(id, text, range, version)
     }
     #[inline(always)]
     fn get(&self, id: SourceId) -> Result<Arc<SourceFile>, SourceManagerError> {
         (**self).get(id)
     }
     #[inline(always)]
-    fn get_by_path(&self, path: &str) -> Option<Arc<SourceFile>> {
-        (**self).get_by_path(path)
+    fn get_by_uri(&self, uri: &Uri) -> Option<Arc<SourceFile>> {
+        (**self).get_by_uri(uri)
     }
     #[inline(always)]
-    fn find(&self, name: &str) -> Option<SourceId> {
-        (**self).find(name)
+    fn find(&self, uri: &Uri) -> Option<SourceId> {
+        (**self).find(uri)
     }
     #[inline(always)]
     fn file_line_col_to_span(&self, loc: FileLineCol) -> Option<SourceSpan> {
@@ -207,17 +222,22 @@ impl<T: ?Sized + SourceManager> SourceManager for Arc<T> {
 
 #[cfg(feature = "std")]
 pub trait SourceManagerExt: SourceManager {
-    /// Load the content of `path` into this [SourceManager], using the given path as the source
-    /// name.
+    /// Load the content of `path` into this [SourceManager]
     fn load_file(&self, path: &std::path::Path) -> Result<Arc<SourceFile>, SourceManagerError> {
-        let name = path.to_string_lossy();
-        if let Some(existing) = self.get_by_path(name.as_ref()) {
+        let uri = Uri::from(path);
+        if let Some(existing) = self.get_by_uri(&uri) {
             return Ok(existing);
         }
 
-        let name = Arc::from(name.into_owned().into_boxed_str());
+        let lang = match path.extension().and_then(|ext| ext.to_str()) {
+            Some("masm") => "masm",
+            Some("rs") => "rust",
+            Some(ext) => ext,
+            None => "unknown",
+        };
+
         let content = std::fs::read_to_string(path)
-            .map(|s| SourceContent::new(Arc::clone(&name), s.into_boxed_str()))
+            .map(|s| SourceContent::new(lang, uri.clone(), s))
             .map_err(|source| {
                 SourceManagerError::custom_with_source(
                     format!("failed to load filed at `{}`", path.display()),
@@ -225,7 +245,7 @@ pub trait SourceManagerExt: SourceManager {
                 )
             })?;
 
-        Ok(self.load_from_raw_parts(name, content))
+        Ok(self.load_from_raw_parts(uri, content))
     }
 }
 
@@ -249,14 +269,14 @@ impl Clone for DefaultSourceManager {
 #[derive(Debug, Default, Clone)]
 struct DefaultSourceManagerImpl {
     files: Vec<Arc<SourceFile>>,
-    names: BTreeMap<Arc<str>, SourceId>,
+    uris: BTreeMap<Uri, SourceId>,
 }
 
 impl DefaultSourceManagerImpl {
-    fn insert(&mut self, name: Arc<str>, content: SourceContent) -> Arc<SourceFile> {
+    fn insert(&mut self, uri: Uri, content: SourceContent) -> Arc<SourceFile> {
         // If we have previously inserted the same content with `name`, return the previously
         // inserted source id
-        if let Some(file) = self.names.get(&name).copied().and_then(|id| {
+        if let Some(file) = self.uris.get(&uri).copied().and_then(|id| {
             let file = &self.files[id.to_usize()];
             if file.as_str() == content.as_str() {
                 Some(Arc::clone(file))
@@ -270,7 +290,7 @@ impl DefaultSourceManagerImpl {
             .expect("system limit: source manager has exhausted its supply of source ids");
         let file = Arc::new(SourceFile::from_raw_parts(id, content));
         self.files.push(Arc::clone(&file));
-        self.names.insert(Arc::clone(&name), id);
+        self.uris.insert(uri.clone(), id);
         file
     }
 
@@ -281,20 +301,16 @@ impl DefaultSourceManagerImpl {
             .ok_or(SourceManagerError::InvalidSourceId)
     }
 
-    fn get_by_path(&self, path: &str) -> Option<Arc<SourceFile>> {
-        self.find(path).and_then(|id| self.get(id).ok())
+    fn get_by_uri(&self, uri: &Uri) -> Option<Arc<SourceFile>> {
+        self.find(uri).and_then(|id| self.get(id).ok())
     }
 
-    fn find(&self, name: &str) -> Option<SourceId> {
-        self.names.get(name).copied()
+    fn find(&self, uri: &Uri) -> Option<SourceId> {
+        self.uris.get(uri).copied()
     }
 
     fn file_line_col_to_span(&self, loc: FileLineCol) -> Option<SourceSpan> {
-        let file = self
-            .names
-            .get(&loc.path)
-            .copied()
-            .and_then(|id| self.files.get(id.to_usize()))?;
+        let file = self.uris.get(&loc.uri).copied().and_then(|id| self.files.get(id.to_usize()))?;
         file.line_column_to_span(loc.line, loc.column)
     }
 
@@ -306,11 +322,7 @@ impl DefaultSourceManagerImpl {
     }
 
     fn location_to_span(&self, loc: Location) -> Option<SourceSpan> {
-        let file = self
-            .names
-            .get(&loc.path)
-            .copied()
-            .and_then(|id| self.files.get(id.to_usize()))?;
+        let file = self.uris.get(&loc.uri).copied().and_then(|id| self.files.get(id.to_usize()))?;
 
         let max_len = ByteIndex::from(file.as_str().len() as u32);
         if loc.start >= max_len || loc.end > max_len {
@@ -324,14 +336,33 @@ impl DefaultSourceManagerImpl {
         self.files
             .get(span.source_id().to_usize())
             .ok_or(SourceManagerError::InvalidSourceId)
-            .map(|file| Location::new(file.name(), span.start(), span.end()))
+            .map(|file| Location::new(file.uri().clone(), span.start(), span.end()))
     }
 }
 
 impl SourceManager for DefaultSourceManager {
-    fn load_from_raw_parts(&self, name: Arc<str>, content: SourceContent) -> Arc<SourceFile> {
+    fn load_from_raw_parts(&self, uri: Uri, content: SourceContent) -> Arc<SourceFile> {
         let mut manager = self.0.write();
-        manager.insert(name, content)
+        manager.insert(uri, content)
+    }
+
+    fn update(
+        &self,
+        id: SourceId,
+        text: String,
+        range: Option<Selection>,
+        version: i32,
+    ) -> Result<(), SourceManagerError> {
+        let mut manager = self.0.write();
+        let source_file = manager
+            .files
+            .get_mut(id.to_usize())
+            .ok_or(SourceManagerError::InvalidSourceId)?;
+        let source_file = Arc::make_mut(source_file);
+        source_file
+            .content_mut()
+            .update(text, range, version)
+            .map_err(SourceManagerError::InvalidContentUpdate)
     }
 
     fn get(&self, id: SourceId) -> Result<Arc<SourceFile>, SourceManagerError> {
@@ -339,14 +370,14 @@ impl SourceManager for DefaultSourceManager {
         manager.get(id)
     }
 
-    fn get_by_path(&self, path: &str) -> Option<Arc<SourceFile>> {
+    fn get_by_uri(&self, uri: &Uri) -> Option<Arc<SourceFile>> {
         let manager = self.0.read();
-        manager.get_by_path(path)
+        manager.get_by_uri(uri)
     }
 
-    fn find(&self, name: &str) -> Option<SourceId> {
+    fn find(&self, uri: &Uri) -> Option<SourceId> {
         let manager = self.0.read();
-        manager.find(name)
+        manager.find(uri)
     }
 
     fn file_line_col_to_span(&self, loc: FileLineCol) -> Option<SourceSpan> {

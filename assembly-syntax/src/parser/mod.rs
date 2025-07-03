@@ -29,7 +29,7 @@ pub use self::{
 };
 use crate::{
     LibraryPath, SourceManager, ast,
-    diagnostics::{Report, SourceFile, SourceSpan, Span, Spanned},
+    diagnostics::{Report, SourceFile, SourceLanguage, SourceSpan, Span, Spanned, Uri},
     sema,
 };
 
@@ -129,9 +129,13 @@ impl ModuleParser {
     ) -> Result<Box<ast::Module>, Report> {
         use miden_core::debuginfo::SourceContent;
 
-        let path = Arc::from(name.path().into_owned().into_boxed_str());
-        let content = SourceContent::new(Arc::clone(&path), source.to_string().into_boxed_str());
-        let source_file = source_manager.load_from_raw_parts(path, content);
+        let uri = Uri::from(name.path().into_owned().into_boxed_str());
+        let content = SourceContent::new(
+            SourceLanguage::Masm,
+            uri.clone(),
+            source.to_string().into_boxed_str(),
+        );
+        let source_file = source_manager.load_from_raw_parts(uri, content);
         self.parse(name, source_file)
     }
 }

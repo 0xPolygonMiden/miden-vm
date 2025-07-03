@@ -9,8 +9,8 @@ use alloc::{
 use crate::{
     ast::{Module, ModuleKind},
     diagnostics::{
-        IntoDiagnostic, NamedSource, Report, SourceCode, SourceContent, SourceFile, SourceManager,
-        WrapErr,
+        IntoDiagnostic, NamedSource, Report, SourceCode, SourceContent, SourceFile, SourceLanguage,
+        SourceManager, Uri, WrapErr,
     },
     library::{LibraryNamespace, LibraryPath},
     report,
@@ -185,7 +185,8 @@ impl Parse for Arc<SourceFile> {
         let path = match options.path {
             Some(path) => path,
             None => source_file
-                .name()
+                .uri()
+                .path()
                 .parse::<LibraryPath>()
                 .into_diagnostic()
                 .wrap_err("cannot parse module as it has an invalid path/name")?,
@@ -241,10 +242,10 @@ impl Parse for Box<str> {
                 ModuleKind::Kernel => LibraryNamespace::Kernel,
             })
         });
-        let name = Arc::<str>::from(path.path().into_owned().into_boxed_str());
+        let name = Uri::from(path.path().into_owned().into_boxed_str());
         let mut parser = Module::parser(options.kind);
         parser.set_warnings_as_errors(options.warnings_as_errors);
-        let content = SourceContent::new(name.clone(), self);
+        let content = SourceContent::new(SourceLanguage::Masm, name.clone(), self);
         let source_file = source_manager.load_from_raw_parts(name, content);
         parser.parse(path, source_file)
     }
@@ -334,8 +335,12 @@ where
                 Report::from(error)
             })
             .wrap_err("parsing failed: expected source code to be valid utf-8")?;
-        let name = Arc::<str>::from(self.name());
-        let content = SourceContent::new(name.clone(), content.to_string().into_boxed_str());
+        let name = Uri::from(self.name());
+        let content = SourceContent::new(
+            SourceLanguage::Masm,
+            name.clone(),
+            content.to_string().into_boxed_str(),
+        );
         let source_file = source_manager.load_from_raw_parts(name, content);
         let mut parser = Module::parser(options.kind);
         parser.set_warnings_as_errors(options.warnings_as_errors);

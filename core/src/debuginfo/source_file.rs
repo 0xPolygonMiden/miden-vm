@@ -1,7 +1,32 @@
-use alloc::{boxed::Box, sync::Arc, vec::Vec};
+use alloc::{
+    boxed::Box,
+    string::{String, ToString},
+    sync::Arc,
+    vec::Vec,
+};
 use core::{fmt, num::NonZeroU32, ops::Range};
 
-use super::{FileLineCol, SourceId, SourceSpan};
+use super::{FileLineCol, Position, Selection, SourceId, SourceSpan, Uri};
+
+// SOURCE LANGUAGE
+// ================================================================================================
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum SourceLanguage {
+    Masm,
+    Rust,
+    Other(&'static str),
+}
+
+impl AsRef<str> for SourceLanguage {
+    fn as_ref(&self) -> &str {
+        match self {
+            Self::Masm => "masm",
+            Self::Rust => "rust",
+            Self::Other(other) => other,
+        }
+    }
+}
 
 // SOURCE FILE
 // ================================================================================================
@@ -52,13 +77,28 @@ impl miette::SourceCode for SourceFile {
 
 impl SourceFile {
     /// Create a new [SourceFile] from its raw components
-    pub fn new(id: SourceId, path: impl Into<Arc<str>>, content: impl Into<Box<str>>) -> Self {
-        let path = path.into();
-        let content = SourceContent::new(path, content.into());
+    pub fn new(id: SourceId, lang: SourceLanguage, uri: Uri, content: impl Into<Box<str>>) -> Self {
+        let content = SourceContent::new(lang, uri, content.into());
         Self { id, content }
     }
 
-    pub(super) fn from_raw_parts(id: SourceId, content: SourceContent) -> Self {
+    /// This function is intended for use by [super::SourceManager] implementations that need to
+    /// construct a [SourceFile] from its raw components (i.e. the identifier for the source file
+    /// and its content).
+    ///
+    /// Since the only entity that should be constructing a [SourceId] is a [super::SourceManager],
+    /// it is only valid to call this function in one of two scenarios:
+    ///
+    /// 1. You are a [super::SourceManager] constructing a [SourceFile] after allocating a
+    ///    [SourceId]
+    /// 2. You pass [`SourceId::default()`], i.e. [`SourceId::UNKNOWN`] for the source identifier.
+    ///    The resulting [SourceFile] will be valid and safe to use in a context where there isn't a
+    ///    [super::SourceManager] present. If there is a source manager in use, then constructing
+    ///    detached [SourceFile]s is _not_ recommended, because it will make it confusing to
+    ///    determine whether a given [SourceFile] reference is safe to use.
+    ///
+    /// You should rarely, if ever, fall in camp 2 - but it can be handy in some narrow cases
+    pub fn from_raw_parts(id: SourceId, content: SourceContent) -> Self {
         Self { id, content }
     }
 
@@ -68,15 +108,8 @@ impl SourceFile {
     }
 
     /// Get the name of this source file
-    pub fn name(&self) -> Arc<str> {
-        self.content.name()
-    }
-
-    /// Get the path of this source file as a [std::path::Path]
-    #[cfg(feature = "std")]
-    #[inline]
-    pub fn path(&self) -> &std::path::Path {
-        self.content.path()
+    pub fn uri(&self) -> &Uri {
+        self.content.uri()
     }
 
     /// Returns a reference to the underlying [SourceContent]
@@ -84,9 +117,14 @@ impl SourceFile {
         &self.content
     }
 
+    /// Returns a mutable reference to the underlying [SourceContent]
+    pub fn content_mut(&mut self) -> &mut SourceContent {
+        &mut self.content
+    }
+
     /// Returns the number of lines in this file
     pub fn line_count(&self) -> usize {
-        self.content.last_line_index().to_usize() + 1
+        self.content.line_starts.len()
     }
 
     /// Returns the number of bytes in this file
@@ -136,10 +174,12 @@ impl SourceFile {
     /// Get a [SourceSpan] which points to the first byte of the character at `column` on `line`
     ///
     /// Returns `None` if the given line/column is out of bounds for this file.
-    pub fn line_column_to_span(&self, line: u32, column: u32) -> Option<SourceSpan> {
-        let line_index = LineIndex::from(line.saturating_sub(1));
-        let column_index = ColumnIndex::from(column.saturating_sub(1));
-        let offset = self.content.line_column_to_offset(line_index, column_index)?;
+    pub fn line_column_to_span(
+        &self,
+        line: LineNumber,
+        column: ColumnNumber,
+    ) -> Option<SourceSpan> {
+        let offset = self.content.line_column_to_offset(line.into(), column.into())?;
         Some(SourceSpan::at(self.id, offset.0))
     }
 
@@ -164,14 +204,6 @@ impl AsRef<[u8]> for SourceFile {
     #[inline(always)]
     fn as_ref(&self) -> &[u8] {
         self.as_bytes()
-    }
-}
-
-#[cfg(feature = "std")]
-impl AsRef<std::path::Path> for SourceFile {
-    #[inline(always)]
-    fn as_ref(&self) -> &std::path::Path {
-        self.path()
     }
 }
 
@@ -207,15 +239,9 @@ impl SourceFileRef {
         self.file.clone()
     }
 
-    /// Returns the name of the file this [SourceFileRef] is selecting, as a [std::path::Path]
-    #[cfg(feature = "std")]
-    pub fn path(&self) -> &std::path::Path {
-        self.file.path()
-    }
-
-    /// Returns the name of the file this [SourceFileRef] is selecting
-    pub fn name(&self) -> &str {
-        self.file.content.path.as_ref()
+    /// Returns the URI of the file this [SourceFileRef] is selecting
+    pub fn uri(&self) -> &Uri {
+        self.file.uri()
     }
 
     /// Returns the [SourceSpan] selected by this [SourceFileRef]
@@ -326,7 +352,7 @@ impl<'a> miette::SpanContents<'a> for ScopedSourceFileRef<'a> {
         let end = start + self.span.len() as u32;
         let span = SourceSpan::new(self.file.id(), start..end);
         let loc = self.file.location(span);
-        loc.column.saturating_sub(1) as usize
+        loc.column.to_index().to_usize()
     }
 
     #[inline]
@@ -336,7 +362,7 @@ impl<'a> miette::SpanContents<'a> for ScopedSourceFileRef<'a> {
 
     #[inline]
     fn name(&self) -> Option<&str> {
-        Some(self.file.content.path.as_ref())
+        Some(self.file.uri().as_ref())
     }
 
     #[inline]
@@ -368,21 +394,34 @@ impl miette::SourceCode for SourceFileRef {
 /// * The byte offsets of every line in the file, for use in looking up line/column information
 #[derive(Clone)]
 pub struct SourceContent {
+    /// The language identifier for this source file
+    language: Box<str>,
     /// The path (or name) of this file
-    path: Arc<str>,
+    uri: Uri,
     /// The underlying content of this file
-    content: Box<str>,
+    content: String,
     /// The byte offsets for each line in this file
-    line_starts: Box<[ByteIndex]>,
+    line_starts: Vec<ByteIndex>,
+    /// The document version
+    version: i32,
 }
 
 impl fmt::Debug for SourceContent {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let Self {
+            language,
+            uri,
+            content,
+            line_starts,
+            version,
+        } = self;
         f.debug_struct("SourceContent")
-            .field("path", &self.path)
-            .field("size_in_bytes", &self.content.len())
-            .field("line_count", &self.line_starts.len())
-            .field("content", &self.content)
+            .field("version", version)
+            .field("language", language)
+            .field("uri", uri)
+            .field("size_in_bytes", &content.len())
+            .field("line_count", &line_starts.len())
+            .field("content", content)
             .finish()
     }
 }
@@ -392,14 +431,14 @@ impl Eq for SourceContent {}
 impl PartialEq for SourceContent {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        self.path == other.path && self.content == other.content
+        self.language == other.language && self.uri == other.uri && self.content == other.content
     }
 }
 
 impl Ord for SourceContent {
     #[inline]
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        self.path.cmp(&other.path).then_with(|| self.content.cmp(&other.content))
+        self.uri.cmp(&other.uri).then_with(|| self.content.cmp(&other.content))
     }
 }
 
@@ -412,9 +451,18 @@ impl PartialOrd for SourceContent {
 
 impl core::hash::Hash for SourceContent {
     fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
-        self.path.hash(state);
+        self.language.hash(state);
+        self.uri.hash(state);
         self.content.hash(state);
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum SourceContentUpdateError {
+    #[error("invalid content selection: start position of {}:{} is out of bounds", .0.line, .0.character)]
+    InvalidSelectionStart(Position),
+    #[error("invalid content selection: end position of {}:{} is out of bounds", .0.line, .0.character)]
+    InvalidSelectionEnd(Position),
 }
 
 impl SourceContent {
@@ -423,7 +471,9 @@ impl SourceContent {
     ///
     /// When created, the line starts for this file will be computed, which requires scanning the
     /// file content once.
-    pub fn new(path: Arc<str>, content: Box<str>) -> Self {
+    pub fn new(language: impl AsRef<str>, uri: impl Into<Uri>, content: impl Into<String>) -> Self {
+        let language = language.as_ref().to_string().into_boxed_str();
+        let content: String = content.into();
         let bytes = content.as_bytes();
 
         assert!(
@@ -431,44 +481,37 @@ impl SourceContent {
             "unsupported source file: current maximum supported length in bytes is 2^32"
         );
 
-        let line_starts = core::iter::once(ByteIndex(0))
-            .chain(memchr::memchr_iter(b'\n', content.as_bytes()).filter_map(|mut offset| {
-                // Determine if the newline has any preceding escapes
-                let mut preceding_escapes = 0;
-                let line_start = offset + 1;
-                while let Some(prev_offset) = offset.checked_sub(1) {
-                    if bytes[prev_offset] == b'\\' {
-                        offset = prev_offset;
-                        preceding_escapes += 1;
-                        continue;
-                    }
-                    break;
-                }
+        let line_starts = compute_line_starts(&content, None);
 
-                // If the newline is escaped, do not count it as a new line
-                let is_escaped = preceding_escapes > 0 && preceding_escapes % 2 != 0;
-                if is_escaped {
-                    None
-                } else {
-                    Some(ByteIndex(line_start as u32))
-                }
-            }))
-            .collect::<Vec<_>>()
-            .into_boxed_slice();
-
-        Self { path, content, line_starts }
+        Self {
+            language,
+            uri: uri.into(),
+            content,
+            line_starts,
+            version: 0,
+        }
     }
 
-    /// Get the name of this source file
-    pub fn name(&self) -> Arc<str> {
-        self.path.clone()
+    /// Get the language identifier of this source file
+    pub fn language(&self) -> &str {
+        &self.language
     }
 
-    /// Get the name of this source file as a [std::path::Path]
-    #[cfg(feature = "std")]
+    /// Get the current version of this source file's content
+    pub fn version(&self) -> i32 {
+        self.version
+    }
+
+    /// Set the current version of this content
+    #[inline(always)]
+    pub fn set_version(&mut self, version: i32) {
+        self.version = version;
+    }
+
+    /// Get the URI of this source file
     #[inline]
-    pub fn path(&self) -> &std::path::Path {
-        std::path::Path::new(self.path.as_ref())
+    pub fn uri(&self) -> &Uri {
+        &self.uri
     }
 
     /// Returns the underlying content as a string slice
@@ -511,6 +554,33 @@ impl SourceContent {
         self.as_str().get(span.into())
     }
 
+    /// Returns a subset of the underlying content as a byte slice.
+    ///
+    /// Returns `None` if the given span is out of bounds
+    #[inline(always)]
+    pub fn byte_slice(&self, span: impl Into<Range<ByteIndex>>) -> Option<&[u8]> {
+        let Range { start, end } = span.into();
+        self.as_bytes().get(start.to_usize()..end.to_usize())
+    }
+
+    /// Like [Self::source_slice], but the slice is computed like a selection in an editor, i.e.
+    /// based on line/column positions, rather than raw character indices.
+    ///
+    /// This is useful when mapping LSP operations to content in the source file.
+    pub fn select(&self, mut range: Selection) -> Option<&str> {
+        range.canonicalize();
+
+        let start = self.line_column_to_offset(range.start.line, range.start.character)?;
+        let end = self.line_column_to_offset(range.end.line, range.end.character)?;
+
+        Some(&self.as_str()[start.to_usize()..end.to_usize()])
+    }
+
+    /// Returns the number of lines in the source content
+    pub fn line_count(&self) -> usize {
+        self.line_starts.len()
+    }
+
     /// Returns the byte index at which the line corresponding to `line_index` starts
     ///
     /// Returns `None` if the given index is out of bounds
@@ -519,9 +589,8 @@ impl SourceContent {
     }
 
     /// Returns the index of the last line in this file
-    #[inline]
     pub fn last_line_index(&self) -> LineIndex {
-        LineIndex(self.line_starts.len() as u32)
+        LineIndex(self.line_count().saturating_sub(1).try_into().expect("too many lines in file"))
     }
 
     /// Get the range of byte indices covered by the given line
@@ -571,11 +640,96 @@ impl SourceContent {
         let line_src = self.content.get(line_start_index.to_usize()..byte_index.to_usize())?;
         let column_index = ColumnIndex::from(line_src.chars().count() as u32);
         Some(FileLineCol {
-            path: self.path.clone(),
-            line: line_index.number().get(),
-            column: column_index.number().get(),
+            uri: self.uri.clone(),
+            line: line_index.number(),
+            column: column_index.number(),
         })
     }
+
+    /// Update the source document after being notified of a change event.
+    ///
+    /// The `version` indicates the new version of the document
+    ///
+    /// NOTE: This is intended to update a [super::SourceManager]'s view of the content of the
+    /// document, _not_ to perform an update against the actual file, wherever it may be.
+    pub fn update(
+        &mut self,
+        text: String,
+        range: Option<Selection>,
+        version: i32,
+    ) -> Result<(), SourceContentUpdateError> {
+        match range {
+            Some(range) => {
+                let start = self
+                    .line_column_to_offset(range.start.line, range.start.character)
+                    .ok_or(SourceContentUpdateError::InvalidSelectionStart(range.start))?
+                    .to_usize();
+                let end = self
+                    .line_column_to_offset(range.end.line, range.end.character)
+                    .ok_or(SourceContentUpdateError::InvalidSelectionEnd(range.start))?
+                    .to_usize();
+                assert!(start <= end, "start of range must be less than end, got {start}..{end}",);
+                self.content.replace_range(start..end, &text);
+
+                let added_line_starts = compute_line_starts(&text, Some(start as u32));
+                let num_added = added_line_starts.len();
+                let splice_start = range.start.line.to_usize() + 1;
+                let splice_end =
+                    core::cmp::min(range.end.line.to_usize(), self.line_starts.len() - 1);
+                self.line_starts.splice(splice_start..=splice_end, added_line_starts);
+
+                let diff =
+                    (text.len() as i32).saturating_sub_unsigned((end as u32) - (start as u32));
+                if diff != 0 {
+                    for i in (splice_start + num_added)..self.line_starts.len() {
+                        self.line_starts[i] =
+                            ByteIndex(self.line_starts[i].to_u32().saturating_add_signed(diff));
+                    }
+                }
+            },
+            None => {
+                self.line_starts = compute_line_starts(&text, None);
+                self.content = text;
+            },
+        }
+
+        self.version = version;
+
+        Ok(())
+    }
+}
+
+fn compute_line_starts(text: &str, text_offset: Option<u32>) -> Vec<ByteIndex> {
+    let bytes = text.as_bytes();
+    let initial_line_offset = match text_offset {
+        Some(_) => None,
+        None => Some(ByteIndex(0)),
+    };
+    let text_offset = text_offset.unwrap_or(0);
+    initial_line_offset
+        .into_iter()
+        .chain(memchr::memchr_iter(b'\n', bytes).filter_map(|mut offset| {
+            // Determine if the newline has any preceding escapes
+            let mut preceding_escapes = 0;
+            let line_start = offset + 1;
+            while let Some(prev_offset) = offset.checked_sub(1) {
+                if bytes[prev_offset] == b'\\' {
+                    offset = prev_offset;
+                    preceding_escapes += 1;
+                    continue;
+                }
+                break;
+            }
+
+            // If the newline is escaped, do not count it as a new line
+            let is_escaped = preceding_escapes > 0 && preceding_escapes % 2 != 0;
+            if is_escaped {
+                None
+            } else {
+                Some(ByteIndex(text_offset + line_start as u32))
+            }
+        }))
+        .collect()
 }
 
 // SOURCE CONTENT INDICES
@@ -583,7 +737,8 @@ impl SourceContent {
 
 /// An index representing the offset in bytes from the start of a source file
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ByteIndex(u32);
+pub struct ByteIndex(pub u32);
+
 impl ByteIndex {
     /// Create a [ByteIndex] from a raw `u32` index
     pub const fn new(index: u32) -> Self {
@@ -602,6 +757,7 @@ impl ByteIndex {
         self.0
     }
 }
+
 impl core::ops::Add<ByteOffset> for ByteIndex {
     type Output = ByteIndex;
 
@@ -609,6 +765,7 @@ impl core::ops::Add<ByteOffset> for ByteIndex {
         Self((self.0 as i64 + rhs.0) as u32)
     }
 }
+
 impl core::ops::Add<u32> for ByteIndex {
     type Output = ByteIndex;
 
@@ -616,16 +773,19 @@ impl core::ops::Add<u32> for ByteIndex {
         Self(self.0 + rhs)
     }
 }
+
 impl core::ops::AddAssign<ByteOffset> for ByteIndex {
     fn add_assign(&mut self, rhs: ByteOffset) {
         *self = *self + rhs;
     }
 }
+
 impl core::ops::AddAssign<u32> for ByteIndex {
     fn add_assign(&mut self, rhs: u32) {
         self.0 += rhs;
     }
 }
+
 impl core::ops::Sub<ByteOffset> for ByteIndex {
     type Output = ByteIndex;
 
@@ -633,6 +793,7 @@ impl core::ops::Sub<ByteOffset> for ByteIndex {
         Self((self.0 as i64 - rhs.0) as u32)
     }
 }
+
 impl core::ops::Sub<u32> for ByteIndex {
     type Output = ByteIndex;
 
@@ -640,30 +801,41 @@ impl core::ops::Sub<u32> for ByteIndex {
         Self(self.0 - rhs)
     }
 }
+
 impl core::ops::SubAssign<ByteOffset> for ByteIndex {
     fn sub_assign(&mut self, rhs: ByteOffset) {
         *self = *self - rhs;
     }
 }
+
 impl core::ops::SubAssign<u32> for ByteIndex {
     fn sub_assign(&mut self, rhs: u32) {
         self.0 -= rhs;
     }
 }
+
 impl From<u32> for ByteIndex {
     fn from(index: u32) -> Self {
         Self(index)
     }
 }
+
 impl From<ByteIndex> for u32 {
     fn from(index: ByteIndex) -> Self {
         index.0
     }
 }
 
+impl fmt::Display for ByteIndex {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, f)
+    }
+}
+
 /// An offset in bytes relative to some [ByteIndex]
-#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ByteOffset(i64);
+
 impl ByteOffset {
     /// Compute the offset in bytes represented by the given `char`
     pub fn from_char_len(c: char) -> ByteOffset {
@@ -675,6 +847,7 @@ impl ByteOffset {
         Self(s.len() as i64)
     }
 }
+
 impl core::ops::Add for ByteOffset {
     type Output = ByteOffset;
 
@@ -682,11 +855,13 @@ impl core::ops::Add for ByteOffset {
         Self(self.0 + rhs.0)
     }
 }
+
 impl core::ops::AddAssign for ByteOffset {
     fn add_assign(&mut self, rhs: Self) {
         self.0 += rhs.0;
     }
 }
+
 impl core::ops::Sub for ByteOffset {
     type Output = ByteOffset;
 
@@ -694,77 +869,383 @@ impl core::ops::Sub for ByteOffset {
         Self(self.0 - rhs.0)
     }
 }
+
 impl core::ops::SubAssign for ByteOffset {
     fn sub_assign(&mut self, rhs: Self) {
         self.0 -= rhs.0;
     }
 }
 
-/// A zero-indexed line number
-#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct LineIndex(u32);
-impl LineIndex {
-    /// Get a one-indexed number for display
-    pub const fn number(self) -> NonZeroU32 {
-        unsafe { NonZeroU32::new_unchecked(self.0 + 1) }
-    }
-
-    /// Get the raw index as a usize
-    #[inline(always)]
-    pub const fn to_usize(self) -> usize {
-        self.0 as usize
-    }
-
-    /// Add `offset` to this index, returning `None` on overflow
-    pub fn checked_add(self, offset: u32) -> Option<Self> {
-        self.0.checked_add(offset).map(Self)
-    }
-
-    /// Subtract `offset` from this index, returning `None` on underflow
-    pub fn checked_sub(self, offset: u32) -> Option<Self> {
-        self.0.checked_sub(offset).map(Self)
-    }
-
-    /// Add `offset` to this index, saturating to `u32::MAX` on overflow
-    pub const fn saturating_add(self, offset: u32) -> Self {
-        Self(self.0.saturating_add(offset))
-    }
-
-    /// Subtract `offset` from this index, saturating to `0` on overflow
-    pub const fn saturating_sub(self, offset: u32) -> Self {
-        Self(self.0.saturating_sub(offset))
-    }
-}
-impl From<u32> for LineIndex {
-    fn from(index: u32) -> Self {
-        Self(index)
-    }
-}
-impl core::ops::Add<u32> for LineIndex {
-    type Output = LineIndex;
-
-    fn add(self, rhs: u32) -> Self {
-        Self(self.0 + rhs)
+impl fmt::Display for ByteOffset {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, f)
     }
 }
 
-/// A zero-indexed column number
-#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ColumnIndex(u32);
-impl ColumnIndex {
-    /// Get a one-indexed number for display
-    pub const fn number(self) -> NonZeroU32 {
-        unsafe { NonZeroU32::new_unchecked(self.0 + 1) }
+macro_rules! declare_dual_number_and_index_type {
+    ($name:ident, $description:literal) => {
+        paste::paste! {
+            declare_dual_number_and_index_type!([<$name Index>], [<$name Number>], $description);
+        }
+    };
+
+    ($index_name:ident, $number_name:ident, $description:literal) => {
+        #[doc = concat!("A zero-indexed ", $description, " number")]
+        #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        pub struct $index_name(pub u32);
+
+        impl $index_name {
+            #[doc = concat!("Convert to a [", stringify!($number_name), "]")]
+            pub const fn number(self) -> $number_name {
+                $number_name(unsafe { NonZeroU32::new_unchecked(self.0 + 1) })
+            }
+
+            /// Get the raw index value as a usize
+            #[inline(always)]
+            pub const fn to_usize(self) -> usize {
+                self.0 as usize
+            }
+
+            /// Get the raw index value as a u32
+            #[inline(always)]
+            pub const fn to_u32(self) -> u32 {
+                self.0
+            }
+
+            /// Add `offset` to this index, returning `None` on overflow
+            pub fn checked_add(self, offset: u32) -> Option<Self> {
+                self.0.checked_add(offset).map(Self)
+            }
+
+            /// Add a signed `offset` to this index, returning `None` on overflow
+            pub fn checked_add_signed(self, offset: i32) -> Option<Self> {
+                self.0.checked_add_signed(offset).map(Self)
+            }
+
+            /// Subtract `offset` from this index, returning `None` on underflow
+            pub fn checked_sub(self, offset: u32) -> Option<Self> {
+                self.0.checked_sub(offset).map(Self)
+            }
+
+            /// Add `offset` to this index, saturating to `u32::MAX` on overflow
+            pub const fn saturating_add(self, offset: u32) -> Self {
+                Self(self.0.saturating_add(offset))
+            }
+
+            /// Add a signed `offset` to this index, saturating to `0` on underflow, and `u32::MAX`
+            /// on overflow.
+            pub const fn saturating_add_signed(self, offset: i32) -> Self {
+                Self(self.0.saturating_add_signed(offset))
+            }
+
+            /// Subtract `offset` from this index, saturating to `0` on overflow
+            pub const fn saturating_sub(self, offset: u32) -> Self {
+                Self(self.0.saturating_sub(offset))
+            }
+        }
+
+        impl From<u32> for $index_name {
+            #[inline]
+            fn from(index: u32) -> Self {
+                Self(index)
+            }
+        }
+
+        impl From<$number_name> for $index_name {
+            #[inline]
+            fn from(index: $number_name) -> Self {
+                Self(index.to_u32() - 1)
+            }
+        }
+
+        impl core::ops::Add<u32> for $index_name {
+            type Output = Self;
+
+            #[inline]
+            fn add(self, rhs: u32) -> Self {
+                Self(self.0 + rhs)
+            }
+        }
+
+        impl core::ops::AddAssign<u32> for $index_name {
+            fn add_assign(&mut self, rhs: u32) {
+                let result = *self + rhs;
+                *self = result;
+            }
+        }
+
+        impl core::ops::Add<i32> for $index_name {
+            type Output = Self;
+
+            fn add(self, rhs: i32) -> Self {
+                self.checked_add_signed(rhs).expect("invalid offset: overflow occurred")
+            }
+        }
+
+        impl core::ops::AddAssign<i32> for $index_name {
+            fn add_assign(&mut self, rhs: i32) {
+                let result = *self + rhs;
+                *self = result;
+            }
+        }
+
+        impl core::ops::Sub<u32> for $index_name {
+            type Output = Self;
+
+            #[inline]
+            fn sub(self, rhs: u32) -> Self {
+                Self(self.0 - rhs)
+            }
+        }
+
+        impl core::ops::SubAssign<u32> for $index_name {
+            fn sub_assign(&mut self, rhs: u32) {
+                let result = *self - rhs;
+                *self = result;
+            }
+        }
+
+        impl fmt::Display for $index_name {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                fmt::Display::fmt(&self.0, f)
+            }
+        }
+
+        #[doc = concat!("A one-indexed ", $description, " number")]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        pub struct $number_name(NonZeroU32);
+
+        impl Default for $number_name {
+            fn default() -> Self {
+                Self(unsafe { NonZeroU32::new_unchecked(1) })
+            }
+        }
+
+        impl $number_name {
+            pub const fn new(number: u32) -> Option<Self> {
+                match NonZeroU32::new(number) {
+                    Some(num) => Some(Self(num)),
+                    None => None,
+                }
+            }
+
+            #[doc = concat!("Convert to a [", stringify!($index_name), "]")]
+            pub const fn to_index(self) -> $index_name {
+                $index_name(self.to_u32().saturating_sub(1))
+            }
+
+            /// Get the raw value as a usize
+            #[inline(always)]
+            pub const fn to_usize(self) -> usize {
+                self.0.get() as usize
+            }
+
+            /// Get the raw value as a u32
+            #[inline(always)]
+            pub const fn to_u32(self) -> u32 {
+                self.0.get()
+            }
+
+            /// Add `offset` to this index, returning `None` on overflow
+            pub fn checked_add(self, offset: u32) -> Option<Self> {
+                self.0.checked_add(offset).map(Self)
+            }
+
+            /// Add a signed `offset` to this index, returning `None` on overflow
+            pub fn checked_add_signed(self, offset: i32) -> Option<Self> {
+                self.0.get().checked_add_signed(offset).and_then(Self::new)
+            }
+
+            /// Subtract `offset` from this index, returning `None` on underflow
+            pub fn checked_sub(self, offset: u32) -> Option<Self> {
+                self.0.get().checked_sub(offset).and_then(Self::new)
+            }
+
+            /// Add `offset` to this index, saturating to `u32::MAX` on overflow
+            pub const fn saturating_add(self, offset: u32) -> Self {
+                Self(unsafe { NonZeroU32::new_unchecked(self.0.get().saturating_add(offset)) })
+            }
+
+            /// Add a signed `offset` to this index, saturating to `0` on underflow, and `u32::MAX`
+            /// on overflow.
+            pub fn saturating_add_signed(self, offset: i32) -> Self {
+                Self::new(self.to_u32().saturating_add_signed(offset)).unwrap_or_default()
+            }
+
+            /// Subtract `offset` from this index, saturating to `0` on overflow
+            pub fn saturating_sub(self, offset: u32) -> Self {
+                Self::new(self.to_u32().saturating_sub(offset)).unwrap_or_default()
+            }
+        }
+
+        impl From<NonZeroU32> for $number_name {
+            #[inline]
+            fn from(index: NonZeroU32) -> Self {
+                Self(index)
+            }
+        }
+
+        impl From<$index_name> for $number_name {
+            #[inline]
+            fn from(index: $index_name) -> Self {
+                Self(unsafe { NonZeroU32::new_unchecked(index.to_u32() + 1) })
+            }
+        }
+
+        impl core::ops::Add<u32> for $number_name {
+            type Output = Self;
+
+            #[inline]
+            fn add(self, rhs: u32) -> Self {
+                Self(unsafe { NonZeroU32::new_unchecked(self.0.get() + rhs) })
+            }
+        }
+
+        impl core::ops::AddAssign<u32> for $number_name {
+            fn add_assign(&mut self, rhs: u32) {
+                let result = *self + rhs;
+                *self = result;
+            }
+        }
+
+        impl core::ops::Add<i32> for $number_name {
+            type Output = Self;
+
+            fn add(self, rhs: i32) -> Self {
+                self.to_u32()
+                    .checked_add_signed(rhs)
+                    .and_then(Self::new)
+                    .expect("invalid offset: overflow occurred")
+            }
+        }
+
+        impl core::ops::AddAssign<i32> for $number_name {
+            fn add_assign(&mut self, rhs: i32) {
+                let result = *self + rhs;
+                *self = result;
+            }
+        }
+
+        impl core::ops::Sub<u32> for $number_name {
+            type Output = Self;
+
+            #[inline]
+            fn sub(self, rhs: u32) -> Self {
+                self.to_u32()
+                    .checked_sub(rhs)
+                    .and_then(Self::new)
+                    .expect("invalid offset: overflow occurred")
+            }
+        }
+
+        impl core::ops::SubAssign<u32> for $number_name {
+            fn sub_assign(&mut self, rhs: u32) {
+                let result = *self - rhs;
+                *self = result;
+            }
+        }
+
+        impl fmt::Display for $number_name {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                fmt::Display::fmt(&self.0, f)
+            }
+        }
+    };
+}
+
+declare_dual_number_and_index_type!(Line, "line");
+declare_dual_number_and_index_type!(Column, "column");
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn source_content_line_starts() {
+        const CONTENT: &str = "\
+begin
+  push.1
+  push.2
+  add
+end
+";
+        let content = SourceContent::new("masm", "foo.masm", CONTENT);
+
+        assert_eq!(content.line_count(), 6);
+        assert_eq!(
+            content
+                .byte_slice(content.line_range(LineIndex(0)).expect("invalid line"))
+                .expect("invalid byte range"),
+            "begin\n".as_bytes()
+        );
+        assert_eq!(
+            content
+                .byte_slice(content.line_range(LineIndex(1)).expect("invalid line"))
+                .expect("invalid byte range"),
+            "  push.1\n".as_bytes()
+        );
+        assert_eq!(
+            content
+                .byte_slice(content.line_range(content.last_line_index()).expect("invalid line"))
+                .expect("invalid byte range"),
+            "".as_bytes()
+        );
     }
 
-    /// Get the raw index as a usize
-    #[inline(always)]
-    pub const fn to_usize(self) -> usize {
-        self.0 as usize
-    }
-}
-impl From<u32> for ColumnIndex {
-    fn from(index: u32) -> Self {
-        Self(index)
+    #[test]
+    fn source_content_line_starts_after_update() {
+        const CONTENT: &str = "\
+begin
+  push.1
+  push.2
+  add
+end
+";
+        const FRAGMENT: &str = "  push.2
+  mul
+end
+";
+        let mut content = SourceContent::new("masm", "foo.masm", CONTENT);
+        content
+            .update(FRAGMENT.to_string(), Some(Selection::from(LineIndex(4)..LineIndex(5))), 1)
+            .expect("update failed");
+
+        assert_eq!(
+            content.as_str(),
+            "\
+begin
+  push.1
+  push.2
+  add
+  push.2
+  mul
+end
+"
+        );
+        assert_eq!(content.line_count(), 8);
+        assert_eq!(
+            content
+                .byte_slice(content.line_range(LineIndex(0)).expect("invalid line"))
+                .expect("invalid byte range"),
+            "begin\n".as_bytes()
+        );
+        assert_eq!(
+            content
+                .byte_slice(content.line_range(LineIndex(3)).expect("invalid line"))
+                .expect("invalid byte range"),
+            "  add\n".as_bytes()
+        );
+        assert_eq!(
+            content
+                .byte_slice(content.line_range(LineIndex(4)).expect("invalid line"))
+                .expect("invalid byte range"),
+            "  push.2\n".as_bytes()
+        );
+        assert_eq!(
+            content
+                .byte_slice(content.line_range(content.last_line_index()).expect("invalid line"))
+                .expect("invalid byte range"),
+            "".as_bytes()
+        );
     }
 }

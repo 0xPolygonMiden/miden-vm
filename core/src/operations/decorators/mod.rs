@@ -40,7 +40,7 @@ impl Decorator {
             Self::AsmOp(asm_op) => {
                 let mut bytes_to_hash = Vec::new();
                 if let Some(location) = asm_op.location() {
-                    bytes_to_hash.extend(location.path.as_bytes());
+                    bytes_to_hash.extend(location.uri.as_str().as_bytes());
                     bytes_to_hash.extend(location.start.to_u32().to_le_bytes());
                     bytes_to_hash.extend(location.end.to_u32().to_le_bytes());
                 }
