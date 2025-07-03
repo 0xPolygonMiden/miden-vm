@@ -29,11 +29,11 @@
 - [BREAKING] Removed `Library::from_dir` in favor of `Assembler::assemble_library_from_dir` ([#1921](https://github.com/0xMiden/miden-vm/pull/1921))
 - [BREAKING] Removed `KernelLibrary::from_dir` in favor of `Assembler::assemble_kernel_from_dir` ([#1921](https://github.com/0xMiden/miden-vm/pull/1921))
 - [BREAKING] Fixed incorrect namespace being set on modules parsed using the `lib_dir` parameter of `KernelLibrary::from_dir`. Previously, modules would be namespaced under `kernel`, but this should have been `$kernel`. Downstream kernels using this option should make sure that any references to the `kernel` namespace are replaced with `$kernel` instead. ([#1921](https://github.com/0xMiden/miden-vm/pull/1921)).
-- [BREAKING] The signature of `SourceManager::load` has changed, and now requires a `SourceLanguage` and `Uri` parameter.
-- [BREAKING] The signature of `SourceManager::load_from_raw_parts` has changed, and now requires a `Uri` parameter in place of `&str`.
-- [BREAKING] The signature of `SourceManager::find` has changed, and now requires a `Uri` parameter in place of `&str`.
-- [BREAKING] `SourceManager::get_by_path` was renamed to `get_by_uri`, and now requires a `&Uri` instead of a `&str` for the URI/path parameter
-- [BREAKING] The `path` parameter of `Location` and `FileLineCol` debuginfo types was renamed to `uri`, and changed from `Arc<str>` to `Uri` type.
+- [BREAKING] The signature of `SourceManager::load` has changed, and now requires a `SourceLanguage` and `Uri` parameter. ([#1937](https://github.com/0xMiden/miden-vm/pull/1937))
+- [BREAKING] The signature of `SourceManager::load_from_raw_parts` has changed, and now requires a `Uri` parameter in place of `&str`. ([#1937](https://github.com/0xMiden/miden-vm/pull/1937))
+- [BREAKING] The signature of `SourceManager::find` has changed, and now requires a `Uri` parameter in place of `&str`. ([#1937](https://github.com/0xMiden/miden-vm/pull/1937))
+- [BREAKING] `SourceManager::get_by_path` was renamed to `get_by_uri`, and now requires a `&Uri` instead of a `&str` for the URI/path parameter ([#1937](https://github.com/0xMiden/miden-vm/pull/1937))
+- [BREAKING] The `path` parameter of `Location` and `FileLineCol` debuginfo types was renamed to `uri`, and changed from `Arc<str>` to `Uri` type. ([#1937](https://github.com/0xMiden/miden-vm/pull/1937))
 
 #### Enhancements
 
@@ -45,8 +45,8 @@
 - Simplify processing of OOD evaluations in the recursive verifier (#1848).
 - Make `ErrorContext` zero-cost ([#1910](https://github.com/0xMiden/miden-vm/issues/1910)).
 - Make `FastProcessor` output rich error diagnostics ([#1914](https://github.com/0xMiden/miden-vm/issues/1914)).
-- The `SourceManager` API was improved to be more precise about source file locations (URIs) and language type. This is intended to support the LSP server implementation.
-- `SourceManager::update` was added to allow for the LSP server to update documents stored in the source manager based on edits made by the user.
+- The `SourceManager` API was improved to be more precise about source file locations (URIs) and language type. This is intended to support the LSP server implementation. ([#1937](https://github.com/0xMiden/miden-vm/pull/1937))
+- `SourceManager::update` was added to allow for the LSP server to update documents stored in the source manager based on edits made by the user. ([#1937](https://github.com/0xMiden/miden-vm/pull/1937))
 
 #### Fixes
 

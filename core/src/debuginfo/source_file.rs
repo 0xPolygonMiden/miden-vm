@@ -82,6 +82,22 @@ impl SourceFile {
         Self { id, content }
     }
 
+    /// This function is intended for use by [super::SourceManager] implementations that need to
+    /// construct a [SourceFile] from its raw components (i.e. the identifier for the source file
+    /// and its content).
+    ///
+    /// Since the only entity that should be constructing a [SourceId] is a [super::SourceManager],
+    /// it is only valid to call this function in one of two scenarios:
+    ///
+    /// 1. You are a [super::SourceManager] constructing a [SourceFile] after allocating a
+    ///    [SourceId]
+    /// 2. You pass [`SourceId::default()`], i.e. [`SourceId::UNKNOWN`] for the source identifier.
+    ///    The resulting [SourceFile] will be valid and safe to use in a context where there isn't a
+    ///    [super::SourceManager] present. If there is a source manager in use, then constructing
+    ///    detached [SourceFile]s is _not_ recommended, because it will make it confusing to
+    ///    determine whether a given [SourceFile] reference is safe to use.
+    ///
+    /// You should rarely, if ever, fall in camp 2 - but it can be handy in some narrow cases
     pub fn from_raw_parts(id: SourceId, content: SourceContent) -> Self {
         Self { id, content }
     }
@@ -392,13 +408,20 @@ pub struct SourceContent {
 
 impl fmt::Debug for SourceContent {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let Self {
+            language,
+            uri,
+            content,
+            line_starts,
+            version,
+        } = self;
         f.debug_struct("SourceContent")
-            .field("version", &self.version)
-            .field("language", &self.language)
-            .field("uri", &self.uri)
-            .field("size_in_bytes", &self.content.len())
-            .field("line_count", &self.line_starts.len())
-            .field("content", &self.content)
+            .field("version", version)
+            .field("language", language)
+            .field("uri", uri)
+            .field("size_in_bytes", &content.len())
+            .field("line_count", &line_starts.len())
+            .field("content", content)
             .finish()
     }
 }
@@ -544,15 +567,12 @@ impl SourceContent {
     /// based on line/column positions, rather than raw character indices.
     ///
     /// This is useful when mapping LSP operations to content in the source file.
-    pub fn select(&self, range: Selection) -> Option<&str> {
+    pub fn select(&self, mut range: Selection) -> Option<&str> {
+        range.canonicalize();
+
         let start = self.line_column_to_offset(range.start.line, range.start.character)?;
         let end = self.line_column_to_offset(range.end.line, range.end.character)?;
-        assert!(
-            start <= end,
-            "start of selection range must be less than end, got {}..{}",
-            start.to_u32(),
-            end.to_u32(),
-        );
+
         Some(&self.as_str()[start.to_usize()..end.to_usize()])
     }
 
@@ -629,6 +649,9 @@ impl SourceContent {
     /// Update the source document after being notified of a change event.
     ///
     /// The `version` indicates the new version of the document
+    ///
+    /// NOTE: This is intended to update a [super::SourceManager]'s view of the content of the
+    /// document, _not_ to perform an update against the actual file, wherever it may be.
     pub fn update(
         &mut self,
         text: String,

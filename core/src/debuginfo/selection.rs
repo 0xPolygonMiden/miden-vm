@@ -10,8 +10,17 @@ pub struct Selection {
 }
 
 impl Selection {
-    pub const fn new(start: Position, end: Position) -> Self {
+    #[inline]
+    pub fn new(start: Position, end: Position) -> Self {
+        let start = core::cmp::min(start, end);
+        let end = core::cmp::max(start, end);
         Self { start, end }
+    }
+
+    pub fn canonicalize(&mut self) {
+        if self.end > self.start {
+            core::mem::swap(&mut self.start, &mut self.end);
+        }
     }
 }
 
@@ -31,7 +40,7 @@ impl From<core::ops::Range<LineIndex>> for Selection {
 
 /// Position in a text document expressed as zero-based line and character offset.
 ///
-/// A position is between two characters like an ‘insert’ cursor in a editor.
+/// A position is between two characters like an insert cursor in a editor.
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Position {
     pub line: LineIndex,
