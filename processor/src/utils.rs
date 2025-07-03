@@ -75,8 +75,9 @@ pub(crate) fn resolve_external_node(
         return Err(ExecutionError::CircularExternalNode(node_digest));
     }
 
-    // TODO: We should keep track which MastForest AdviceMaps were inserted to avoid
-    //       the duplicate check over the looked up forest.
+    // TODO(#1949):
+    //  We should keep track which MastForest AdviceMaps were inserted to avoid
+    //  the duplicate check over the looked up forest.
     advice_provider
         .merge_advice_map(mast_forest.advice_map())
         .map_err(|err| ExecutionError::advice_error(err, RowIndex::from(0), &()))?;
