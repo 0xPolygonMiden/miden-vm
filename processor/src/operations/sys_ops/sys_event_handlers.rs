@@ -40,7 +40,6 @@ pub fn handle_system_event(
         SystemEvent::U32Clo => push_leading_ones(process, err_ctx),
         SystemEvent::U32Cto => push_trailing_ones(process, err_ctx),
         SystemEvent::ILog2 => push_ilog2(process, err_ctx),
-
         SystemEvent::MemToMap => insert_mem_values_into_adv_map(process),
         SystemEvent::HdwordToMap => insert_hdword_into_adv_map(process, ZERO),
         SystemEvent::HdwordToMapWithDomain => {

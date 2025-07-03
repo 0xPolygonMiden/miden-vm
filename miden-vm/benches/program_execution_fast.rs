@@ -2,6 +2,7 @@ use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
 use miden_vm::{Assembler, DefaultHost, StackInputs, internal::InputFile};
 use processor::{AdviceInputs, fast::FastProcessor};
 use stdlib::StdLibrary;
+use tokio::runtime::Runtime;
 use walkdir::WalkDir;
 
 /// Benchmark the execution of all the masm examples in the `masm-examples` directory.
@@ -51,14 +52,16 @@ fn program_execution_fast(c: &mut Criterion) {
                         .assemble_program(&source)
                         .expect("Failed to compile test source.");
                     let stack_inputs: Vec<_> = stack_inputs.iter().rev().copied().collect();
-                    bench.iter_batched(
-                        || host.clone(),
-                        |mut host| {
-                            let speedy = FastProcessor::new_with_advice_inputs(
+                    bench.to_async(Runtime::new().unwrap()).iter_batched(
+                        || {
+                            let processor = FastProcessor::new_with_advice_inputs(
                                 &stack_inputs,
                                 advice_inputs.clone(),
                             );
-                            speedy.execute(&program, &mut host).unwrap();
+                            (host.clone(), program.clone(), processor)
+                        },
+                        |(mut host, program, processor)| async move {
+                            processor.execute(&program, &mut host).await.unwrap();
                         },
                         BatchSize::SmallInput,
                     );

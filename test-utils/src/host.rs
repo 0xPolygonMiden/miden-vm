@@ -1,7 +1,7 @@
 use alloc::sync::Arc;
 
-use processor::{DefaultHost, ErrorContext, MastForest, ProcessState};
-use prover::{ExecutionError, Host, Word};
+use processor::{AsyncHost, BaseHost, DefaultHost, ErrorContext, MastForest, ProcessState};
+use prover::{ExecutionError, SyncHost, Word};
 use stdlib::{EVENT_FALCON_SIG_TO_STACK, falcon_sign};
 
 #[derive(Default)]
@@ -15,9 +15,11 @@ impl TestHost {
     }
 }
 
-impl Host for TestHost {
+impl BaseHost for TestHost {}
+
+impl SyncHost for TestHost {
     fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>> {
-        self.host.get_mast_forest(node_digest)
+        <DefaultHost as SyncHost>::get_mast_forest(&self.host, node_digest)
     }
 
     fn on_event(
@@ -31,6 +33,27 @@ impl Host for TestHost {
         } else {
             Ok(())
         }
+    }
+}
+
+impl AsyncHost for TestHost {
+    async fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>> {
+        <DefaultHost as AsyncHost>::get_mast_forest(&self.host, node_digest).await
+    }
+
+    fn on_event(
+        &mut self,
+        process: &mut ProcessState,
+        event_id: u32,
+        err_ctx: &impl ErrorContext,
+    ) -> impl Future<Output = Result<(), ExecutionError>> + Send {
+        let result = if event_id == EVENT_FALCON_SIG_TO_STACK {
+            push_falcon_signature(process, err_ctx)
+        } else {
+            Ok(())
+        };
+
+        async move { result }
     }
 }
 
