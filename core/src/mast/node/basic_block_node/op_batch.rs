@@ -65,7 +65,7 @@ pub(super) struct OpBatchAccumulator {
     op_idx: usize,
     /// index of the current group in the batch.
     group_idx: usize,
-    // Index of the next free group in the batch.
+    /// Index of the next free group in the batch.
     next_group_idx: usize,
 }
 
@@ -146,6 +146,14 @@ impl OpBatchAccumulator {
 
     /// Convert the accumulator into an [OpBatch].
     pub fn into_batch(mut self) -> OpBatch {
+        let num_groups = self.next_group_idx;
+        let target_num_groups = num_groups.next_power_of_two();
+
+        for _ in num_groups..target_num_groups {
+            self.finalize_op_group();
+            self.add_op(Operation::Noop);
+        }
+
         // make sure the last group gets added to the group array; we also check the op_idx to
         // handle the case when a group contains a single NOOP operation.
         if self.group != 0 || self.op_idx != 0 {
