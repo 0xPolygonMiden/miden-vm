@@ -83,7 +83,7 @@ pub fn generate_recursive_verifier_data(
     };
     let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
     let advice_inputs = AdviceInputs::default();
-    let mut host = DefaultHost::new(advice_inputs.into());
+    let mut host = DefaultHost::default();
 
     let options =
         ProvingOptions::new(27, 8, 16, FieldExtension::Quadratic, 4, 127, HashFunction::Rpo256);
@@ -91,6 +91,7 @@ pub fn generate_recursive_verifier_data(
     let (stack_outputs, proof) = prove(
         &program,
         stack_inputs.clone(),
+        advice_inputs,
         &mut host,
         options,
         Arc::new(DefaultSourceManager::default()),

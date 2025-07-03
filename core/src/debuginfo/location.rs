@@ -1,13 +1,15 @@
-use alloc::sync::Arc;
 use core::{fmt, ops::Range};
 
-use super::ByteIndex;
+use super::{
+    ByteIndex, Uri,
+    source_file::{ColumnNumber, LineNumber},
+};
 
 /// A [Location] represents file and span information for portability across source managers
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Location {
     /// The path to the source file in which the relevant source code can be found
-    pub path: Arc<str>,
+    pub uri: Uri,
     /// The starting byte index (inclusive) of this location
     pub start: ByteIndex,
     /// The ending byte index (exclusive) of this location
@@ -16,13 +18,13 @@ pub struct Location {
 
 impl Location {
     /// Creates a new [Location].
-    pub const fn new(path: Arc<str>, start: ByteIndex, end: ByteIndex) -> Self {
-        Self { path, start, end }
+    pub const fn new(uri: Uri, start: ByteIndex, end: ByteIndex) -> Self {
+        Self { uri, start, end }
     }
 
     /// Get the name (or path) of the source file
-    pub fn path(&self) -> Arc<str> {
-        self.path.clone()
+    pub fn uri(&self) -> &Uri {
+        &self.uri
     }
 
     /// Returns the byte range represented by this location
@@ -35,37 +37,45 @@ impl Location {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FileLineCol {
     /// The path to the source file in which the relevant source code can be found
-    pub path: Arc<str>,
+    pub uri: Uri,
     /// The one-indexed number of the line to which this location refers
-    pub line: u32,
+    pub line: LineNumber,
     /// The one-indexed column of the line on which this location starts
-    pub column: u32,
+    pub column: ColumnNumber,
 }
 
 impl FileLineCol {
     /// Creates a new [Location].
-    pub const fn new(path: Arc<str>, line: u32, column: u32) -> Self {
-        Self { path, line, column }
+    pub fn new(
+        uri: impl Into<Uri>,
+        line: impl Into<LineNumber>,
+        column: impl Into<ColumnNumber>,
+    ) -> Self {
+        Self {
+            uri: uri.into(),
+            line: line.into(),
+            column: column.into(),
+        }
     }
 
     /// Get the name (or path) of the source file
-    pub fn path(&self) -> Arc<str> {
-        self.path.clone()
+    pub fn uri(&self) -> &Uri {
+        &self.uri
     }
 
     /// Returns the line of the location.
-    pub const fn line(&self) -> u32 {
+    pub const fn line(&self) -> LineNumber {
         self.line
     }
 
     /// Moves the column by the given offset.
-    pub fn move_column(&mut self, offset: u32) {
+    pub fn move_column(&mut self, offset: i32) {
         self.column += offset;
     }
 }
 
 impl fmt::Display for FileLineCol {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[{}@{}:{}]", &self.path, self.line, self.column)
+        write!(f, "[{}@{}:{}]", &self.uri, self.line, self.column)
     }
 }

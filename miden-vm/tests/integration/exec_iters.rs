@@ -15,29 +15,29 @@ fn test_exec_iter() {
         init_stack.push(i);
     });
     let test = build_debug_test!(source, &init_stack);
-    let path = test.source.name();
+    let path = test.source.uri();
     let traces = test.execute_iter();
     let fmp = Felt::new(2u64.pow(30));
     let next_fmp = fmp + ONE;
     // TODO: double check this value
     let mem = vec![(1u32.into(), Felt::from(13_u32))];
     let mem_storew1_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 33.into(),
         end: (33 + 12).into(),
     });
     let dropw_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 46.into(),
         end: (46 + 5).into(),
     });
     let push17_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 52.into(),
         end: (52 + 7).into(),
     });
     let locstore0_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 11.into(),
         end: (11 + 11).into(),
     });

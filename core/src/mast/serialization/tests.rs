@@ -1,4 +1,4 @@
-use alloc::{string::ToString, sync::Arc};
+use alloc::string::ToString;
 
 use miden_crypto::{Felt, ONE, Word};
 
@@ -227,7 +227,7 @@ fn serialize_deserialize_all_nodes() {
                 0,
                 Decorator::AsmOp(AssemblyOp::new(
                     Some(crate::debuginfo::Location {
-                        path: Arc::from("test"),
+                        uri: "test".into(),
                         start: 42.into(),
                         end: 43.into(),
                     }),

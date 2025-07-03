@@ -134,7 +134,8 @@ fn run_masp_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Repor
     let input_data = InputFile::read(&params.input_file, &params.program_file)?;
 
     let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
-    let mut host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
+    let advice_inputs = input_data.parse_advice_inputs().map_err(Report::msg)?;
+    let mut host = DefaultHost::default();
     host.load_mast_forest(StdLibrary::default().mast_forest().clone()).unwrap();
 
     let execution_options = ExecutionOptions::new(
@@ -151,9 +152,15 @@ fn run_masp_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Repor
     let source_manager = Arc::new(DefaultSourceManager::default());
 
     // execute program and generate outputs
-    let trace =
-        processor::execute(&program, stack_inputs, &mut host, execution_options, source_manager)
-            .wrap_err("Failed to generate execution trace")?;
+    let trace = processor::execute(
+        &program,
+        stack_inputs,
+        advice_inputs,
+        &mut host,
+        execution_options,
+        source_manager,
+    )
+    .wrap_err("Failed to generate execution trace")?;
 
     Ok((trace, program_hash))
 }
@@ -185,7 +192,8 @@ fn run_masm_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Repor
 
     // fetch the stack and program inputs from the arguments
     let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
-    let mut host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
+    let advice_inputs = input_data.parse_advice_inputs().map_err(Report::msg)?;
+    let mut host = DefaultHost::default();
     host.load_mast_forest(StdLibrary::default().mast_forest().clone()).unwrap();
     for lib in libraries.libraries {
         host.load_mast_forest(lib.mast_forest().clone()).unwrap();
@@ -193,9 +201,15 @@ fn run_masm_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Repor
 
     let program_hash: [u8; 32] = program.hash().into();
 
-    let trace =
-        processor::execute(&program, stack_inputs, &mut host, execution_options, source_manager)
-            .wrap_err("Failed to generate execution trace")?;
+    let trace = processor::execute(
+        &program,
+        stack_inputs,
+        advice_inputs,
+        &mut host,
+        execution_options,
+        source_manager,
+    )
+    .wrap_err("Failed to generate execution trace")?;
 
     Ok((trace, program_hash))
 }

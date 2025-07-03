@@ -1,12 +1,13 @@
 use alloc::{sync::Arc, vec::Vec};
 
+use miden_air::RowIndex;
 use vm_core::mast::{ExternalNode, MastForest, MastNodeId};
 // RE-EXPORTS
 // ================================================================================================
 pub use vm_core::utils::*;
 
-use super::Felt;
-use crate::{ExecutionError, Host};
+use super::{AdviceProvider, Felt};
+use crate::{AsyncHost, ExecutionError, SyncHost};
 
 // HELPER FUNCTIONS
 // ================================================================================================
@@ -54,7 +55,8 @@ pub(crate) fn split_u32_into_u16(value: u64) -> (u16, u16) {
 /// [`crate::fast::FastProcessor`] resolve external nodes in the same way.
 pub(crate) fn resolve_external_node(
     external_node: &ExternalNode,
-    host: &mut impl Host,
+    advice_provider: &mut AdviceProvider,
+    host: &impl SyncHost,
 ) -> Result<(MastNodeId, Arc<MastForest>), ExecutionError> {
     let node_digest = external_node.digest();
     let mast_forest = host
@@ -72,6 +74,47 @@ pub(crate) fn resolve_external_node(
     if mast_forest[root_id].is_external() {
         return Err(ExecutionError::CircularExternalNode(node_digest));
     }
+
+    // TODO(#1949):
+    //  We should keep track which MastForest AdviceMaps were inserted to avoid
+    //  the duplicate check over the looked up forest.
+    advice_provider
+        .merge_advice_map(mast_forest.advice_map())
+        .map_err(|err| ExecutionError::advice_error(err, RowIndex::from(0), &()))?;
+
+    Ok((root_id, mast_forest))
+}
+
+/// Analogous to [`resolve_external_node`], but for asynchronous execution.
+pub(crate) async fn resolve_external_node_async(
+    external_node: &ExternalNode,
+    advice_provider: &mut AdviceProvider,
+    host: &mut impl AsyncHost,
+) -> Result<(MastNodeId, Arc<MastForest>), ExecutionError> {
+    let node_digest = external_node.digest();
+    let mast_forest = host
+        .get_mast_forest(&node_digest)
+        .await
+        .ok_or(ExecutionError::no_mast_forest_with_procedure(node_digest, &()))?;
+
+    // We limit the parts of the program that can be called externally to procedure
+    // roots, even though MAST doesn't have that restriction.
+    let root_id = mast_forest
+        .find_procedure_root(node_digest)
+        .ok_or(ExecutionError::malfored_mast_forest_in_host(node_digest, &()))?;
+
+    // if the node that we got by looking up an external reference is also an External
+    // node, we are about to enter into an infinite loop - so, return an error
+    if mast_forest[root_id].is_external() {
+        return Err(ExecutionError::CircularExternalNode(node_digest));
+    }
+
+    // TODO(#1949):
+    //  We should keep track which MastForest AdviceMaps were inserted to avoid
+    //  the duplicate check over the looked up forest.
+    advice_provider
+        .merge_advice_map(mast_forest.advice_map())
+        .map_err(|err| ExecutionError::advice_error(err, RowIndex::from(0), &()))?;
 
     Ok((root_id, mast_forest))
 }

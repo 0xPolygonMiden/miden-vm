@@ -6,39 +6,39 @@ use vm_core::{AssemblyOp, Felt, Operation, debuginfo::Location};
 fn asmop_one_span_block_test() {
     let source = "begin push.1 push.2 add swap drop swap drop end";
     let test = build_debug_test!(source);
-    let path = test.source.name();
+    let path = test.source.uri();
     let push1_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 6.into(),
         end: (6 + 6).into(),
     });
     let push2_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 13.into(),
         end: (13 + 6).into(),
     });
     let add_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 20.into(),
         end: (20 + 3).into(),
     });
     let swap1_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 24.into(),
         end: (24 + 4).into(),
     });
     let drop1_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 29.into(),
         end: (29 + 4).into(),
     });
     let swap2_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 34.into(),
         end: (34 + 4).into(),
     });
     let drop2_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 39.into(),
         end: (39 + 4).into(),
     });
@@ -174,39 +174,39 @@ fn asmop_one_span_block_test() {
 fn asmop_with_one_procedure() {
     let source = "proc.foo push.1 push.2 add end begin exec.foo swap drop swap drop end";
     let test = build_debug_test!(source);
-    let path = test.source.name();
+    let path = test.source.uri();
     let push1_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 9.into(),
         end: (9 + 6).into(),
     });
     let push2_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 16.into(),
         end: (16 + 6).into(),
     });
     let add_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 23.into(),
         end: (23 + 3).into(),
     });
     let swap1_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 46.into(),
         end: (46 + 4).into(),
     });
     let drop1_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 51.into(),
         end: (51 + 4).into(),
     });
     let swap2_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 56.into(),
         end: (56 + 4).into(),
     });
     let drop2_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 61.into(),
         end: (61 + 4).into(),
     });
@@ -348,34 +348,34 @@ fn asmop_repeat_test() {
             swapdw dropw dropw
         end";
     let test = build_debug_test!(source);
-    let path = test.source.name();
+    let path = test.source.uri();
     let push1_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 52.into(),
         end: (52 + 6).into(),
     });
     let push2_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 59.into(),
         end: (59 + 6).into(),
     });
     let add_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 66.into(),
         end: (66 + 3).into(),
     });
     let swapdw_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 98.into(),
         end: (98 + 6).into(),
     });
     let dropw1_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 105.into(),
         end: (105 + 5).into(),
     });
     let dropw2_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 111.into(),
         end: (111 + 5).into(),
     });
@@ -717,49 +717,49 @@ fn asmop_conditional_execution_test() {
 
     //if branch
     let test = build_debug_test!(source, &[1, 1]);
-    let path = test.source.name();
+    let path = test.source.uri();
     let if_branch_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 42.into(),
         end: 150.into(),
     });
     let eq_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 27.into(),
         end: (27 + 2).into(),
     });
     let push1_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 66.into(),
         end: (66 + 6).into(),
     });
     let push2_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 73.into(),
         end: (73 + 6).into(),
     });
     let add_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 80.into(),
         end: (80 + 3).into(),
     });
     let swap1_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 164.into(),
         end: (164 + 4).into(),
     });
     let drop1_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 169.into(),
         end: (169 + 4).into(),
     });
     let swap2_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 174.into(),
         end: (174 + 4).into(),
     });
     let drop2_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 179.into(),
         end: (179 + 4).into(),
     });
@@ -959,49 +959,49 @@ fn asmop_conditional_execution_test() {
 
     //else branch
     let test = build_debug_test!(source, &[1, 0]);
-    let path = test.source.name();
+    let path = test.source.uri();
     let else_branch_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 42.into(),
         end: 150.into(),
     });
     let eq_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 27.into(),
         end: (27 + 2).into(),
     });
     let push3_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 117.into(),
         end: (117 + 6).into(),
     });
     let push4_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 124.into(),
         end: (124 + 6).into(),
     });
     let add_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 131.into(),
         end: (131 + 3).into(),
     });
     let swap1_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 164.into(),
         end: (164 + 4).into(),
     });
     let drop1_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 169.into(),
         end: (169 + 4).into(),
     });
     let swap2_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 174.into(),
         end: (174 + 4).into(),
     });
     let drop2_loc = Some(Location {
-        path: path.clone(),
+        uri: path.clone(),
         start: 179.into(),
         end: (179 + 4).into(),
     });

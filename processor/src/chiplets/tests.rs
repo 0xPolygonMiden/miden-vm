@@ -13,7 +13,8 @@ use miden_air::trace::{
 use vm_core::{Felt, ONE, Program, Word, ZERO, mast::MastForest};
 
 use crate::{
-    DefaultHost, ExecutionOptions, ExecutionTrace, Kernel, Operation, Process, StackInputs,
+    AdviceInputs, DefaultHost, ExecutionOptions, ExecutionTrace, Kernel, Operation, Process,
+    StackInputs,
 };
 
 type ChipletsTrace = [Vec<Felt>; CHIPLETS_WIDTH];
@@ -117,7 +118,8 @@ fn build_trace(
 ) -> (ChipletsTrace, usize) {
     let stack_inputs = StackInputs::try_from_ints(stack_inputs.iter().copied()).unwrap();
     let mut host = DefaultHost::default();
-    let mut process = Process::new(kernel, stack_inputs, ExecutionOptions::default());
+    let mut process =
+        Process::new(kernel, stack_inputs, AdviceInputs::default(), ExecutionOptions::default());
     let program = {
         let mut mast_forest = MastForest::new();
 
