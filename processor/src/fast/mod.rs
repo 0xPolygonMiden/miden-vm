@@ -130,7 +130,7 @@ pub struct FastProcessor {
     /// ZERO]` if we are in the first context (i.e. when `call_stack` is empty).
     pub(super) caller_hash: Word,
 
-    /// Advice data to be consumed and modified during the execution.
+    /// The advice provider to be used during execution.
     pub(super) advice: AdviceProvider,
 
     /// A map from (context_id, word_address) to the word stored starting at that memory location.
