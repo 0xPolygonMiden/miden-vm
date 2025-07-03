@@ -2,7 +2,7 @@ use alloc::sync::Arc;
 
 use vm_core::{DebugOptions, Felt, Word, mast::MastForest};
 
-use crate::{DebugHandler, ExecutionError, ProcessState, errors::ErrorContext};
+use crate::{ExecutionError, ProcessState, errors::ErrorContext};
 
 pub(super) mod advice;
 
@@ -13,8 +13,11 @@ pub mod default;
 use default::DefaultDebugHandler;
 
 pub mod handlers;
+use handlers::DebugHandler;
 
+pub mod library;
 mod mast_forest_store;
+
 pub use mast_forest_store::{MastForestStore, MemMastForestStore};
 
 // HOST TRAIT

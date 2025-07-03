@@ -57,6 +57,7 @@ pub use host::{
     advice::{AdviceError, AdviceInputs, AdviceProvider},
     default::{DefaultDebugHandler, DefaultHost},
     handlers::{DebugHandler, EventError, EventHandler, EventHandlerRegistry},
+    library::HostLibrary,
 };
 
 mod chiplets;

@@ -4,7 +4,7 @@ use vm_core::{DebugOptions, Word, mast::MastForest};
 
 use crate::{
     DebugHandler, ErrorContext, EventHandler, EventHandlerRegistry, ExecutionError, Host,
-    MastForestStore, MemMastForestStore, ProcessState,
+    HostLibrary, MastForestStore, MemMastForestStore, ProcessState,
 };
 
 // DEFAULT HOST IMPLEMENTATION
@@ -31,6 +31,14 @@ impl Default for DefaultHost {
 impl<D: DebugHandler> DefaultHost<D> {
     pub fn load_mast_forest(&mut self, mast_forest: Arc<MastForest>) -> Result<(), ExecutionError> {
         self.store.insert(mast_forest);
+        Ok(())
+    }
+
+    pub fn load_library(&mut self, library: &impl HostLibrary) -> Result<(), ExecutionError> {
+        self.load_mast_forest(library.mast_forest())?;
+        for (id, handler) in library.event_handlers() {
+            self.event_handlers.register(id, handler)?;
+        }
         Ok(())
     }
 
