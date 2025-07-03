@@ -19,6 +19,14 @@ const LEAVES: [(Word, Word); 2] = [
     (word(105, 106, 107, 108), word(5_u64, 6_u64, 7_u64, 8_u64)),
 ];
 
+/// Unlike the above `LEAVES`, these leaves use the same value for their most-significant felts, to
+/// test leaves with multiple pairs.
+const LEAVES_MULTI: [(Word, Word); 2] = [
+    (word(101, 102, 103, 69420), word(0x1, 0x2, 0x3, 0x4)),
+    // Most significant felt does NOT differ from previous.
+    (word(201, 202, 203, 69420), word(0xb, 0xc, 0xd, 0xe)),
+];
+
 /// Tests `get` on every key present in the SMT, as well as an empty leaf
 #[test]
 fn test_smt_get() {
@@ -52,6 +60,34 @@ fn test_smt_get() {
         EMPTY_WORD,
         &smt,
     );
+}
+
+#[test]
+fn test_smt_get_multi() {
+    let expect_value_from_get = |key: Word, value: Word, smt: &Smt| {
+        let source = "
+            use.std::collections::smt
+
+            begin
+                exec.smt::get
+            end
+        ";
+
+        let mut initial_stack: Vec<u64> = Default::default();
+        append_word_to_vec(&mut initial_stack, smt.root());
+        append_word_to_vec(&mut initial_stack, key);
+        let expected_output = build_expected_stack(value, smt.root());
+
+        let (store, advice_map) = build_advice_inputs(smt);
+        build_test!(source, &initial_stack, &[], store, advice_map).expect_stack(&expected_output);
+    };
+
+    let smt = Smt::with_entries(LEAVES_MULTI).unwrap();
+    let (k0, v0) = LEAVES_MULTI[0];
+    let (k1, v1) = LEAVES_MULTI[1];
+
+    expect_value_from_get(k0, v0, &smt);
+    expect_value_from_get(k1, v1, &smt);
 }
 
 /// Tests inserting and removing key-value pairs to an SMT. We do the insert/removal twice to ensure
