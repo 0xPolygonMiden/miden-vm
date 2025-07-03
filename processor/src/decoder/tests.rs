@@ -23,7 +23,7 @@ use super::{
     },
     build_op_group,
 };
-use crate::{DefaultHost, ExecutionError};
+use crate::{AdviceInputs, DefaultHost, ExecutionError};
 
 // CONSTANTS
 // ================================================================================================
@@ -1425,8 +1425,12 @@ fn dyn_block() {
 #[case(Operation::Call)]
 #[case(Operation::SysCall)]
 fn calls_in_syscall(#[case] op: Operation) {
-    let mut process =
-        Process::new(Kernel::default(), StackInputs::default(), ExecutionOptions::default());
+    let mut process = Process::new(
+        Kernel::default(),
+        StackInputs::default(),
+        AdviceInputs::default(),
+        ExecutionOptions::default(),
+    );
     // set `in_syscall` flag to true
     process.system.start_syscall();
 
@@ -1504,7 +1508,12 @@ fn set_user_op_helpers_many() {
 fn build_trace(stack_inputs: &[u64], program: &Program) -> (DecoderTrace, usize) {
     let stack_inputs = StackInputs::try_from_ints(stack_inputs.iter().copied()).unwrap();
     let mut host = DefaultHost::default();
-    let mut process = Process::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
+    let mut process = Process::new(
+        Kernel::default(),
+        stack_inputs,
+        AdviceInputs::default(),
+        ExecutionOptions::default(),
+    );
     process.execute(program, &mut host).unwrap();
 
     let (trace, ..) = ExecutionTrace::test_finalize_trace(process);
@@ -1522,7 +1531,12 @@ fn build_trace(stack_inputs: &[u64], program: &Program) -> (DecoderTrace, usize)
 fn build_dyn_trace(stack_inputs: &[u64], program: &Program) -> (DecoderTrace, usize) {
     let stack_inputs = StackInputs::try_from_ints(stack_inputs.iter().copied()).unwrap();
     let mut host = DefaultHost::default();
-    let mut process = Process::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
+    let mut process = Process::new(
+        Kernel::default(),
+        stack_inputs,
+        AdviceInputs::default(),
+        ExecutionOptions::default(),
+    );
 
     process.execute(program, &mut host).unwrap();
 
@@ -1541,7 +1555,8 @@ fn build_dyn_trace(stack_inputs: &[u64], program: &Program) -> (DecoderTrace, us
 fn build_call_trace(program: &Program, kernel: Kernel) -> (SystemTrace, DecoderTrace, usize) {
     let mut host = DefaultHost::default();
     let stack_inputs = crate::StackInputs::default();
-    let mut process = Process::new(kernel, stack_inputs, ExecutionOptions::default());
+    let mut process =
+        Process::new(kernel, stack_inputs, AdviceInputs::default(), ExecutionOptions::default());
 
     process.execute(program, &mut host).unwrap();
 

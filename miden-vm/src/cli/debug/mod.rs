@@ -70,11 +70,11 @@ impl DebugCmd {
 
         // fetch the stack and program inputs from the arguments
         let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
-        let advice_provider = input_data.parse_advice_provider().map_err(Report::msg)?;
+        let advice_inputs = input_data.parse_advice_inputs().map_err(Report::msg)?;
 
         // instantiate DebugExecutor
         let mut debug_executor =
-            DebugExecutor::new(program, stack_inputs, advice_provider, source_manager)
+            DebugExecutor::new(program, stack_inputs, advice_inputs, source_manager)
                 .map_err(Report::msg)?;
 
         // build readline config

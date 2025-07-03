@@ -117,7 +117,11 @@ macro_rules! build_test_by_mode {
         let advice_inputs = $crate::AdviceInputs::default();
         let name = format!("test{}", line!());
         let source_manager = ::alloc::sync::Arc::new(::assembly::DefaultSourceManager::default());
-        let source = source_manager.load(&name, ::alloc::string::String::from($source));
+        let source = source_manager.load(
+            ::assembly::diagnostics::SourceLanguage::Masm,
+            name.into(),
+            ::alloc::string::String::from($source),
+        );
 
         $crate::Test {
             source_manager,
@@ -143,7 +147,11 @@ macro_rules! build_test_by_mode {
             .with_merkle_store(store);
         let name = format!("test{}", line!());
         let source_manager = ::alloc::sync::Arc::new(::assembly::DefaultSourceManager::default());
-        let source = source_manager.load(&name, ::alloc::string::String::from($source));
+        let source = source_manager.load(
+            ::assembly::diagnostics::SourceLanguage::Masm,
+            name.into(),
+            ::alloc::string::String::from($source),
+        );
 
         $crate::Test {
             source_manager,
@@ -174,7 +182,11 @@ macro_rules! build_test_by_mode {
             .with_merkle_store($advice_merkle_store);
         let name = format!("test{}", line!());
         let source_manager = ::alloc::sync::Arc::new(::assembly::DefaultSourceManager::default());
-        let source = source_manager.load(&name, ::alloc::string::String::from($source));
+        let source = source_manager.load(
+            ::assembly::diagnostics::SourceLanguage::Masm,
+            name.into(),
+            ::alloc::string::String::from($source),
+        );
 
         $crate::Test {
             source_manager,
@@ -207,7 +219,11 @@ macro_rules! build_test_by_mode {
             .with_map($advice_map);
         let name = format!("test{}", line!());
         let source_manager = ::alloc::sync::Arc::new(::assembly::DefaultSourceManager::default());
-        let source = source_manager.load(&name, ::alloc::string::String::from($source));
+        let source = source_manager.load(
+            ::assembly::diagnostics::SourceLanguage::Masm,
+            name.into(),
+            ::alloc::string::String::from($source),
+        );
 
         $crate::Test {
             source_manager,

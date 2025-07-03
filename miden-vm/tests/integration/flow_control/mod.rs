@@ -1,6 +1,8 @@
 use alloc::sync::Arc;
 
-use assembly::{Assembler, LibraryPath, Report, SourceManager, ast::ModuleKind};
+use assembly::{
+    Assembler, LibraryPath, Report, SourceManager, ast::ModuleKind, diagnostics::SourceLanguage,
+};
 use miden_vm::Module;
 use processor::ExecutionError;
 use prover::Word;
@@ -235,10 +237,11 @@ fn simple_syscall() {
     // TODO: update and use macro?
     let mut test = Test::new(&format!("test{}", line!()), program_source, false);
     test.stack_inputs = StackInputs::try_from_ints([1, 2]).unwrap();
-    test.kernel_source = Some(
-        test.source_manager
-            .load(&format!("kernel{}", line!()), kernel_source.to_string()),
-    );
+    test.kernel_source = Some(test.source_manager.load(
+        SourceLanguage::Masm,
+        format!("kernel{}", line!()).into(),
+        kernel_source.to_string(),
+    ));
     test.expect_stack(&[3]);
 
     test.prove_and_verify(vec![1, 2], false);
@@ -267,10 +270,11 @@ fn simple_syscall_2() {
     // TODO: update and use macro?
     let mut test = Test::new(&format!("test{}", line!()), program_source, false);
     test.stack_inputs = StackInputs::try_from_ints([2, 2, 3, 2, 1]).unwrap();
-    test.kernel_source = Some(
-        test.source_manager
-            .load(&format!("kernel{}", line!()), kernel_source.to_string()),
-    );
+    test.kernel_source = Some(test.source_manager.load(
+        SourceLanguage::Masm,
+        format!("kernel{}", line!()).into(),
+        kernel_source.to_string(),
+    ));
     test.expect_stack(&[24]);
 
     test.prove_and_verify(vec![2, 2, 3, 2, 1], false);
@@ -306,10 +310,11 @@ fn root_context_separate_overflows() {
 
     let mut test = Test::new(&format!("test{}", line!()), program_source, false);
     test.stack_inputs = StackInputs::try_from_ints([100]).unwrap();
-    test.kernel_source = Some(
-        test.source_manager
-            .load(&format!("kernel{}", line!()), kernel_source.to_string()),
-    );
+    test.kernel_source = Some(test.source_manager.load(
+        SourceLanguage::Masm,
+        format!("kernel{}", line!()).into(),
+        kernel_source.to_string(),
+    ));
     test.expect_stack(&[100]);
     test.prove_and_verify(vec![100], false);
 }
@@ -509,10 +514,11 @@ fn dyncall_with_syscall_and_caller() {
         end";
 
     let mut test = Test::new(&format!("test{}", line!()), program_source, true);
-    test.kernel_source = Some(
-        test.source_manager
-            .load(&format!("kernel{}", line!()), kernel_source.to_string()),
-    );
+    test.kernel_source = Some(test.source_manager.load(
+        SourceLanguage::Masm,
+        format!("kernel{}", line!()).into(),
+        kernel_source.to_string(),
+    ));
     test.expect_stack(&[
         7618101086444903432,
         9972424747203251625,

@@ -12,7 +12,10 @@ use alloc::{
     vec::Vec,
 };
 
-use assembly::{KernelLibrary, Library, Parse, diagnostics::reporting::PrintDiagnostic};
+use assembly::{
+    KernelLibrary, Library, Parse,
+    diagnostics::{SourceLanguage, reporting::PrintDiagnostic},
+};
 pub use assembly::{LibraryPath, SourceFile, SourceManager, diagnostics::Report};
 pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
 pub use processor::{
@@ -187,7 +190,7 @@ impl Test {
     /// Creates the simplest possible new test, with only a source string and no inputs.
     pub fn new(name: &str, source: &str, in_debug_mode: bool) -> Self {
         let source_manager = Arc::new(assembly::DefaultSourceManager::default());
-        let source = source_manager.load(name, source.to_string());
+        let source = source_manager.load(SourceLanguage::Masm, name.into(), source.to_string());
         Test {
             source_manager,
             source,
@@ -229,7 +232,7 @@ impl Test {
     ) {
         // compile the program
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = TestHost::new(self.advice_inputs.clone().into());
+        let mut host = TestHost::default();
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }
@@ -241,6 +244,7 @@ impl Test {
         let mut process = Process::new(
             program.kernel().clone(),
             self.stack_inputs.clone(),
+            self.advice_inputs.clone(),
             ExecutionOptions::default().with_debugging(self.in_debug_mode),
         )
         .with_source_manager(self.source_manager.clone());
@@ -340,6 +344,7 @@ impl Test {
         let mut process = Process::new(
             program.kernel().clone(),
             self.stack_inputs.clone(),
+            self.advice_inputs.clone(),
             ExecutionOptions::default().with_debugging(self.in_debug_mode),
         )
         .with_source_manager(self.source_manager.clone());
@@ -367,6 +372,7 @@ impl Test {
         let mut process = Process::new(
             program.kernel().clone(),
             self.stack_inputs.clone(),
+            self.advice_inputs.clone(),
             ExecutionOptions::default().with_debugging(self.in_debug_mode),
         )
         .with_source_manager(self.source_manager.clone());
@@ -389,6 +395,7 @@ impl Test {
         let (mut stack_outputs, proof) = prover::prove(
             &program,
             stack_inputs.clone(),
+            self.advice_inputs.clone(),
             &mut host,
             ProvingOptions::default(),
             self.source_manager.clone(),
@@ -416,6 +423,7 @@ impl Test {
         let mut process = Process::new(
             program.kernel().clone(),
             self.stack_inputs.clone(),
+            self.advice_inputs.clone(),
             ExecutionOptions::default().with_debugging(self.in_debug_mode),
         )
         .with_source_manager(self.source_manager.clone());
@@ -436,7 +444,7 @@ impl Test {
     /// Returns the last state of the stack after executing a test.
     #[track_caller]
     pub fn get_last_stack_state(&self) -> StackOutputs {
-        let trace = self.execute().unwrap();
+        let trace = self.execute().expect("failed to execute");
 
         trace.last_stack_state()
     }
@@ -450,7 +458,7 @@ impl Test {
     /// and library MAST forests.
     fn get_program_and_host(&self) -> (Program, TestHost) {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = TestHost::new(self.advice_inputs.clone().into());
+        let mut host = TestHost::default();
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }
@@ -466,8 +474,9 @@ impl Test {
     fn assert_outputs_with_fast_processor(&self, slow_stack_outputs: StackOutputs) {
         let (program, mut host) = self.get_program_and_host();
         let stack_inputs: Vec<Felt> = self.stack_inputs.clone().into_iter().rev().collect();
-        let fast_process = FastProcessor::new(&stack_inputs);
-        let fast_stack_outputs = fast_process.execute(&program, &mut host).unwrap();
+        let advice_inputs = self.advice_inputs.clone();
+        let fast_process = FastProcessor::new_with_advice_inputs(&stack_inputs, advice_inputs);
+        let fast_stack_outputs = fast_process.execute_sync(&program, &mut host).unwrap();
 
         assert_eq!(
             slow_stack_outputs, fast_stack_outputs,
@@ -481,9 +490,10 @@ impl Test {
     ) {
         let (program, mut host) = self.get_program_and_host();
         let stack_inputs: Vec<Felt> = self.stack_inputs.clone().into_iter().rev().collect();
-        let fast_process =
-            FastProcessor::new(&stack_inputs).with_source_manager(self.source_manager.clone());
-        let fast_result = fast_process.execute(&program, &mut host);
+        let advice_inputs: AdviceInputs = self.advice_inputs.clone();
+        let fast_process = FastProcessor::new_with_advice_inputs(&stack_inputs, advice_inputs)
+            .with_source_manager(self.source_manager.clone());
+        let fast_result = fast_process.execute_sync(&program, &mut host);
 
         match slow_result {
             Ok(slow_stack_outputs) => {

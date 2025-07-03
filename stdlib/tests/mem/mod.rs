@@ -1,4 +1,4 @@
-use processor::{ContextId, DefaultHost, Program};
+use processor::{AdviceInputs, ContextId, DefaultHost, Program};
 use test_utils::{
     ExecutionOptions, ONE, Process, StackInputs, ZERO, build_expected_hash, build_expected_perm,
     felt_slice_to_ints,
@@ -34,8 +34,12 @@ fn test_memcopy_words() {
     let mut host = DefaultHost::default();
     host.load_mast_forest(stdlib.mast_forest().clone()).unwrap();
 
-    let mut process =
-        Process::new(program.kernel().clone(), StackInputs::default(), ExecutionOptions::default());
+    let mut process = Process::new(
+        program.kernel().clone(),
+        StackInputs::default(),
+        AdviceInputs::default(),
+        ExecutionOptions::default(),
+    );
     process.execute(&program, &mut host).unwrap();
 
     assert_eq!(

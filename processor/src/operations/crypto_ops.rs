@@ -1,7 +1,7 @@
 use vm_core::mast::MastForest;
 
 use super::{ExecutionError, Operation, Process};
-use crate::{ErrorContext, Felt, Host};
+use crate::{ErrorContext, Felt};
 
 // CRYPTOGRAPHIC OPERATIONS
 // ================================================================================================
@@ -68,7 +68,6 @@ impl Process {
     pub(super) fn op_mpverify(
         &mut self,
         err_code: Felt,
-        host: &mut impl Host,
         program: &MastForest,
         err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
@@ -82,8 +81,8 @@ impl Process {
 
         // get a Merkle path from the advice provider for the specified root and node index.
         // the path is expected to be of the specified depth.
-        let path = host
-            .advice_provider_mut()
+        let path = self
+            .advice
             .get_merkle_path(root, &depth, &index)
             .map_err(|err| ExecutionError::advice_error(err, self.system.clk(), err_ctx))?;
 
@@ -143,7 +142,6 @@ impl Process {
     /// Panics if the computed old root does not match the input root provided via the stack.
     pub(super) fn op_mrupdate(
         &mut self,
-        host: &mut impl Host,
         err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         // read old node value, depth, index, tree root and new node values from the stack
@@ -160,8 +158,8 @@ impl Process {
         // get a Merkle path to it. the length of the returned path is expected to match the
         // specified depth. if the new node is the root of a tree, this instruction will append the
         // whole sub-tree to this node.
-        let (path, _) = host
-            .advice_provider_mut()
+        let (path, _) = self
+            .advice
             .update_merkle_node(old_root, &depth, &index, new_node)
             .map_err(|err| ExecutionError::advice_error(err, self.system.clk(), err_ctx))?;
 
@@ -349,8 +347,8 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // make sure both Merkle trees are still in the advice provider
-        assert!(host.advice_provider().has_merkle_root(tree.root()));
-        assert!(host.advice_provider().has_merkle_root(new_tree.root()));
+        assert!(process.advice.has_merkle_root(tree.root()));
+        assert!(process.advice.has_merkle_root(new_tree.root()));
     }
 
     #[test]
@@ -408,7 +406,7 @@ mod tests {
         let program = &MastForest::default();
 
         // assert the expected root doesn't exist before the merge operation
-        assert!(!host.advice_provider().has_merkle_root(expected_root));
+        assert!(!process.advice.has_merkle_root(expected_root));
 
         // update the previous root
         process.execute_op(Operation::MrUpdate, program, &mut host).unwrap();
@@ -431,7 +429,7 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // assert the expected root now exists in the advice provider
-        assert!(host.advice_provider().has_merkle_root(expected_root));
+        assert!(process.advice.has_merkle_root(expected_root));
     }
 
     // HELPER FUNCTIONS

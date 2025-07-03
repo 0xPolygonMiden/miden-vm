@@ -578,17 +578,15 @@ impl MastForestBuilder {
     /// are already present with a different value in the AdviceMap of the Mast Forest. In
     /// case of error the AdviceMap of the Mast Forest remains unchanged.
     pub fn merge_advice_map(&mut self, other: &AdviceMap) -> Result<(), Report> {
-        self.mast_forest.advice_map_mut().merge_advice_map(other).map_or(
-            Ok(()),
-            |((key, prev_values), new_values)| {
-                Err(LinkerError::AdviceMapKeyAlreadyPresent {
-                    key: key.into(),
-                    prev_values,
-                    new_values,
-                })
-                .into_diagnostic()
-            },
-        )
+        self.mast_forest
+            .advice_map_mut()
+            .merge_advice_map(other)
+            .map_err(|((key, prev_values), new_values)| LinkerError::AdviceMapKeyAlreadyPresent {
+                key: key.into(),
+                prev_values,
+                new_values,
+            })
+            .into_diagnostic()
     }
 }
 
