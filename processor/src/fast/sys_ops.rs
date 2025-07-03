@@ -1,16 +1,8 @@
-use vm_core::{Felt, ZERO, mast::MastForest, sys_events::SystemEvent};
+use vm_core::{Felt, mast::MastForest, sys_events::SystemEvent};
 
 use super::{ExecutionError, FastProcessor, ONE};
 use crate::{
-    ErrorContext, FMP_MIN, Host, ProcessState,
-    operations::sys_ops::sys_event_handlers::{
-        HDWORD_TO_MAP_WITH_DOMAIN_DOMAIN_OFFSET, copy_map_value_to_adv_stack,
-        copy_merkle_node_to_adv_stack, insert_hdword_into_adv_map, insert_hperm_into_adv_map,
-        insert_mem_values_into_adv_map, merge_merkle_nodes, push_ext2_intt_result,
-        push_ext2_inv_result, push_falcon_mod_result, push_ilog2, push_leading_ones,
-        push_leading_zeros, push_smtpeek_result, push_trailing_ones, push_trailing_zeros,
-        push_u64_div_result,
-    },
+    ErrorContext, FMP_MIN, Host, operations::sys_ops::sys_event_handlers::handle_system_event,
     system::FMP_MAX,
 };
 
@@ -26,10 +18,11 @@ impl FastProcessor {
         err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
         if self.stack_get(0) != ONE {
-            host.on_assert_failed(ProcessState::new_fast(self, op_idx), err_code);
+            let process = &mut self.state(op_idx);
+            host.on_assert_failed(process, err_code);
             let err_msg = program.resolve_error_message(err_code);
             return Err(ExecutionError::failed_assertion(
-                self.clk + op_idx,
+                process.clk(),
                 err_code,
                 err_msg,
                 err_ctx,
@@ -97,61 +90,12 @@ impl FastProcessor {
         host: &mut impl Host,
         err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError> {
+        let process = &mut self.state(op_idx);
         // If it's a system event, handle it directly. Otherwise, forward it to the host.
         if let Some(system_event) = SystemEvent::from_event_id(event_id) {
-            self.handle_system_event(system_event, op_idx, host, err_ctx)
+            handle_system_event(process, system_event, err_ctx)
         } else {
-            host.on_event(ProcessState::new_fast(self, op_idx), event_id, err_ctx)
-        }
-    }
-
-    // HELPERS
-    // ------------------------------------------------------------------------------------------
-
-    pub(super) fn handle_system_event(
-        &self,
-        system_event: SystemEvent,
-        op_idx: usize,
-        host: &mut impl Host,
-        err_ctx: &impl ErrorContext,
-    ) -> Result<(), ExecutionError> {
-        let advice_provider = host.advice_provider_mut();
-        let process_state = ProcessState::new_fast(self, op_idx);
-        match system_event {
-            SystemEvent::MerkleNodeMerge => {
-                merge_merkle_nodes(advice_provider, process_state, err_ctx)
-            },
-            SystemEvent::MerkleNodeToStack => {
-                copy_merkle_node_to_adv_stack(advice_provider, process_state, err_ctx)
-            },
-            SystemEvent::MapValueToStack => {
-                copy_map_value_to_adv_stack(advice_provider, process_state, false, err_ctx)
-            },
-            SystemEvent::MapValueToStackN => {
-                copy_map_value_to_adv_stack(advice_provider, process_state, true, err_ctx)
-            },
-            SystemEvent::U64Div => push_u64_div_result(advice_provider, process_state, err_ctx),
-            SystemEvent::FalconDiv => {
-                push_falcon_mod_result(advice_provider, process_state, err_ctx)
-            },
-            SystemEvent::Ext2Inv => push_ext2_inv_result(advice_provider, process_state, err_ctx),
-            SystemEvent::Ext2Intt => push_ext2_intt_result(advice_provider, process_state, err_ctx),
-            SystemEvent::SmtPeek => push_smtpeek_result(advice_provider, process_state, err_ctx),
-            SystemEvent::U32Clz => push_leading_zeros(advice_provider, process_state, err_ctx),
-            SystemEvent::U32Ctz => push_trailing_zeros(advice_provider, process_state, err_ctx),
-            SystemEvent::U32Clo => push_leading_ones(advice_provider, process_state, err_ctx),
-            SystemEvent::U32Cto => push_trailing_ones(advice_provider, process_state, err_ctx),
-            SystemEvent::ILog2 => push_ilog2(advice_provider, process_state, err_ctx),
-
-            SystemEvent::MemToMap => insert_mem_values_into_adv_map(advice_provider, process_state),
-            SystemEvent::HdwordToMap => {
-                insert_hdword_into_adv_map(advice_provider, process_state, ZERO)
-            },
-            SystemEvent::HdwordToMapWithDomain => {
-                let domain = self.stack_get(HDWORD_TO_MAP_WITH_DOMAIN_DOMAIN_OFFSET);
-                insert_hdword_into_adv_map(advice_provider, process_state, domain)
-            },
-            SystemEvent::HpermToMap => insert_hperm_into_adv_map(advice_provider, process_state),
+            host.on_event(process, event_id, err_ctx)
         }
     }
 }

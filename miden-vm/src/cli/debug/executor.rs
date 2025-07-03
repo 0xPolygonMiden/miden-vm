@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use miden_vm::{AdviceProvider, DefaultHost, Program, StackInputs, VmState, VmStateIterator};
-use processor::MemoryAddress;
+use miden_vm::{DefaultHost, Program, StackInputs, VmState, VmStateIterator};
+use processor::{AdviceInputs, MemoryAddress};
 
 use super::DebugCommand;
 use crate::utils::print_mem_address;
@@ -18,20 +18,21 @@ pub struct DebugExecutor {
 impl DebugExecutor {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    /// Returns a new DebugExecutor for the specified program, inputs and advice provider.
+    /// Returns a new DebugExecutor for the specified program, stack and advice inputs.
     ///
     /// # Errors
     /// Returns an error if the command cannot be parsed.
     pub fn new(
         program: Program,
         stack_inputs: StackInputs,
-        advice_provider: AdviceProvider,
+        advice_inputs: AdviceInputs,
         source_manager: Arc<dyn assembly::SourceManager>,
     ) -> Result<Self, String> {
         let mut vm_state_iter = processor::execute_iter(
             &program,
             stack_inputs,
-            &mut DefaultHost::new(advice_provider),
+            advice_inputs,
+            &mut DefaultHost::default(),
             source_manager.clone(),
         );
         let vm_state = vm_state_iter

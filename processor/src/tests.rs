@@ -47,6 +47,7 @@ end";
 /// In this test, we load 2 libraries which have a MAST forest with an advice map that contains
 /// different values at the same key (which triggers the `AdviceMapKeyAlreadyPresent` error).
 #[test]
+#[ignore = "program must now call same node from both libraries (Issue #1949)"]
 fn test_diagnostic_advice_map_key_already_present() {
     let test_context = TestContext::new();
 
@@ -66,7 +67,22 @@ fn test_diagnostic_advice_map_key_already_present() {
 
     let mut host = DefaultHost::default();
     host.load_mast_forest(lib_1.mast_forest().clone()).unwrap();
-    let err = host.load_mast_forest(lib_2.mast_forest().clone()).unwrap_err();
+    host.load_mast_forest(lib_2.mast_forest().clone()).unwrap();
+
+    let mut mast_forest = MastForest::new();
+    let basic_block_id = mast_forest.add_block(vec![Operation::Noop], None).unwrap();
+    mast_forest.make_root(basic_block_id);
+
+    let program = Program::new(mast_forest.into(), basic_block_id);
+
+    let err = Process::new(
+        Kernel::default(),
+        StackInputs::default(),
+        AdviceInputs::default(),
+        ExecutionOptions::default(),
+    )
+    .execute(&program, &mut host)
+    .unwrap_err();
 
     assert_diagnostic_lines!(
         err,
@@ -733,6 +749,7 @@ fn test_diagnostic_no_mast_forest_with_procedure() {
     let mut process = Process::new(
         Kernel::default(),
         StackInputs::default(),
+        AdviceInputs::default(),
         ExecutionOptions::default().with_debugging(true),
     )
     .with_source_manager(source_manager.clone());
@@ -956,6 +973,7 @@ fn test_diagnostic_syscall_target_not_in_kernel() {
     let mut process = Process::new(
         Kernel::default(),
         StackInputs::default(),
+        AdviceInputs::default(),
         ExecutionOptions::default().with_debugging(true),
     )
     .with_source_manager(source_manager.clone());

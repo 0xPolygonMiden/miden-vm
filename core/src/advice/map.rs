@@ -56,14 +56,14 @@ impl AdviceMap {
     /// Merges all entries from the given [`AdviceMap`] into the current advice map.
     ///
     /// If an entry from the new map already exists with the same key but different value,
-    /// the existing entry is returned along with the value that would replace it.
-    /// The current map remains unchanged.
-    pub fn merge_advice_map(&mut self, other: &AdviceMap) -> Option<(MapEntry, Vec<Felt>)> {
+    /// an error is returned containing the existing entry along with the value that would replace
+    /// it. The current map remains unchanged.
+    pub fn merge_advice_map(&mut self, other: &AdviceMap) -> Result<(), (MapEntry, Vec<Felt>)> {
         // Check if any values are already present and different from those we are merging.
         for (key, value) in other.iter() {
             if let Some(existing) = self.get(key) {
                 if existing != value {
-                    return Some(((*key, existing.to_vec()), value.to_vec()));
+                    return Err(((*key, existing.to_vec()), value.to_vec()));
                 }
             }
         }
@@ -72,7 +72,7 @@ impl AdviceMap {
         for (key, value) in other.iter() {
             self.insert(*key, value.clone());
         }
-        None
+        Ok(())
     }
 }
 

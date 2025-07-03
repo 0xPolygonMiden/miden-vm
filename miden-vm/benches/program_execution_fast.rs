@@ -1,6 +1,6 @@
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
 use miden_vm::{Assembler, DefaultHost, StackInputs, internal::InputFile};
-use processor::fast::FastProcessor;
+use processor::{AdviceInputs, fast::FastProcessor};
 use stdlib::StdLibrary;
 use walkdir::WalkDir;
 
@@ -25,14 +25,15 @@ fn program_execution_fast(c: &mut Criterion) {
 
                 // if there's a `.inputs` file associated with this `.masm` file, use it as the
                 // inputs.
-                let (mut host, stack_inputs) = match InputFile::read(&None, entry.path()) {
+                let (stack_inputs, advice_inputs) = match InputFile::read(&None, entry.path()) {
                     Ok(input_data) => {
                         let stack_inputs = input_data.parse_stack_inputs().unwrap();
-                        let host = DefaultHost::new(input_data.parse_advice_provider().unwrap());
-                        (host, stack_inputs)
+                        let advice_inputs = input_data.parse_advice_inputs().unwrap();
+                        (stack_inputs, advice_inputs)
                     },
-                    Err(_) => (DefaultHost::default(), StackInputs::default()),
+                    Err(_) => (StackInputs::default(), AdviceInputs::default()),
                 };
+                let mut host = DefaultHost::default();
                 host.load_mast_forest(StdLibrary::default().as_ref().mast_forest().clone())
                     .unwrap();
 
@@ -53,7 +54,10 @@ fn program_execution_fast(c: &mut Criterion) {
                     bench.iter_batched(
                         || host.clone(),
                         |mut host| {
-                            let speedy = FastProcessor::new(&stack_inputs);
+                            let speedy = FastProcessor::new_with_advice_inputs(
+                                &stack_inputs,
+                                advice_inputs.clone(),
+                            );
                             speedy.execute(&program, &mut host).unwrap();
                         },
                         BatchSize::SmallInput,

@@ -2,7 +2,7 @@ use std::{collections::BTreeSet, path::PathBuf};
 
 use assembly::{Assembler, Library};
 use miden_vm::{DefaultHost, StackInputs, math::Felt};
-use processor::{ContextId, MemoryAddress};
+use processor::{AdviceInputs, ContextId, MemoryAddress};
 use rustyline::{DefaultEditor, error::ReadlineError};
 use stdlib::StdLibrary;
 
@@ -315,13 +315,15 @@ fn execute(
     let program = assembler.assemble_program(program).map_err(|err| format!("{err}"))?;
 
     let stack_inputs = StackInputs::default();
+    let advice_inputs = AdviceInputs::default();
     let mut host = DefaultHost::default();
     for library in provided_libraries {
         host.load_mast_forest(library.mast_forest().clone())
             .map_err(|err| format!("{err}"))?;
     }
 
-    let state_iter = processor::execute_iter(&program, stack_inputs, &mut host, source_manager);
+    let state_iter =
+        processor::execute_iter(&program, stack_inputs, advice_inputs, &mut host, source_manager);
     let (system, _, stack, chiplets, err) = state_iter.into_parts();
     if let Some(err) = err {
         return Err(format!("{err}"));

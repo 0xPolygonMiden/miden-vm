@@ -10,7 +10,7 @@ pub use tracing::{Level, event, instrument};
 use vm_core::{Felt, WORD_SIZE};
 
 use crate::{
-    AdviceInputs, AdviceProvider, StackInputs, Word, ZERO,
+    AdviceInputs, StackInputs, Word, ZERO,
     crypto::{MerkleStore, MerkleTree, NodeIndex, PartialMerkleTree, SimpleSmt},
 };
 
@@ -107,8 +107,8 @@ impl InputFile {
         Ok(inputs)
     }
 
-    /// Parse advice provider data from the input file.
-    pub fn parse_advice_provider(&self) -> Result<AdviceProvider, String> {
+    /// Parse advice inputs from the input file.
+    pub fn parse_advice_inputs(&self) -> Result<AdviceInputs, String> {
         let mut advice_inputs = AdviceInputs::default();
 
         let stack = self
@@ -130,7 +130,7 @@ impl InputFile {
             advice_inputs = advice_inputs.with_merkle_store(merkle_store);
         }
 
-        Ok(AdviceProvider::from(advice_inputs))
+        Ok(advice_inputs)
     }
 
     /// Parse advice stack data from the input file.

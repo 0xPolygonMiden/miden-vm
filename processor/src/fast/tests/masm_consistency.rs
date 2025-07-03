@@ -255,6 +255,7 @@ fn test_masm_consistency(
     let mut slow_processor = Process::new(
         kernel_lib.map(|k| k.kernel().clone()).unwrap_or_default(),
         StackInputs::new(stack_inputs).unwrap(),
+        AdviceInputs::default(),
         ExecutionOptions::default(),
     );
     let slow_stack_outputs = slow_processor.execute(&program, &mut host).unwrap();
@@ -334,6 +335,7 @@ fn test_masm_errors_consistency(
     let mut slow_processor = Process::new(
         kernel_lib.map(|k| k.kernel().clone()).unwrap_or_default(),
         StackInputs::new(stack_inputs).unwrap(),
+        AdviceInputs::default(),
         ExecutionOptions::default(),
     );
     let slow_stack_outputs = slow_processor.execute(&program, &mut host).unwrap_err();

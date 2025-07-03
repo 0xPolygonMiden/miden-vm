@@ -235,7 +235,7 @@ fn falcon_prove_verify() {
 
     let stack_inputs = StackInputs::try_from_ints(op_stack).expect("failed to create stack inputs");
     let advice_inputs = AdviceInputs::default().with_map(advice_map);
-    let mut host = TestHost::new(advice_inputs.into());
+    let mut host = TestHost::default();
     host.load_mast_forest(StdLibrary::default().mast_forest().clone())
         .expect("failed to load mast forest");
 
@@ -243,6 +243,7 @@ fn falcon_prove_verify() {
     let (stack_outputs, proof) = test_utils::prove(
         &program,
         stack_inputs.clone(),
+        advice_inputs,
         &mut host,
         options,
         Arc::new(DefaultSourceManager::default()),
