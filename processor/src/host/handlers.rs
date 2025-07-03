@@ -29,7 +29,7 @@ pub trait EventHandler {
 /// `&mut ProcessState.` argument.
 impl<F> EventHandler for F
 where
-    F: Fn(&mut ProcessState) -> Result<(), EventError> + 'static,
+    F: for<'a> Fn(&'a mut ProcessState) -> Result<(), EventError> + 'static,
 {
     fn on_event(&self, process: &mut ProcessState) -> Result<(), EventError> {
         self(process)
@@ -44,21 +44,13 @@ where
 ///
 /// Error handlers can define their own [`Error`] type which can be seamlessly converted
 /// into this type as follows:
+/// The custom handler can then use `?` as usual.
 /// ```rust, ignore
 /// pub struct MyError{ /* ... */ };
 ///
-/// impl From<MyError> for EventError {
-///     fn from(value: MyError) -> Self {
-///         value.into()
-///     }
-/// }
-/// ```
+/// fn try_something() -> Result<(), MyError> { /* ... */ }
 ///
-/// The custom handler can then use `?` as usual.
-/// ```rust, ignore
-/// fn try_something() -> Result<(), MyError> { /* ... */ Ok(())  }
-///
-/// fn my_handler(_process: &mut ProcessState) -> Result<(), EventError> {
+/// fn my_handler(process: &mut ProcessState) -> Result<(), EventError> {
 ///     // ...
 ///     try_something()?;
 ///     // ...
