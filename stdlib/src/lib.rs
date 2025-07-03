@@ -54,10 +54,6 @@ impl Default for StdLibrary {
 // FALCON SIGNATURE
 // ================================================================================================
 
-/// Event ID for pushing a Falcon signature to the advice stack.
-/// This event is used for testing purposes only.
-pub const EVENT_FALCON_SIG_TO_STACK: u32 = 3419226139;
-
 /// Signs the provided message with the provided secret key and returns the resulting signature
 /// encoded in the format required by the rpo_faclcon512::verify procedure, or `None` if the secret
 /// key is malformed due to either incorrect length or failed decoding.
