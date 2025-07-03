@@ -1237,6 +1237,7 @@ dependencies = [
  "pretty_assertions",
  "rstest",
  "thiserror 2.0.12",
+ "tokio",
  "tracing",
  "winter-fri",
  "winter-prover",
@@ -2362,6 +2363,16 @@ checksum = "be4d6b5f19ff7664e8c98d03e2139cb510db9b0a60b55f8e8709b689d939b6bc"
 dependencies = [
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "tokio"
+version = "1.45.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75ef51a33ef1da925cea3e4eb122833cb377c61439ca401b770f54902b806779"
+dependencies = [
+ "backtrace",
+ "pin-project-lite",
 ]
 
 [[package]]
