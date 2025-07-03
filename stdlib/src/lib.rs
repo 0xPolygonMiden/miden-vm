@@ -10,6 +10,7 @@ use assembly::{
     utils::{Deserializable, sync::LazyLock},
 };
 use vm_core::{Felt, Word};
+
 // STANDARD LIBRARY
 // ================================================================================================
 

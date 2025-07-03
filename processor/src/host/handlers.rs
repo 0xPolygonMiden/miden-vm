@@ -17,16 +17,13 @@ use crate::{ErrorContext, ExecutionError, ProcessState};
 ///
 /// A struct implementing this trait can access its own state, but any output it produces must
 /// be stored in the process's advice provider.
-///
-/// Stateless event handlers can be implemented both as closures or free functions with a single
-/// argument `&mut ProcessState.`.
 pub trait EventHandler {
     /// Handles the event when triggered.
     fn on_event(&self, process: &mut ProcessState) -> Result<(), EventError>;
 }
 
-/// Default implementation for both free functions and closures with a single
-/// `&mut ProcessState.` argument.
+/// Default implementation for both free functions and closures with signature
+/// `fn(&mut ProcessState) -> Result<(), EventError>`
 impl<F> EventHandler for F
 where
     F: for<'a> Fn(&'a mut ProcessState) -> Result<(), EventError> + 'static,
@@ -43,8 +40,10 @@ where
 /// caller.
 ///
 /// Error handlers can define their own [`Error`] type which can be seamlessly converted
-/// into this type as follows:
-/// The custom handler can then use `?` as usual.
+/// into this type since it is a [`Box`].  
+///
+/// # Example
+///
 /// ```rust, ignore
 /// pub struct MyError{ /* ... */ };
 ///
@@ -63,6 +62,8 @@ pub type EventError = Box<dyn Error + Send + Sync + 'static>;
 // ================================================================================================
 
 /// Registry for maintaining event handlers.
+///
+/// # Example
 ///
 /// ```rust, ignore
 /// impl Host for MyHost {
@@ -93,6 +94,7 @@ impl EventHandlerRegistry {
         Self { handlers: BTreeMap::new() }
     }
 
+    /// Registers a boxed [`EventHandler`] with a given identifier.
     pub fn register(
         &mut self,
         id: u32,
@@ -105,6 +107,9 @@ impl EventHandlerRegistry {
         Ok(())
     }
 
+    /// Handles the event if the registry contains a handler with the same identifier.
+    /// Returns a bool indicating whether the event was handled. If the event was handled but
+    /// returned an error, it is propagated to the caller.
     pub fn handle_event(
         &self,
         id: u32,

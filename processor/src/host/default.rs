@@ -29,11 +29,14 @@ impl Default for DefaultHost {
 }
 
 impl<D: DebugHandler> DefaultHost<D> {
+    /// Stores all procedure roots of a [`MastForest`] making them available during
+    /// program execution.
     pub fn load_mast_forest(&mut self, mast_forest: Arc<MastForest>) -> Result<(), ExecutionError> {
         self.store.insert(mast_forest);
         Ok(())
     }
 
+    /// Load a library containing a [`MastForest`] and a list of event handlers.
     pub fn load_library(&mut self, library: &impl HostLibrary) -> Result<(), ExecutionError> {
         self.load_mast_forest(library.mast_forest())?;
         for (id, handler) in library.event_handlers() {
@@ -43,7 +46,8 @@ impl<D: DebugHandler> DefaultHost<D> {
     }
 
     /// Loads a single [`EventHandler`] into this [`Host`]. The handler can be either a closure or a
-    /// free function accepting a `&mut ProcessState` and returning an `EventError`.
+    /// free function with signature
+    /// `fn(&mut ProcessState) -> Result<(), EventHandler>`
     pub fn load_handler(
         &mut self,
         id: u32,
@@ -59,16 +63,6 @@ impl<D: DebugHandler> DefaultHost<D> {
             event_handlers: self.event_handlers,
             debug_handler: handler,
         }
-    }
-
-    #[cfg(any(test, feature = "testing"))]
-    pub fn debug_handler(&self) -> &D {
-        &self.debug_handler
-    }
-
-    #[cfg(any(test, feature = "testing"))]
-    pub fn debug_handler_mut(&mut self) -> &mut D {
-        &mut self.debug_handler
     }
 }
 
