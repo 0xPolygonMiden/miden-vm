@@ -157,10 +157,6 @@ impl FastProcessor {
 
     /// Creates a new `FastProcessor` instance with the given stack inputs.
     ///
-    /// The stack inputs are expected to be stored in reverse order. For example, if `stack_inputs =
-    /// [1,2,3]`, then the stack will be initialized as `[3,2,1,0,0,...]`, with `3` being on
-    /// top.
-    ///
     /// # Panics
     /// - Panics if the length of `stack_inputs` is greater than `MIN_STACK_DEPTH`.
     pub fn new(stack_inputs: &[Felt]) -> Self {
@@ -168,10 +164,6 @@ impl FastProcessor {
     }
 
     /// Creates a new `FastProcessor` instance with the given stack and advice inputs.
-    ///
-    /// The stack inputs are expected to be stored in reverse order. For example, if `stack_inputs =
-    /// [1,2,3]`, then the stack will be initialized as `[3,2,1,0,0,...]`, with `3` being on
-    /// top.
     ///
     /// # Panics
     /// - Panics if the length of `stack_inputs` is greater than `MIN_STACK_DEPTH`.
@@ -182,16 +174,17 @@ impl FastProcessor {
     /// Creates a new `FastProcessor` instance, set to debug mode, with the given stack
     /// and advice inputs.
     ///
-    /// The stack inputs are expected to be stored in reverse order. For example, if `stack_inputs =
-    /// [1,2,3]`, then the stack will be initialized as `[3,2,1,0,0,...]`, with `3` being on
-    /// top.
-    ///
     /// # Panics
     /// - Panics if the length of `stack_inputs` is greater than `MIN_STACK_DEPTH`.
     pub fn new_debug(stack_inputs: &[Felt], advice_inputs: AdviceInputs) -> Self {
         Self::initialize(stack_inputs, advice_inputs, true)
     }
 
+    /// Generic constructor unifying the above public ones.
+    ///
+    /// The stack inputs are expected to be stored in reverse order. For example, if `stack_inputs =
+    /// [1,2,3]`, then the stack will be initialized as `[3,2,1,0,0,...]`, with `3` being on
+    /// top.
     fn initialize(stack_inputs: &[Felt], advice_inputs: AdviceInputs, in_debug_mode: bool) -> Self {
         assert!(stack_inputs.len() <= MIN_STACK_DEPTH);
 
