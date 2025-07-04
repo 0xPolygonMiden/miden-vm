@@ -346,7 +346,13 @@ impl MastForestBuilder {
                     decorators.push((op_idx + operations.len(), decorator));
                 }
                 for batch in basic_block_node.op_batches() {
-                    operations.extend_from_slice(batch.ops());
+                    let ops: Vec<Operation> = batch
+                        .ops()
+                        .iter()
+                        .cloned()
+                        .filter(|op| !matches!(op, Operation::Noop))
+                        .collect();
+                    operations.extend(ops);
                 }
             } else {
                 // if we don't want to merge this block, we flush the buffer of operations into a
