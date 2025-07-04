@@ -239,6 +239,10 @@ impl ConsistencyHost {
 }
 
 impl BaseHost for ConsistencyHost {
+    fn mast_forests(&self) -> &[Arc<MastForest>] {
+        self.store.mast_forests()
+    }
+
     fn on_trace(
         &mut self,
         process: &mut ProcessState,
@@ -254,10 +258,6 @@ impl BaseHost for ConsistencyHost {
 impl SyncHost for ConsistencyHost {
     fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>> {
         self.store.get(node_digest)
-    }
-
-    fn mast_forests(&self) -> &[Arc<MastForest>] {
-        self.store.mast_forests()
     }
 
     fn on_event(

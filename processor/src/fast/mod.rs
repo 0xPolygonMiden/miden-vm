@@ -330,6 +330,7 @@ impl FastProcessor {
         program: &Program,
         host: &mut impl AsyncHost,
     ) -> Result<StackOutputs, ExecutionError> {
+        self.advice.forests = host.mast_forests().to_vec();
         self.execute_mast_node(program.entrypoint(), program.mast_forest(), program.kernel(), host)
             .await?;
 
@@ -635,8 +636,7 @@ impl FastProcessor {
         kernel: &Kernel,
         host: &mut impl AsyncHost,
     ) -> Result<(), ExecutionError> {
-        let (root_id, mast_forest) =
-            resolve_external_node_async(external_node, &mut self.advice, host).await?;
+        let (root_id, mast_forest) = resolve_external_node_async(external_node, host).await?;
 
         self.execute_mast_node(root_id, &mast_forest, kernel, host).await
     }

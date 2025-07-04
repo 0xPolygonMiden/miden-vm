@@ -1,12 +1,11 @@
 use alloc::{sync::Arc, vec::Vec};
 
-use miden_air::RowIndex;
 use vm_core::mast::{ExternalNode, MastForest, MastNodeId};
 // RE-EXPORTS
 // ================================================================================================
 pub use vm_core::utils::*;
 
-use super::{AdviceProvider, Felt};
+use super::Felt;
 use crate::{AsyncHost, ExecutionError, SyncHost};
 
 // HELPER FUNCTIONS
@@ -55,7 +54,6 @@ pub(crate) fn split_u32_into_u16(value: u64) -> (u16, u16) {
 /// [`crate::fast::FastProcessor`] resolve external nodes in the same way.
 pub(crate) fn resolve_external_node(
     external_node: &ExternalNode,
-    advice_provider: &mut AdviceProvider,
     host: &impl SyncHost,
 ) -> Result<(MastNodeId, Arc<MastForest>), ExecutionError> {
     let node_digest = external_node.digest();
@@ -75,20 +73,12 @@ pub(crate) fn resolve_external_node(
         return Err(ExecutionError::CircularExternalNode(node_digest));
     }
 
-    // TODO(#1949):
-    //  We should keep track which MastForest AdviceMaps were inserted to avoid
-    //  the duplicate check over the looked up forest.
-    advice_provider
-        .merge_advice_map(mast_forest.advice_map())
-        .map_err(|err| ExecutionError::advice_error(err, RowIndex::from(0), &()))?;
-
     Ok((root_id, mast_forest))
 }
 
 /// Analogous to [`resolve_external_node`], but for asynchronous execution.
 pub(crate) async fn resolve_external_node_async(
     external_node: &ExternalNode,
-    advice_provider: &mut AdviceProvider,
     host: &mut impl AsyncHost,
 ) -> Result<(MastNodeId, Arc<MastForest>), ExecutionError> {
     let node_digest = external_node.digest();
@@ -108,13 +98,6 @@ pub(crate) async fn resolve_external_node_async(
     if mast_forest[root_id].is_external() {
         return Err(ExecutionError::CircularExternalNode(node_digest));
     }
-
-    // TODO(#1949):
-    //  We should keep track which MastForest AdviceMaps were inserted to avoid
-    //  the duplicate check over the looked up forest.
-    advice_provider
-        .merge_advice_map(mast_forest.advice_map())
-        .map_err(|err| ExecutionError::advice_error(err, RowIndex::from(0), &()))?;
 
     Ok((root_id, mast_forest))
 }

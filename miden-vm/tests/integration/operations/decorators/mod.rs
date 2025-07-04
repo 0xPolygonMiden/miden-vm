@@ -20,6 +20,10 @@ pub struct TestHost {
 }
 
 impl BaseHost for TestHost {
+    fn mast_forests(&self) -> &[Arc<MastForest>] {
+        &[]
+    }
+
     fn on_debug(
         &mut self,
         _process: &mut ProcessState,
@@ -43,10 +47,6 @@ impl SyncHost for TestHost {
     fn get_mast_forest(&self, _node_digest: &Word) -> Option<Arc<MastForest>> {
         // Empty MAST forest store
         None
-    }
-
-    fn mast_forests(&self) -> &[Arc<MastForest>] {
-        &[]
     }
 
     fn on_event(

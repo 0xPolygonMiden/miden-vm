@@ -320,6 +320,8 @@ impl Process {
             .merge_advice_map(program.mast_forest().advice_map())
             .map_err(|err| ExecutionError::advice_error(err, RowIndex::from(0), &()))?;
 
+        self.advice.forests = host.mast_forests().to_vec();
+
         self.execute_mast_node(program.entrypoint(), &program.mast_forest().clone(), host)?;
 
         self.stack.build_stack_outputs()
@@ -362,8 +364,7 @@ impl Process {
                 )?
             },
             MastNode::External(external_node) => {
-                let (root_id, mast_forest) =
-                    resolve_external_node(external_node, &mut self.advice, host)?;
+                let (root_id, mast_forest) = resolve_external_node(external_node, host)?;
 
                 self.execute_mast_node(root_id, &mast_forest, host)?;
             },
