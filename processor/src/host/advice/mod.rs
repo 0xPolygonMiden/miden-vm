@@ -176,7 +176,7 @@ impl AdviceProvider {
     /// Returns an error if any new entry already exists with the same key but a different value
     /// than the one currently stored. The current map remains unchanged.
     pub fn merge_advice_map(&mut self, other: &AdviceMap) -> Result<(), AdviceError> {
-        self.map.merge_advice_map(other).map_err(|((key, prev_values), new_values)| {
+        self.map.merge(other).map_err(|((key, prev_values), new_values)| {
             AdviceError::MapKeyAlreadyPresent { key, prev_values, new_values }
         })
     }
