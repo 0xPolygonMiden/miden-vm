@@ -1,4 +1,7 @@
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::{
+    collections::{BTreeMap, btree_map::Entry},
+    vec::Vec,
+};
 
 use vm_core::{
     AdviceMap, Felt, Word,
@@ -149,8 +152,23 @@ impl AdviceProvider {
     /// the [AdviceProvider::push_stack()] method.
     ///
     /// Returns an error if the specified key is already present in the advice map.
-    pub fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) {
-        self.map.insert(key, values);
+    pub fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), AdviceError> {
+        match self.map.entry(key) {
+            Entry::Vacant(entry) => {
+                entry.insert(values);
+            },
+            Entry::Occupied(entry) => {
+                let existing_values = entry.get();
+                if existing_values != &values {
+                    return Err(AdviceError::MapKeyAlreadyPresent {
+                        key,
+                        prev_values: existing_values.to_vec(),
+                        new_values: values,
+                    });
+                }
+            },
+        }
+        Ok(())
     }
 
     /// Merges all entries from the given [`AdviceMap`] into the current advice map.

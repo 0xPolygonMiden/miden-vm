@@ -1,6 +1,9 @@
 use alloc::{
     boxed::Box,
-    collections::{BTreeMap, btree_map::IntoIter},
+    collections::{
+        BTreeMap,
+        btree_map::{Entry, IntoIter},
+    },
     vec::Vec,
 };
 
@@ -51,6 +54,11 @@ impl AdviceMap {
     /// Returns true if the advice map is empty.
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
+    }
+
+    /// Gets the given key's corresponding entry in the map for in-place manipulation.
+    pub fn entry(&mut self, key: Word) -> Entry<'_, Word, Vec<Felt>> {
+        self.0.entry(key)
     }
 
     /// Merges all entries from the given [`AdviceMap`] into the current advice map.
