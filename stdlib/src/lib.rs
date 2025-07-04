@@ -13,7 +13,25 @@ use assembly::{
 // STANDARD LIBRARY
 // ================================================================================================
 
-/// TODO: add docs
+/// A wrapper around the Miden standard library.
+///
+/// `StdLibrary` provides access to the pre-compiled Miden standard library, which contains
+/// a collection of commonly used procedures and utilities for Miden VM programs.
+///
+/// The standard library is compiled at build time and embedded into the binary,
+/// making it available without requiring additional file access at runtime.
+///
+/// # Examples
+///
+/// ```
+/// use miden_stdlib::StdLibrary;
+///
+/// // Get the default instance of the standard library
+/// let stdlib = StdLibrary::default();
+///
+/// // Access the underlying MAST forest
+/// let forest = stdlib.mast_forest();
+/// ```
 #[derive(Clone)]
 pub struct StdLibrary(Library);
 
