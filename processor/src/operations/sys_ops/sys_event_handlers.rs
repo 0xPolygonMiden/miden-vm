@@ -634,12 +634,12 @@ fn push_transformed_stack_top(
 }
 
 fn get_smt_leaf_preimage(
-    process: &ProcessState,
+    process: &mut ProcessState,
     node: Word,
     err_ctx: &impl ErrorContext,
 ) -> Result<Vec<(Word, Word)>, ExecutionError> {
     let kv_pairs = process
-        .advice_provider()
+        .advice_provider_mut()
         .get_mapped_values(&node)
         .map_err(|_| ExecutionError::smt_node_not_found(node, err_ctx))?;
 
