@@ -24,9 +24,9 @@ use vm_core::{
 #[cfg(not(feature = "testing"))]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct AdviceInputs {
-    stack: Vec<Felt>,
-    map: AdviceMap,
-    store: MerkleStore,
+    pub(super) stack: Vec<Felt>,
+    pub(super) map: AdviceMap,
+    pub(super) store: MerkleStore,
 }
 
 impl AdviceInputs {
@@ -122,16 +122,6 @@ impl AdviceInputs {
     /// Returns the underlying [MerkleStore].
     pub const fn merkle_store(&self) -> &MerkleStore {
         &self.store
-    }
-
-    // DESTRUCTORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Decomposes these `[Self]` into their raw components.
-    #[allow(clippy::type_complexity)]
-    pub(crate) fn into_parts(self) -> (Vec<Felt>, AdviceMap, MerkleStore) {
-        let Self { stack, map, store } = self;
-        (stack, map, store)
     }
 }
 

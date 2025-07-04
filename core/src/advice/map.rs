@@ -1,6 +1,9 @@
 use alloc::{
     boxed::Box,
-    collections::{BTreeMap, btree_map::IntoIter},
+    collections::{
+        BTreeMap,
+        btree_map::{Entry, IntoIter},
+    },
     vec::Vec,
 };
 
@@ -53,26 +56,48 @@ impl AdviceMap {
         self.0.is_empty()
     }
 
+    /// Gets the given key's corresponding entry in the map for in-place manipulation.
+    pub fn entry(&mut self, key: Word) -> Entry<'_, Word, Vec<Felt>> {
+        self.0.entry(key)
+    }
+
     /// Merges all entries from the given [`AdviceMap`] into the current advice map.
     ///
     /// If an entry from the new map already exists with the same key but different value,
     /// an error is returned containing the existing entry along with the value that would replace
     /// it. The current map remains unchanged.
-    pub fn merge_advice_map(&mut self, other: &AdviceMap) -> Result<(), (MapEntry, Vec<Felt>)> {
-        // Check if any values are already present and different from those we are merging.
+    pub fn merge(&mut self, other: &Self) -> Result<(), (MapEntry, Vec<Felt>)> {
+        if let Some(conflict) = self.find_overlapping_entry(other) {
+            Err(conflict)
+        } else {
+            self.merge_new(other);
+            Ok(())
+        }
+    }
+
+    /// Merges entries from `other`, but only for keys not already present in `self`.
+    pub fn merge_new(&mut self, other: &Self) {
         for (key, value) in other.iter() {
-            if let Some(existing) = self.get(key) {
-                if existing != value {
-                    return Err(((*key, existing.to_vec()), value.to_vec()));
+            self.0.entry(*key).or_insert_with(|| value.clone());
+        }
+    }
+
+    /// Finds the first key that exists in both `self` and `other` with different values.
+    ///
+    /// # Returns
+    /// - `Some` containing the conflicting key, its value from `self`, and the value from `other`.
+    /// - `None` if there are no conflicting values.
+    pub fn find_overlapping_entry(&self, other: &Self) -> Option<(MapEntry, Vec<Felt>)> {
+        for (key, new_value) in other.iter() {
+            if let Some(existing_value) = self.get(key) {
+                if existing_value != new_value {
+                    // Found a conflict.
+                    return Some(((*key, existing_value.to_vec()), new_value.clone()));
                 }
             }
         }
-
-        // Insert all other values, overwriting existing ones which we have checked are the same.
-        for (key, value) in other.iter() {
-            self.insert(*key, value.clone());
-        }
-        Ok(())
+        // No conflicts found.
+        None
     }
 }
 

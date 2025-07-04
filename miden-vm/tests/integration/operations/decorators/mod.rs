@@ -20,6 +20,10 @@ pub struct TestHost {
 }
 
 impl BaseHost for TestHost {
+    fn mast_forests(&self) -> &[Arc<MastForest>] {
+        &[]
+    }
+
     fn on_debug(
         &mut self,
         _process: &mut ProcessState,
