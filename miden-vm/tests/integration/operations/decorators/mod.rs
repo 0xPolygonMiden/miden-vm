@@ -45,6 +45,10 @@ impl SyncHost for TestHost {
         None
     }
 
+    fn mast_forests(&self) -> &[Arc<MastForest>] {
+        &[]
+    }
+
     fn on_event(
         &mut self,
         _process: &mut ProcessState,

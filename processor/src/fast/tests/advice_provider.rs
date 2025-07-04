@@ -256,6 +256,10 @@ impl SyncHost for ConsistencyHost {
         self.store.get(node_digest)
     }
 
+    fn mast_forests(&self) -> &[Arc<MastForest>] {
+        self.store.mast_forests()
+    }
+
     fn on_event(
         &mut self,
         _process: &mut ProcessState<'_>,

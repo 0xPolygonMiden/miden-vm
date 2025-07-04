@@ -22,6 +22,10 @@ impl SyncHost for TestHost {
         <DefaultHost as SyncHost>::get_mast_forest(&self.host, node_digest)
     }
 
+    fn mast_forests(&self) -> &[Arc<MastForest>] {
+        <DefaultHost as SyncHost>::mast_forests(&self.host)
+    }
+
     fn on_event(
         &mut self,
         process: &mut ProcessState,

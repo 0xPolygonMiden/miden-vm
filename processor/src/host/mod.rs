@@ -75,6 +75,9 @@ pub trait SyncHost: BaseHost {
     /// this digest could not be found in this [SyncHost].
     fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>>;
 
+    /// Returns the list of all available [MastForest]s.
+    fn mast_forests(&self) -> &[Arc<MastForest>];
+
     /// Handles the event emitted from the VM.
     fn on_event(
         &mut self,
@@ -106,6 +109,10 @@ impl BaseHost for DefaultHost {}
 impl SyncHost for DefaultHost {
     fn get_mast_forest(&self, node_digest: &Word) -> Option<Arc<MastForest>> {
         self.store.get(node_digest)
+    }
+
+    fn mast_forests(&self) -> &[Arc<MastForest>] {
+        self.store.mast_forests()
     }
 
     fn on_event(
