@@ -5,15 +5,17 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-#[cfg(not(target_family = "wasm"))]
-use alloc::format;
 use alloc::{
+    format,
     string::{String, ToString},
     sync::Arc,
     vec::Vec,
 };
 
-use assembly::{KernelLibrary, Library};
+use assembly::{
+    KernelLibrary, Library, Parse,
+    diagnostics::{SourceLanguage, reporting::PrintDiagnostic},
+};
 pub use assembly::{LibraryPath, SourceFile, SourceManager, diagnostics::Report};
 pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
 pub use processor::{
@@ -24,7 +26,7 @@ use processor::{Program, fast::FastProcessor};
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
 use prover::utils::range;
-pub use prover::{MemAdviceProvider, MerkleTreeVC, ProvingOptions, prove};
+pub use prover::{MerkleTreeVC, ProvingOptions, prove};
 pub use test_case::test_case;
 pub use verifier::{AcceptableOptions, VerifierError, verify};
 pub use vm_core::{
@@ -120,8 +122,8 @@ macro_rules! expect_exec_error_matches {
     };
 }
 
-/// Like [assembly::assert_diagnostic], but matches each non-empty line of the rendered output to a
-/// corresponding pattern.
+/// Like [assembly::testing::assert_diagnostic], but matches each non-empty line of the rendered
+/// output to a corresponding pattern.
 ///
 /// So if the output has 3 lines, the second of which is empty, and you provide 2 patterns, the
 /// assertion passes if the first line matches the first pattern, and the third line matches the
@@ -188,7 +190,7 @@ impl Test {
     /// Creates the simplest possible new test, with only a source string and no inputs.
     pub fn new(name: &str, source: &str, in_debug_mode: bool) -> Self {
         let source_manager = Arc::new(assembly::DefaultSourceManager::default());
-        let source = source_manager.load(name, source.to_string());
+        let source = source_manager.load(SourceLanguage::Masm, name.into(), source.to_string());
         Test {
             source_manager,
             source,
@@ -230,7 +232,7 @@ impl Test {
     ) {
         // compile the program
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = TestHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let mut host = TestHost::default();
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }
@@ -242,6 +244,7 @@ impl Test {
         let mut process = Process::new(
             program.kernel().clone(),
             self.stack_inputs.clone(),
+            self.advice_inputs.clone(),
             ExecutionOptions::default().with_debugging(self.in_debug_mode),
         )
         .with_source_manager(self.source_manager.clone());
@@ -293,7 +296,7 @@ impl Test {
     /// # Errors
     /// Returns an error if compilation of the program source or the kernel fails.
     pub fn compile(&self) -> Result<(Program, Option<KernelLibrary>), Report> {
-        use assembly::{Assembler, CompileOptions, ast::ModuleKind};
+        use assembly::{Assembler, ParseOptions, ast::ModuleKind};
 
         let (assembler, kernel_lib) = if let Some(kernel) = self.kernel_source.clone() {
             let kernel_lib =
@@ -310,17 +313,19 @@ impl Test {
         let mut assembler = self
             .add_modules
             .iter()
-            .fold(assembler, |assembler, (path, source)| {
-                assembler
-                    .with_module_and_options(
-                        source,
-                        CompileOptions::new(ModuleKind::Library, path.clone()).unwrap(),
+            .fold(assembler, |mut assembler, (path, source)| {
+                let module = source
+                    .parse_with_options(
+                        &assembler.source_manager(),
+                        ParseOptions::new(ModuleKind::Library, path.clone()).unwrap(),
                     )
-                    .expect("invalid masm source code")
+                    .expect("invalid masm source code");
+                assembler.compile_and_statically_link(module).expect("failed to link module");
+                assembler
             })
             .with_debug_mode(self.in_debug_mode);
         for library in &self.libraries {
-            assembler.add_library(library).unwrap();
+            assembler.link_dynamic_library(library).unwrap();
         }
 
         Ok((assembler.assemble_program(self.source.clone())?, kernel_lib))
@@ -339,18 +344,24 @@ impl Test {
         let mut process = Process::new(
             program.kernel().clone(),
             self.stack_inputs.clone(),
+            self.advice_inputs.clone(),
             ExecutionOptions::default().with_debugging(self.in_debug_mode),
         )
         .with_source_manager(self.source_manager.clone());
-        let slow_stack_outputs = process.execute(&program, &mut host)?;
-
-        let trace = ExecutionTrace::new(process, slow_stack_outputs.clone());
-        assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
+        let slow_stack_result = process.execute(&program, &mut host);
 
         // compare fast and slow processors' stack outputs
-        self.assert_outputs_with_fast_processor(slow_stack_outputs);
+        self.assert_result_with_fast_processor(&slow_stack_result);
 
-        Ok(trace)
+        match slow_stack_result {
+            Ok(slow_stack_outputs) => {
+                let trace = ExecutionTrace::new(process, slow_stack_outputs);
+                assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
+
+                Ok(trace)
+            },
+            Err(err) => Err(err),
+        }
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns the
@@ -361,14 +372,18 @@ impl Test {
         let mut process = Process::new(
             program.kernel().clone(),
             self.stack_inputs.clone(),
+            self.advice_inputs.clone(),
             ExecutionOptions::default().with_debugging(self.in_debug_mode),
         )
         .with_source_manager(self.source_manager.clone());
 
-        let stack_outputs = process.execute(&program, &mut host)?;
-        self.assert_outputs_with_fast_processor(stack_outputs);
+        let stack_result = process.execute(&program, &mut host);
+        self.assert_result_with_fast_processor(&stack_result);
 
-        Ok((process, host))
+        match stack_result {
+            Ok(_) => Ok((process, host)),
+            Err(err) => Err(err),
+        }
     }
 
     /// Compiles the test's code into a program, then generates and verifies a proof of execution
@@ -380,6 +395,7 @@ impl Test {
         let (mut stack_outputs, proof) = prover::prove(
             &program,
             stack_inputs.clone(),
+            self.advice_inputs.clone(),
             &mut host,
             ProvingOptions::default(),
             self.source_manager.clone(),
@@ -407,18 +423,20 @@ impl Test {
         let mut process = Process::new(
             program.kernel().clone(),
             self.stack_inputs.clone(),
+            self.advice_inputs.clone(),
             ExecutionOptions::default().with_debugging(self.in_debug_mode),
         )
         .with_source_manager(self.source_manager.clone());
         let result = process.execute(&program, &mut host);
 
-        if let Ok(stack_outputs) = &result {
+        self.assert_result_with_fast_processor(&result);
+
+        if result.is_ok() {
             assert_eq!(
                 program.hash(),
                 process.decoder.program_hash().into(),
                 "inconsistent program hash"
             );
-            self.assert_outputs_with_fast_processor(stack_outputs.clone());
         }
         VmStateIterator::new(process, result)
     }
@@ -426,7 +444,7 @@ impl Test {
     /// Returns the last state of the stack after executing a test.
     #[track_caller]
     pub fn get_last_stack_state(&self) -> StackOutputs {
-        let trace = self.execute().unwrap();
+        let trace = self.execute().expect("failed to execute");
 
         trace.last_stack_state()
     }
@@ -440,7 +458,7 @@ impl Test {
     /// and library MAST forests.
     fn get_program_and_host(&self) -> (Program, TestHost) {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = TestHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let mut host = TestHost::default();
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }
@@ -456,13 +474,51 @@ impl Test {
     fn assert_outputs_with_fast_processor(&self, slow_stack_outputs: StackOutputs) {
         let (program, mut host) = self.get_program_and_host();
         let stack_inputs: Vec<Felt> = self.stack_inputs.clone().into_iter().rev().collect();
-        let fast_process = FastProcessor::new(&stack_inputs);
-        let fast_stack_outputs = fast_process.execute(&program, &mut host).unwrap();
+        let advice_inputs = self.advice_inputs.clone();
+        let fast_process = FastProcessor::new_with_advice_inputs(&stack_inputs, advice_inputs);
+        let fast_stack_outputs = fast_process.execute_sync(&program, &mut host).unwrap();
 
         assert_eq!(
             slow_stack_outputs, fast_stack_outputs,
             "stack outputs do not match between slow and fast processors"
         );
+    }
+
+    fn assert_result_with_fast_processor(
+        &self,
+        slow_result: &Result<StackOutputs, ExecutionError>,
+    ) {
+        let (program, mut host) = self.get_program_and_host();
+        let stack_inputs: Vec<Felt> = self.stack_inputs.clone().into_iter().rev().collect();
+        let advice_inputs: AdviceInputs = self.advice_inputs.clone();
+        let fast_process = FastProcessor::new_with_advice_inputs(&stack_inputs, advice_inputs)
+            .with_source_manager(self.source_manager.clone());
+        let fast_result = fast_process.execute_sync(&program, &mut host);
+
+        match slow_result {
+            Ok(slow_stack_outputs) => {
+                let fast_stack_outputs = fast_result.unwrap();
+                assert_eq!(
+                    slow_stack_outputs, &fast_stack_outputs,
+                    "stack outputs do not match between slow and fast processors"
+                );
+            },
+            Err(slow_err) => {
+                assert!(fast_result.is_err(), "expected error, but got success");
+                let fast_err = fast_result.unwrap_err();
+
+                // assert that diagnostics match
+                let slow_diagnostic = format!("{}", PrintDiagnostic::new_without_color(slow_err));
+                let fast_diagnostic = format!("{}", PrintDiagnostic::new_without_color(fast_err));
+
+                // Note: This assumes that the tests are run WITHOUT the `no_err_ctx` feature
+                assert_eq!(
+                    slow_diagnostic, fast_diagnostic,
+                    "diagnostics do not match between slow and fast processors:\nSlow: {}\nFast: {}",
+                    slow_diagnostic, fast_diagnostic
+                );
+            },
+        }
     }
 }
 

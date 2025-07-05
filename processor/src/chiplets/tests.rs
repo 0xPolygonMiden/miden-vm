@@ -5,15 +5,16 @@ use miden_air::trace::{
     chiplets::{
         NUM_BITWISE_SELECTORS, NUM_KERNEL_ROM_SELECTORS, NUM_MEMORY_SELECTORS,
         bitwise::{BITWISE_XOR, OP_CYCLE_LEN, TRACE_WIDTH as BITWISE_TRACE_WIDTH},
-        hasher::{Digest, HASH_CYCLE_LEN, LINEAR_HASH, RETURN_STATE},
+        hasher::{HASH_CYCLE_LEN, LINEAR_HASH, RETURN_STATE},
         kernel_rom::TRACE_WIDTH as KERNEL_ROM_TRACE_WIDTH,
         memory::TRACE_WIDTH as MEMORY_TRACE_WIDTH,
     },
 };
-use vm_core::{Felt, ONE, Program, ZERO, mast::MastForest};
+use vm_core::{Felt, ONE, Program, Word, ZERO, mast::MastForest};
 
 use crate::{
-    DefaultHost, ExecutionOptions, ExecutionTrace, Kernel, Operation, Process, StackInputs,
+    AdviceInputs, DefaultHost, ExecutionOptions, ExecutionTrace, Kernel, Operation, Process,
+    StackInputs,
 };
 
 type ChipletsTrace = [Vec<Felt>; CHIPLETS_WIDTH];
@@ -103,8 +104,8 @@ fn stacked_chiplet_trace() {
 
 /// Creates a kernel with two dummy procedures
 fn build_kernel() -> Kernel {
-    let proc_hash1: Digest = [ONE, ZERO, ONE, ZERO].into();
-    let proc_hash2: Digest = [ONE, ONE, ONE, ONE].into();
+    let proc_hash1 = Word::from([1_u32, 0, 1, 0]);
+    let proc_hash2 = Word::from([1_u32, 1, 1, 1]);
     Kernel::new(&[proc_hash1, proc_hash2]).unwrap()
 }
 
@@ -117,7 +118,8 @@ fn build_trace(
 ) -> (ChipletsTrace, usize) {
     let stack_inputs = StackInputs::try_from_ints(stack_inputs.iter().copied()).unwrap();
     let mut host = DefaultHost::default();
-    let mut process = Process::new(kernel, stack_inputs, ExecutionOptions::default());
+    let mut process =
+        Process::new(kernel, stack_inputs, AdviceInputs::default(), ExecutionOptions::default());
     let program = {
         let mut mast_forest = MastForest::new();
 

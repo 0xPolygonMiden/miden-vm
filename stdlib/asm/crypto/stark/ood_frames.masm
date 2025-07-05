@@ -38,11 +38,6 @@ export.load_and_horner_eval_ood_frames
     # => [Y, ...]
 
     # II) Compute Q^z(alpha)
-    #     Note that there a few a goals which are in tension. Namely, we want to hash the execution trace OOD evaluations,
-    #     both current and next, in one go but we want to use Horner evaluation to compute an expression which has a part in
-    #     the execution trace OOD evaluations and another part in the quotient trace OOD evaluations.
-    #     This complicates things in some places, in particular we need to save the capacity portions temporarily
-    #     while hashing the OOD evaluations of both the execution trace and constraint composition polynomials evaluations.
 
     ## 1) Set up the stack for `horner_eval_ext` to compute Q^z(alpha)
 
@@ -50,11 +45,12 @@ export.load_and_horner_eval_ood_frames
     ###    to which we save the OOD.
     push.0.0
     exec.constants::deep_rand_alpha_nd_ptr
-    exec.constants::ood_trace_current_ptr
-    # => [ood_trace_current_ptr, deep_rand_alpha_ptr, 0, 0, Y, ...]
+    exec.constants::ood_evaluations_ptr
+    # => [ood_evaluations_ptr, deep_rand_alpha_ptr, 0, 0, Y, ...]
     # => [U, Y, ...]
 
-    ## 2) Process the fully aligned OOD `current` evaluations at z of the execution trace. 
+    ## 2) Process the fully aligned OOD `current` evaluations at z of the execution trace
+    ##    and constraints polynomials evaluations. 
     ##    Since there are (80 + 8 + 8) * 2 = 24 * 8 base field elements, there are 24 fully double-word aligned batches.
     ## Note: the first word is the capacity, where its first element is initialized with the number of elements to hash MODULO 8.
 
@@ -65,36 +61,15 @@ export.load_and_horner_eval_ood_frames
     movupw.3
     # => [Y, ZERO, 0, 0, 0, 0, U, ...]
 
-    ### b) Process the first 11 8-element batches i.e., the `current` trace OOD evaluations
-    repeat.22
+    ### b) Process the `current` OOD evaluations
+    repeat.24
         adv_pipe
         horner_eval_ext
         hperm
     end
-
-    ### c) Save the capacity in order to continue hashing
-    swapw.2
-    exec.constants::tmp1 mem_storew
-
-    ### d) Initialize the capacity portion to hash the constraints polynomials OOD evaluations
-    exec.constants::zero_word_ptr mem_loadw
-    swapw.2
-
-    ### e) Process the `current` OOD evaluations of the constraint polynomial 
-    repeat.2
-        adv_pipe
-        horner_eval_ext
-        hperm
-    end
-
-    ### f) Save capacity for hashing constraints OOD and load the capacity for hashing the trace OOD
-    swapw.2
-    exec.constants::tmp2 mem_storew
-    exec.constants::tmp1 mem_loadw
-    swapw.2
     # => [Y, Y, C, ood_frame_ptr, alpha_ptr, acc1, acc0, ...]
 
-    # Save -Q^z(alpha)
+    ### c) Save -Q^z(alpha)
     swapw.3
     # => [ood_frame_ptr, alpha_ptr, acc1, acc0, Y, C, Y, ...]
     movup.3
@@ -105,7 +80,7 @@ export.load_and_horner_eval_ood_frames
     exec.constants::ood_fixed_term_horner_evaluations_ptr mem_storew
     # => [0, 0, -acc1, -acc0, ood_frame_ptr, alpha_ptr, Y, C, Y, ...]
 
-    # II) Compute Q^gz(alpha)
+    # III) Compute Q^gz(alpha)
 
     ## 1) Reset the Horner accumulator
     movdn.5
@@ -113,45 +88,22 @@ export.load_and_horner_eval_ood_frames
     drop drop
     # => [ood_frame_ptr, alpha_ptr, 0, 0, Y, C, Y, ...]
 
-    ## 2) Load the `next` trace polynomials OOD evaluations. 
-    ##    Note that the capacity portion of the sponge state is the one resulting from hashing
-    ##    the `current` trace polynomials OOD evaluations.
+    ## 2) Load the `next` trace polynomials OOD evaluations.
     swapw.3
     # => [Y, Y, C, ood_frame_ptr, alpha_ptr, 0, 0, ...]
-    repeat.22
+    repeat.24
         adv_pipe
         horner_eval_ext
         hperm
     end
     # => [Y, D, C, ood_frame_ptr, alpha_ptr, acc1, acc0, ...]
 
-    ## 3) Reseed with hash of the trace OODs
+    ## 3) Reseed with the digest of the OOD evaluations
     swapw
     exec.random_coin::reseed
     # => [Y, C, ood_frame_ptr, alpha_ptr, acc1, acc0, ...]
 
-    ## 4) Load the `next` constraints composition polynomials OOD evaluations. 
-    
-    ### a) Load the capacity that was used to hash the `current` part and set up the stack
-    exec.constants::tmp2 mem_loadw
-    swapw
-    padw
-    # => [Y, Y, C, ood_frame_ptr, alpha_ptr, acc1, acc0, ...]
-
-    ### b) Process the `next` OOD evaluations of the constraints composition polynomials
-    repeat.2
-        adv_pipe
-        horner_eval_ext
-        hperm
-    end
-    # => [Y, D, C, ood_frame_ptr, alpha_ptr, acc1, acc0, ...]
-
-    ### c) Reseed with the digest of the constraints composition polynomials OOD evaluations
-    swapw
-    exec.random_coin::reseed
-    # => [Y, C, ood_frame_ptr, alpha_ptr, acc1, acc0, ...]
-
-    ### d) Negate Q^z(alpha) and save it
+    ## 4) Negate Q^z(alpha) and save it
     dropw dropw drop drop
     # => [acc1, acc0, ...]
     neg

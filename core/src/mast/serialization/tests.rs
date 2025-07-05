@@ -1,6 +1,6 @@
-use alloc::{string::ToString, sync::Arc};
+use alloc::string::ToString;
 
-use miden_crypto::{Felt, ONE, hash::rpo::RpoDigest};
+use miden_crypto::{Felt, ONE, Word};
 
 use super::*;
 use crate::{AssemblyOp, DebugOptions, Decorator, mast::MastForestError, operations::Operation};
@@ -227,7 +227,7 @@ fn serialize_deserialize_all_nodes() {
                 0,
                 Decorator::AsmOp(AssemblyOp::new(
                     Some(crate::debuginfo::Location {
-                        path: Arc::from("test"),
+                        uri: "test".into(),
                         start: 42.into(),
                         end: 43.into(),
                     }),
@@ -289,7 +289,7 @@ fn serialize_deserialize_all_nodes() {
     mast_forest[dyncall_node_id].append_after_exit(&[decorator_id2]);
 
     // External node
-    let external_node_id = mast_forest.add_external(RpoDigest::default()).unwrap();
+    let external_node_id = mast_forest.add_external(Word::default()).unwrap();
     mast_forest[external_node_id].append_before_enter(&[decorator_id1]);
     mast_forest[external_node_id].append_after_exit(&[decorator_id2]);
 
@@ -400,7 +400,7 @@ fn mast_forest_serialize_deserialize_advice_map() {
     let second = forest.add_block(vec![Operation::U32and], Some(vec![(1, deco1)])).unwrap();
     forest.add_join(first, second).unwrap();
 
-    let key = RpoDigest::new([ONE, ONE, ONE, ONE]);
+    let key = Word::new([ONE, ONE, ONE, ONE]);
     let value = vec![ONE, ONE];
 
     forest.advice_map_mut().insert(key, value);

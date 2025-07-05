@@ -3,11 +3,10 @@ use alloc::{collections::BTreeMap, vec::Vec};
 use miden_crypto::hash::{
     Digest,
     blake::{Blake3_256, Blake3Digest},
-    rpo::RpoDigest,
 };
 
 use crate::{
-    Operation,
+    Operation, Word,
     mast::{DecoratorId, MastForest, MastForestError, MastNode, MastNodeId},
 };
 
@@ -23,7 +22,7 @@ pub type DecoratorFingerprint = Blake3Digest<32>;
 /// descendants).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct MastNodeFingerprint {
-    mast_root: RpoDigest,
+    mast_root: Word,
     decorator_root: Option<DecoratorFingerprint>,
 }
 
@@ -31,13 +30,13 @@ pub struct MastNodeFingerprint {
 /// Constructors
 impl MastNodeFingerprint {
     /// Creates a new [`MastNodeFingerprint`] from the given MAST root with an empty decorator root.
-    pub fn new(mast_root: RpoDigest) -> Self {
+    pub fn new(mast_root: Word) -> Self {
         Self { mast_root, decorator_root: None }
     }
 
     /// Creates a new [`MastNodeFingerprint`] from the given MAST root and the given
     /// [`DecoratorFingerprint`].
-    pub fn with_decorator_root(mast_root: RpoDigest, decorator_root: DecoratorFingerprint) -> Self {
+    pub fn with_decorator_root(mast_root: Word, decorator_root: DecoratorFingerprint) -> Self {
         Self {
             mast_root,
             decorator_root: Some(decorator_root),
@@ -146,7 +145,7 @@ impl MastNodeFingerprint {
 // ------------------------------------------------------------------------------------------------
 /// Accessors
 impl MastNodeFingerprint {
-    pub fn mast_root(&self) -> &RpoDigest {
+    pub fn mast_root(&self) -> &Word {
         &self.mast_root
     }
 }
@@ -157,7 +156,7 @@ fn fingerprint_from_parts(
     before_enter_ids: &[DecoratorId],
     after_exit_ids: &[DecoratorId],
     children_ids: &[MastNodeId],
-    node_digest: RpoDigest,
+    node_digest: Word,
 ) -> Result<MastNodeFingerprint, MastForestError> {
     let pre_decorator_hash_bytes =
         before_enter_ids.iter().flat_map(|&id| forest[id].fingerprint().as_bytes());

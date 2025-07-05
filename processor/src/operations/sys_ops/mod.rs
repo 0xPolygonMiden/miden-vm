@@ -1,8 +1,4 @@
-use vm_core::{
-    Felt, Operation,
-    mast::{MastForest, MastNodeExt},
-    sys_events::SystemEvent,
-};
+use vm_core::{Felt, Operation, mast::MastForest, sys_events::SystemEvent};
 
 use super::{
     super::{
@@ -11,7 +7,10 @@ use super::{
     },
     ExecutionError, Process,
 };
-use crate::{Host, ProcessState, errors::ErrorContext};
+use crate::{
+    SyncHost, errors::ErrorContext, operations::sys_ops::sys_event_handlers::handle_system_event,
+};
+
 pub(crate) mod sys_event_handlers;
 
 // SYSTEM OPERATIONS
@@ -27,16 +26,21 @@ impl Process {
         err_code: Felt,
         program: &MastForest,
         host: &mut H,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError>
     where
-        H: Host,
+        H: SyncHost,
     {
         if self.stack.get(0) != ONE {
-            let state = ProcessState::from(self);
-            host.on_assert_failed(state, err_code);
+            let process = &mut self.state();
+            host.on_assert_failed(process, err_code);
             let err_msg = program.resolve_error_message(err_code);
-            return Err(ExecutionError::failed_assertion(state.clk(), err_code, err_msg, err_ctx));
+            return Err(ExecutionError::failed_assertion(
+                process.clk(),
+                err_code,
+                err_msg,
+                err_ctx,
+            ));
         }
         self.stack.shift_left(1);
         Ok(())
@@ -134,19 +138,20 @@ impl Process {
         &mut self,
         event_id: u32,
         host: &mut H,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Result<(), ExecutionError>
     where
-        H: Host,
+        H: SyncHost,
     {
         self.stack.copy_state(0);
         self.decoder.set_user_op_helpers(Operation::Emit(event_id), &[event_id.into()]);
 
+        let process = &mut self.state();
         // If it's a system event, handle it directly. Otherwise, forward it to the host.
         if let Some(system_event) = SystemEvent::from_event_id(event_id) {
-            self.handle_system_event(system_event, host, err_ctx)
+            handle_system_event(process, system_event, err_ctx)
         } else {
-            host.on_event(self.into(), event_id, err_ctx)
+            host.on_event(process, event_id, err_ctx)
         }
     }
 }

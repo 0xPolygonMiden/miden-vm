@@ -2,15 +2,18 @@ use alloc::vec::Vec;
 
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::{FromPrimitive, ToPrimitive};
-use winter_utils::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
-};
 
 use super::{
     DecoratorDataOffset,
     string_table::{StringTable, StringTableBuilder},
 };
-use crate::{AssemblyOp, DebugOptions, Decorator};
+use crate::{
+    AssemblyOp, DebugOptions, Decorator,
+    debuginfo::Uri,
+    utils::{
+        ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
+    },
+};
 
 /// Represents a serialized [`Decorator`].
 ///
@@ -50,11 +53,11 @@ impl DecoratorInfo {
                 // source location
                 let location = if data_reader.read_bool()? {
                     let str_index_in_table = data_reader.read_usize()?;
-                    let path = string_table.read_arc_str(str_index_in_table)?;
+                    let uri = string_table.read_arc_str(str_index_in_table).map(Uri::from)?;
                     let start = data_reader.read_u32()?;
                     let end = data_reader.read_u32()?;
                     Some(crate::debuginfo::Location {
-                        path,
+                        uri,
                         start: start.into(),
                         end: end.into(),
                     })
@@ -245,7 +248,7 @@ impl DecoratorDataBuilder {
                 let loc = assembly_op.location();
                 self.decorator_data.write_bool(loc.is_some());
                 if let Some(loc) = loc {
-                    let str_offset = self.string_table_builder.add_string(loc.path.as_ref());
+                    let str_offset = self.string_table_builder.add_string(loc.uri.as_ref());
                     self.decorator_data.write_usize(str_offset);
                     self.decorator_data.write_u32(loc.start.to_u32());
                     self.decorator_data.write_u32(loc.end.to_u32());

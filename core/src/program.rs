@@ -1,14 +1,16 @@
 use alloc::{sync::Arc, vec::Vec};
 use core::fmt;
 
-use miden_crypto::{Felt, WORD_SIZE, hash::rpo::RpoDigest};
-use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
+use math::FieldElement;
+use miden_crypto::{Felt, WORD_SIZE, Word};
 
 use super::Kernel;
 use crate::{
     AdviceMap,
     mast::{MastForest, MastNode, MastNodeId},
-    utils::ToElements,
+    utils::{
+        ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, ToElements,
+    },
 };
 
 // PROGRAM
@@ -73,7 +75,7 @@ impl Program {
     /// Returns the hash of the program's entrypoint.
     ///
     /// Equivalently, returns the hash of the root of the entrypoint procedure.
-    pub fn hash(&self) -> RpoDigest {
+    pub fn hash(&self) -> Word {
         self.mast_forest[self.entrypoint].digest()
     }
 
@@ -103,7 +105,7 @@ impl Program {
 
     /// Returns the [`MastNodeId`] of the procedure root associated with a given digest, if any.
     #[inline(always)]
-    pub fn find_procedure_root(&self, digest: RpoDigest) -> Option<MastNodeId> {
+    pub fn find_procedure_root(&self, digest: Word) -> Option<MastNodeId> {
         self.mast_forest.find_procedure_root(digest)
     }
 
@@ -205,18 +207,18 @@ impl fmt::Display for Program {
 /// zero-knowledge properties.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ProgramInfo {
-    program_hash: RpoDigest,
+    program_hash: Word,
     kernel: Kernel,
 }
 
 impl ProgramInfo {
     /// Creates a new instance of a program info.
-    pub const fn new(program_hash: RpoDigest, kernel: Kernel) -> Self {
+    pub const fn new(program_hash: Word, kernel: Kernel) -> Self {
         Self { program_hash, kernel }
     }
 
     /// Returns the program hash computed from its code block root.
-    pub const fn program_hash(&self) -> &RpoDigest {
+    pub const fn program_hash(&self) -> &Word {
         &self.program_hash
     }
 
@@ -226,7 +228,7 @@ impl ProgramInfo {
     }
 
     /// Returns the list of procedures of the kernel used during the compilation.
-    pub fn kernel_procedures(&self) -> &[RpoDigest] {
+    pub fn kernel_procedures(&self) -> &[Word] {
         self.kernel.proc_hashes()
     }
 }
@@ -264,18 +266,32 @@ impl Deserializable for ProgramInfo {
 impl ToElements for ProgramInfo {
     fn to_elements(&self) -> Vec<Felt> {
         let num_kernel_proc_elements = self.kernel.proc_hashes().len() * WORD_SIZE;
-        let mut result = Vec::with_capacity(WORD_SIZE + num_kernel_proc_elements);
+        let mut result = Vec::with_capacity(2 * WORD_SIZE + num_kernel_proc_elements);
 
-        // append program hash elements
+        // append program hash elements where we pad with zero so as to make the fixed length
+        // public inputs section of the public inputs of length a multiple of 8 i.e., double-word
+        // aligned
         result.extend_from_slice(self.program_hash.as_elements());
+        result.extend_from_slice(&[Felt::ZERO; 4]);
 
         // append kernel procedure hash elements
         // we reverse the digests in order to make reducing them using auxiliary randomness easier
+        // we also pad them to the next multiple of 8
         for proc_hash in self.kernel.proc_hashes() {
-            let mut digest = proc_hash.as_elements().to_vec();
-            digest.reverse();
-            result.extend_from_slice(&digest);
+            let mut proc_hash_elements = proc_hash.as_elements().to_vec();
+            pad_next_mul_8(&mut proc_hash_elements);
+            proc_hash_elements.reverse();
+            result.extend_from_slice(&proc_hash_elements);
         }
         result
     }
+}
+
+// HELPER
+// ===============================================================================================
+
+/// Pads a vector of field elements using zeros to the next multiple of 8.
+fn pad_next_mul_8(input: &mut Vec<Felt>) {
+    let output_len = input.len().next_multiple_of(8);
+    input.resize(output_len, Felt::ZERO);
 }

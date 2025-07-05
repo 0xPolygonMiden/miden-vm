@@ -1,9 +1,6 @@
 use alloc::vec::Vec;
 
-use miden_air::{
-    RowIndex,
-    trace::chiplets::hasher::{Digest, HasherState},
-};
+use miden_air::{RowIndex, trace::chiplets::hasher::HasherState};
 use vm_core::{Kernel, mast::OpBatch};
 
 use super::{

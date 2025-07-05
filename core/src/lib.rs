@@ -72,8 +72,8 @@ pub mod crypto {
         pub use miden_crypto::hash::{
             Digest, ElementHasher, Hasher,
             blake::{Blake3_160, Blake3_192, Blake3_256, Blake3Digest},
-            rpo::{Rpo256, RpoDigest},
-            rpx::{Rpx256, RpxDigest},
+            rpo::Rpo256,
+            rpx::Rpx256,
         };
     }
 
@@ -118,7 +118,7 @@ pub mod prettier {
 mod operations;
 pub use operations::{
     AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList, Operation,
-    SignatureKind, opcode_constants::*,
+    opcode_constants::*,
 };
 
 pub mod stack;

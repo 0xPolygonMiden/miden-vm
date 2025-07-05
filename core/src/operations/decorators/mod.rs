@@ -40,7 +40,7 @@ impl Decorator {
             Self::AsmOp(asm_op) => {
                 let mut bytes_to_hash = Vec::new();
                 if let Some(location) = asm_op.location() {
-                    bytes_to_hash.extend(location.path.as_bytes());
+                    bytes_to_hash.extend(location.uri.as_str().as_bytes());
                     bytes_to_hash.extend(location.start.to_u32().to_le_bytes());
                     bytes_to_hash.extend(location.end.to_u32().to_le_bytes());
                 }
@@ -117,23 +117,6 @@ impl<'a> Iterator for DecoratorIterator<'a> {
             Some(&self.decorators[self.idx - 1].1)
         } else {
             None
-        }
-    }
-}
-
-// TYPES AND INTERFACES
-// ================================================================================================
-
-// Collection of signature schemes supported
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum SignatureKind {
-    RpoFalcon512,
-}
-
-impl fmt::Display for SignatureKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::RpoFalcon512 => write!(f, "rpo_falcon512"),
         }
     }
 }

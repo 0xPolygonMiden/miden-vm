@@ -3,9 +3,10 @@ use alloc::{
     vec::Vec,
 };
 
-use miden_crypto::hash::rpo::RpoDigest;
-
-use crate::mast::{MastForest, MastForestError, MastNode, MastNodeId};
+use crate::{
+    Word,
+    mast::{MastForest, MastForestError, MastNode, MastNodeId},
+};
 
 type ForestIndex = usize;
 
@@ -80,7 +81,7 @@ pub(crate) struct MultiMastForestNodeIter<'forest> {
     current_procedure_root_idx: u32,
     /// A map of MAST roots of all non-external nodes in mast_forests to their forest and node
     /// indices.
-    non_external_nodes: BTreeMap<RpoDigest, (ForestIndex, MastNodeId)>,
+    non_external_nodes: BTreeMap<Word, (ForestIndex, MastNodeId)>,
     /// Describes whether the node identified by [forest_index][node_index] has already been
     /// discovered. Note that this is `true` for all nodes that are in the unvisited node deque.
     discovered_nodes: Vec<Vec<bool>>,
@@ -316,13 +317,12 @@ pub(crate) enum MultiMastForestIteratorItem {
 
 #[cfg(test)]
 mod tests {
-    use miden_crypto::hash::rpo::RpoDigest;
 
     use super::*;
-    use crate::Operation;
+    use crate::{Operation, Word};
 
-    fn random_digest() -> RpoDigest {
-        RpoDigest::new([rand_utils::rand_value(); 4])
+    fn random_digest() -> Word {
+        Word::new([rand_utils::rand_value(); 4])
     }
 
     #[test]

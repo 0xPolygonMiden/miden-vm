@@ -1,8 +1,9 @@
-use processor::{ContextId, DefaultHost, Program};
+use processor::{AdviceInputs, ContextId, DefaultHost, Program};
 use test_utils::{
     ExecutionOptions, ONE, Process, StackInputs, ZERO, build_expected_hash, build_expected_perm,
     felt_slice_to_ints,
 };
+use vm_core::Word;
 
 #[test]
 fn test_memcopy_words() {
@@ -24,7 +25,7 @@ fn test_memcopy_words() {
 
     let stdlib = StdLibrary::default();
     let assembler = assembly::Assembler::default()
-        .with_library(&stdlib)
+        .with_dynamic_library(&stdlib)
         .expect("failed to load stdlib");
 
     let program: Program =
@@ -33,59 +34,63 @@ fn test_memcopy_words() {
     let mut host = DefaultHost::default();
     host.load_mast_forest(stdlib.mast_forest().clone()).unwrap();
 
-    let mut process =
-        Process::new(program.kernel().clone(), StackInputs::default(), ExecutionOptions::default());
+    let mut process = Process::new(
+        program.kernel().clone(),
+        StackInputs::default(),
+        AdviceInputs::default(),
+        ExecutionOptions::default(),
+    );
     process.execute(&program, &mut host).unwrap();
 
     assert_eq!(
         process.chiplets.memory.get_word(ContextId::root(), 1000).unwrap(),
-        Some([ZERO, ZERO, ZERO, ONE]),
+        Some(Word::new([ZERO, ZERO, ZERO, ONE])),
         "Address 1000"
     );
     assert_eq!(
         process.chiplets.memory.get_word(ContextId::root(), 1004).unwrap(),
-        Some([ZERO, ZERO, ONE, ZERO]),
+        Some(Word::new([ZERO, ZERO, ONE, ZERO])),
         "Address 1004"
     );
     assert_eq!(
         process.chiplets.memory.get_word(ContextId::root(), 1008).unwrap(),
-        Some([ZERO, ZERO, ONE, ONE]),
+        Some(Word::new([ZERO, ZERO, ONE, ONE])),
         "Address 1008"
     );
     assert_eq!(
         process.chiplets.memory.get_word(ContextId::root(), 1012).unwrap(),
-        Some([ZERO, ONE, ZERO, ZERO]),
+        Some(Word::new([ZERO, ONE, ZERO, ZERO])),
         "Address 1012"
     );
     assert_eq!(
         process.chiplets.memory.get_word(ContextId::root(), 1016).unwrap(),
-        Some([ZERO, ONE, ZERO, ONE]),
+        Some(Word::new([ZERO, ONE, ZERO, ONE])),
         "Address 1016"
     );
 
     assert_eq!(
         process.chiplets.memory.get_word(ContextId::root(), 2000).unwrap(),
-        Some([ZERO, ZERO, ZERO, ONE]),
+        Some(Word::new([ZERO, ZERO, ZERO, ONE])),
         "Address 2000"
     );
     assert_eq!(
         process.chiplets.memory.get_word(ContextId::root(), 2004).unwrap(),
-        Some([ZERO, ZERO, ONE, ZERO]),
+        Some(Word::new([ZERO, ZERO, ONE, ZERO])),
         "Address 2004"
     );
     assert_eq!(
         process.chiplets.memory.get_word(ContextId::root(), 2008).unwrap(),
-        Some([ZERO, ZERO, ONE, ONE]),
+        Some(Word::new([ZERO, ZERO, ONE, ONE])),
         "Address 2008"
     );
     assert_eq!(
         process.chiplets.memory.get_word(ContextId::root(), 2012).unwrap(),
-        Some([ZERO, ONE, ZERO, ZERO]),
+        Some(Word::new([ZERO, ONE, ZERO, ZERO])),
         "Address 2012"
     );
     assert_eq!(
         process.chiplets.memory.get_word(ContextId::root(), 2016).unwrap(),
-        Some([ZERO, ONE, ZERO, ONE]),
+        Some(Word::new([ZERO, ONE, ZERO, ONE])),
         "Address 2016"
     );
 }

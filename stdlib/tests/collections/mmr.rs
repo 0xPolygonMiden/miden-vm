@@ -1,11 +1,11 @@
 use test_utils::{
     EMPTY_WORD, Felt, ONE, StarkField, Word, ZERO,
     crypto::{
-        MerkleError, MerkleStore, MerkleTree, Mmr, NodeIndex, RpoDigest, init_merkle_leaf,
-        init_merkle_leaves,
+        MerkleError, MerkleStore, MerkleTree, Mmr, NodeIndex, init_merkle_leaf, init_merkle_leaves,
     },
     felt_slice_to_ints, hash_elements,
 };
+use vm_core::WORD_SIZE;
 
 // TESTS
 // ================================================================================================
@@ -241,19 +241,19 @@ fn test_mmr_unpack() {
         [ZERO, ZERO, ZERO, Felt::new(2)],
         [ZERO, ZERO, ZERO, Felt::new(3)],
         // Padding, the MMR is padded to a minimum length of 16
-        EMPTY_WORD,
-        EMPTY_WORD,
-        EMPTY_WORD,
-        EMPTY_WORD,
-        EMPTY_WORD,
-        EMPTY_WORD,
-        EMPTY_WORD,
-        EMPTY_WORD,
-        EMPTY_WORD,
-        EMPTY_WORD,
-        EMPTY_WORD,
-        EMPTY_WORD,
-        EMPTY_WORD,
+        EMPTY_WORD.into(),
+        EMPTY_WORD.into(),
+        EMPTY_WORD.into(),
+        EMPTY_WORD.into(),
+        EMPTY_WORD.into(),
+        EMPTY_WORD.into(),
+        EMPTY_WORD.into(),
+        EMPTY_WORD.into(),
+        EMPTY_WORD.into(),
+        EMPTY_WORD.into(),
+        EMPTY_WORD.into(),
+        EMPTY_WORD.into(),
+        EMPTY_WORD.into(),
     ];
     let peaks_hash = hash_elements(&peaks.concat());
 
@@ -271,7 +271,7 @@ fn test_mmr_unpack() {
     mmr_mem_repr.extend_from_slice(&[number_of_leaves.try_into().unwrap(), ZERO, ZERO, ZERO]);
     mmr_mem_repr.extend_from_slice(&peaks.as_slice().concat());
 
-    let advice_map: &[(RpoDigest, Vec<Felt>)] = &[
+    let advice_map: &[(Word, Vec<Felt>)] = &[
         // Under the MMR key is the number_of_leaves, followed by the MMR peaks, and any padding
         (peaks_hash, mmr_mem_repr),
     ];
@@ -303,19 +303,19 @@ fn test_mmr_unpack_invalid_hash() {
         [ZERO, ZERO, ZERO, Felt::new(2)],
         [ZERO, ZERO, ZERO, Felt::new(3)],
         // Padding, the MMR is padded to a minimum length o 16
-        EMPTY_WORD,
-        EMPTY_WORD,
-        EMPTY_WORD,
-        EMPTY_WORD,
-        EMPTY_WORD,
-        EMPTY_WORD,
-        EMPTY_WORD,
-        EMPTY_WORD,
-        EMPTY_WORD,
-        EMPTY_WORD,
-        EMPTY_WORD,
-        EMPTY_WORD,
-        EMPTY_WORD,
+        EMPTY_WORD.into(),
+        EMPTY_WORD.into(),
+        EMPTY_WORD.into(),
+        EMPTY_WORD.into(),
+        EMPTY_WORD.into(),
+        EMPTY_WORD.into(),
+        EMPTY_WORD.into(),
+        EMPTY_WORD.into(),
+        EMPTY_WORD.into(),
+        EMPTY_WORD.into(),
+        EMPTY_WORD.into(),
+        EMPTY_WORD.into(),
+        EMPTY_WORD.into(),
     ];
     let hash = hash_elements(&hash_data.concat());
 
@@ -336,7 +336,7 @@ fn test_mmr_unpack_invalid_hash() {
     map_data.extend_from_slice(&[Felt::new(0b10101), ZERO, ZERO, ZERO]); // 3 peaks, 21 leaves
     map_data.extend_from_slice(&hash_data.as_slice().concat());
 
-    let advice_map: &[(RpoDigest, Vec<Felt>)] = &[
+    let advice_map: &[(Word, Vec<Felt>)] = &[
         // Under the MMR key is the number_of_leaves, followed by the MMR peaks, and any padding
         (hash, map_data),
     ];
@@ -376,7 +376,7 @@ fn test_mmr_unpack_large_mmr() {
         [ZERO, ZERO, ZERO, Felt::new(16)],
         // Padding, peaks greater than 16 are padded to an even number
         [ZERO, ZERO, ZERO, Felt::new(17)],
-        EMPTY_WORD,
+        EMPTY_WORD.into(),
     ];
     let peaks_hash = hash_elements(&peaks.concat());
 
@@ -394,7 +394,7 @@ fn test_mmr_unpack_large_mmr() {
     mmr_mem_repr.extend_from_slice(&[number_of_leaves.try_into().unwrap(), ZERO, ZERO, ZERO]);
     mmr_mem_repr.extend_from_slice(&peaks.as_slice().concat());
 
-    let advice_map: &[(RpoDigest, Vec<Felt>)] = &[
+    let advice_map: &[(Word, Vec<Felt>)] = &[
         // Under the MMR key is the number_of_leaves, followed by the MMR peaks, and any padding
         (peaks_hash, mmr_mem_repr),
     ];
@@ -433,9 +433,9 @@ fn test_mmr_unpack_large_mmr() {
 #[test]
 fn test_mmr_pack_roundtrip() {
     let mut mmr = Mmr::new();
-    mmr.add(init_merkle_leaf(1).into());
-    mmr.add(init_merkle_leaf(2).into());
-    mmr.add(init_merkle_leaf(3).into());
+    mmr.add(init_merkle_leaf(1));
+    mmr.add(init_merkle_leaf(2));
+    mmr.add(init_merkle_leaf(3));
 
     let accumulator = mmr.peaks();
     let hash = accumulator.hash_peaks();
@@ -452,12 +452,12 @@ fn test_mmr_pack_roundtrip() {
     let store = MerkleStore::new();
 
     let mut hash_data = accumulator.peaks().to_vec();
-    hash_data.resize(16, RpoDigest::default());
+    hash_data.resize(16, Word::default());
     let mut map_data: Vec<Felt> = Vec::with_capacity(hash_data.len() + 1);
     map_data.extend_from_slice(&[Felt::new(accumulator.num_leaves() as u64), ZERO, ZERO, ZERO]);
-    map_data.extend_from_slice(digests_to_elements(&hash_data).as_ref());
+    map_data.extend_from_slice(Word::words_as_elements(&hash_data).as_ref());
 
-    let advice_map: &[(RpoDigest, Vec<Felt>)] = &[
+    let advice_map: &[(Word, Vec<Felt>)] = &[
         // Under the MMR key is the number_of_leaves, followed by the MMR peaks, and any padding
         (hash, map_data),
     ];
@@ -520,9 +520,9 @@ fn test_mmr_pack() {
     expect_data.extend_from_slice(&[Felt::new(3), ZERO, ZERO, ZERO]); // num_leaves
     expect_data.extend_from_slice(&hash_data);
 
-    let (_, host) = build_test!(source).execute_process().unwrap();
+    let (process, _) = build_test!(source).execute_process().unwrap();
 
-    let advice_data = host.advice_provider().map().get(&hash_u8).unwrap();
+    let advice_data = process.advice.map.get(&hash_u8).unwrap();
     assert_eq!(advice_data, &expect_data);
 }
 
@@ -654,14 +654,14 @@ fn test_mmr_large_add_roundtrip() {
     let store = MerkleStore::new();
 
     let mut hash_data = old_accumulator.peaks().to_vec();
-    hash_data.resize(16, RpoDigest::default());
+    hash_data.resize(16, Word::default());
 
     let mut map_data: Vec<Felt> = Vec::with_capacity(hash_data.len() + 1);
     let num_leaves = old_accumulator.num_leaves() as u64;
     map_data.extend_from_slice(&[Felt::try_from(num_leaves).unwrap(), ZERO, ZERO, ZERO]);
-    map_data.extend_from_slice(&digests_to_elements(&hash_data));
+    map_data.extend_from_slice(Word::words_as_elements(&hash_data));
 
-    let advice_map: &[(RpoDigest, Vec<Felt>)] = &[
+    let advice_map: &[(Word, Vec<Felt>)] = &[
         // Under the MMR key is the number_of_leaves, followed by the MMR peaks, and any padding
         (hash, map_data),
     ];
@@ -687,7 +687,7 @@ fn test_mmr_large_add_roundtrip() {
     let mut expected_memory = vec![num_leaves, 0, 0, 0];
     let mut new_peaks = new_accumulator.peaks().to_vec();
     // make sure the old peaks are zeroed
-    new_peaks.resize(16, RpoDigest::default());
+    new_peaks.resize(16, Word::default());
     expected_memory.extend(digests_to_ints(&new_peaks));
 
     let expect_stack: Vec<u64> =
@@ -700,10 +700,10 @@ fn test_mmr_large_add_roundtrip() {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn digests_to_elements(digests: &[RpoDigest]) -> Vec<Felt> {
-    digests.iter().flat_map(Word::from).collect()
-}
-
-fn digests_to_ints(digests: &[RpoDigest]) -> Vec<u64> {
-    digests.iter().flat_map(Word::from).map(|v| v.as_int()).collect()
+fn digests_to_ints(digests: &[Word]) -> Vec<u64> {
+    digests
+        .iter()
+        .flat_map(Into::<[Felt; WORD_SIZE]>::into)
+        .map(|v| v.as_int())
+        .collect()
 }

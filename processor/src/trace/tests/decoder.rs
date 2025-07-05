@@ -329,9 +329,8 @@ fn decoder_p2_span_with_respan() {
     let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p2 = aux_columns.get_column(P2_COL_IDX);
 
-    let row_values = [
-        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false).collapse(&alphas)
-    ];
+    let row_values =
+        [BlockHashTableRow::new_test(ZERO, program.hash(), false, false).collapse(&alphas)];
 
     // make sure the first entry is initialized to program hash
     let mut expected_value = row_values[0];
@@ -373,11 +372,9 @@ fn decoder_p2_join() {
     let p2 = aux_columns.get_column(P2_COL_IDX);
 
     let row_values = [
-        BlockHashTableRow::new_test(ZERO, join.digest().into(), false, false).collapse(&alphas),
-        BlockHashTableRow::new_test(ONE, basic_block_1.digest().into(), true, false)
-            .collapse(&alphas),
-        BlockHashTableRow::new_test(ONE, basic_block_2.digest().into(), false, false)
-            .collapse(&alphas),
+        BlockHashTableRow::new_test(ZERO, join.digest(), false, false).collapse(&alphas),
+        BlockHashTableRow::new_test(ONE, basic_block_1.digest(), true, false).collapse(&alphas),
+        BlockHashTableRow::new_test(ONE, basic_block_2.digest(), false, false).collapse(&alphas),
     ];
 
     // make sure the first entry is initialized to program hash
@@ -436,9 +433,8 @@ fn decoder_p2_split_true() {
     let p2 = aux_columns.get_column(P2_COL_IDX);
 
     let row_values = [
-        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false).collapse(&alphas),
-        BlockHashTableRow::new_test(ONE, basic_block_1.digest().into(), false, false)
-            .collapse(&alphas),
+        BlockHashTableRow::new_test(ZERO, program.hash(), false, false).collapse(&alphas),
+        BlockHashTableRow::new_test(ONE, basic_block_1.digest(), false, false).collapse(&alphas),
     ];
 
     // make sure the first entry is initialized to program hash
@@ -492,9 +488,8 @@ fn decoder_p2_split_false() {
     let p2 = aux_columns.get_column(P2_COL_IDX);
 
     let row_values = [
-        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false).collapse(&alphas),
-        BlockHashTableRow::new_test(ONE, basic_block_2.digest().into(), false, false)
-            .collapse(&alphas),
+        BlockHashTableRow::new_test(ZERO, program.hash(), false, false).collapse(&alphas),
+        BlockHashTableRow::new_test(ONE, basic_block_2.digest(), false, false).collapse(&alphas),
     ];
 
     // make sure the first entry is initialized to program hash
@@ -553,16 +548,12 @@ fn decoder_p2_loop_with_repeat() {
     let a_9 = Felt::new(9); // address of the JOIN block in the first iteration
     let a_33 = Felt::new(33); // address of the JOIN block in the second iteration
     let row_values = [
-        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false).collapse(&alphas),
-        BlockHashTableRow::new_test(ONE, join.digest().into(), false, true).collapse(&alphas),
-        BlockHashTableRow::new_test(a_9, basic_block_1.digest().into(), true, false)
-            .collapse(&alphas),
-        BlockHashTableRow::new_test(a_9, basic_block_2.digest().into(), false, false)
-            .collapse(&alphas),
-        BlockHashTableRow::new_test(a_33, basic_block_1.digest().into(), true, false)
-            .collapse(&alphas),
-        BlockHashTableRow::new_test(a_33, basic_block_2.digest().into(), false, false)
-            .collapse(&alphas),
+        BlockHashTableRow::new_test(ZERO, program.hash(), false, false).collapse(&alphas),
+        BlockHashTableRow::new_test(ONE, join.digest(), false, true).collapse(&alphas),
+        BlockHashTableRow::new_test(a_9, basic_block_1.digest(), true, false).collapse(&alphas),
+        BlockHashTableRow::new_test(a_9, basic_block_2.digest(), false, false).collapse(&alphas),
+        BlockHashTableRow::new_test(a_33, basic_block_1.digest(), true, false).collapse(&alphas),
+        BlockHashTableRow::new_test(a_33, basic_block_2.digest(), false, false).collapse(&alphas),
     ];
 
     // make sure the first entry is initialized to program hash

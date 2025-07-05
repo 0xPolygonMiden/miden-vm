@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 use core::{fmt, mem};
 
-use miden_crypto::{Felt, ZERO, hash::rpo::RpoDigest};
+use miden_crypto::{Felt, Word, ZERO};
 use miden_formatting::prettier::PrettyPrint;
 
 use crate::{
@@ -68,7 +68,7 @@ pub struct BasicBlockNode {
     /// operations, or a single immediates. Thus the maximum size of each batch is 72 operations.
     /// Multiple batches are used for blocks consisting of more than 72 operations.
     op_batches: Vec<OpBatch>,
-    digest: RpoDigest,
+    digest: Word,
     decorators: DecoratorList,
 }
 
@@ -107,11 +107,7 @@ impl BasicBlockNode {
 
     /// Returns a new [`BasicBlockNode`] from values that are assumed to be correct.
     /// Should only be used when the source of the inputs is trusted (e.g. deserialization).
-    pub fn new_unsafe(
-        operations: Vec<Operation>,
-        decorators: DecoratorList,
-        digest: RpoDigest,
-    ) -> Self {
+    pub fn new_unsafe(operations: Vec<Operation>, decorators: DecoratorList, digest: Word) -> Self {
         assert!(!operations.is_empty());
         let op_batches = batch_ops(operations);
         Self { op_batches, digest, decorators }
@@ -137,7 +133,7 @@ impl BasicBlockNode {
 /// Public accessors
 impl BasicBlockNode {
     /// Returns a commitment to this basic block.
-    pub fn digest(&self) -> RpoDigest {
+    pub fn digest(&self) -> Word {
         self.digest
     }
 
@@ -390,7 +386,7 @@ impl<'a> Iterator for OperationOrDecoratorIterator<'a> {
 // ================================================================================================
 
 /// Groups the provided operations into batches and computes the hash of the block.
-fn batch_and_hash_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, RpoDigest) {
+fn batch_and_hash_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Word) {
     // Group the operations into batches.
     let batches = batch_ops(ops);
 

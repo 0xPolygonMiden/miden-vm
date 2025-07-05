@@ -20,4 +20,4 @@ If you'd like to learn more about AIR, the following blog posts from StarkWare a
 * [StarkDEX Deep Dive: the STARK Core Engine](https://medium.com/starkware/starkdex-deep-dive-the-stark-core-engine-497942d0f0ab)
 
 ## License
-This project is [MIT licensed](../LICENSE).
+This project is dual-licensed under the [MIT](http://opensource.org/licenses/MIT) and [Apache 2.0](https://opensource.org/license/apache-2-0) licenses.

@@ -1,13 +1,15 @@
 use alloc::vec::Vec;
 
-use super::{Felt, Kernel, KernelRom, TRACE_WIDTH, TraceFragment, Word};
-use crate::{ErrorContext, ONE, ZERO};
+use vm_core::WORD_SIZE;
+
+use super::{Felt, Kernel, KernelRom, TRACE_WIDTH, TraceFragment};
+use crate::{ONE, ZERO};
 
 // CONSTANTS
 // ================================================================================================
 
-const PROC1_HASH: Word = [ONE, ZERO, ONE, ZERO];
-const PROC2_HASH: Word = [ONE, ONE, ONE, ONE];
+const PROC1_HASH: [Felt; WORD_SIZE] = [ONE, ZERO, ONE, ZERO];
+const PROC2_HASH: [Felt; WORD_SIZE] = [ONE, ONE, ONE, ONE];
 
 // TESTS
 // ================================================================================================
@@ -18,13 +20,10 @@ fn kernel_rom_invalid_access() {
     let mut rom = KernelRom::new(kernel);
 
     // accessing procedure which is in the kernel should be fine
-    assert!(rom.access_proc(PROC1_HASH.into(), &ErrorContext::default()).is_ok());
+    assert!(rom.access_proc(PROC1_HASH.into(), &()).is_ok());
 
     // accessing procedure which is not in the kernel should return an error
-    assert!(
-        rom.access_proc([ZERO, ONE, ZERO, ONE].into(), &ErrorContext::default())
-            .is_err()
-    );
+    assert!(rom.access_proc([ZERO, ONE, ZERO, ONE].into(), &()).is_err());
 }
 
 #[test]
@@ -63,11 +62,11 @@ fn kernel_rom_with_access() {
     let mut rom = KernelRom::new(kernel);
 
     // generate 5 access: 3 for proc1 and 2 for proc2
-    rom.access_proc(PROC1_HASH.into(), &ErrorContext::default()).unwrap();
-    rom.access_proc(PROC2_HASH.into(), &ErrorContext::default()).unwrap();
-    rom.access_proc(PROC1_HASH.into(), &ErrorContext::default()).unwrap();
-    rom.access_proc(PROC1_HASH.into(), &ErrorContext::default()).unwrap();
-    rom.access_proc(PROC2_HASH.into(), &ErrorContext::default()).unwrap();
+    rom.access_proc(PROC1_HASH.into(), &()).unwrap();
+    rom.access_proc(PROC2_HASH.into(), &()).unwrap();
+    rom.access_proc(PROC1_HASH.into(), &()).unwrap();
+    rom.access_proc(PROC1_HASH.into(), &()).unwrap();
+    rom.access_proc(PROC2_HASH.into(), &()).unwrap();
 
     let expected_trace_len = 7;
     assert_eq!(expected_trace_len, rom.trace_len());
@@ -104,8 +103,8 @@ fn kernel_rom_with_single_access() {
     let mut rom = KernelRom::new(kernel);
 
     // generate 2 access for proc1
-    rom.access_proc(PROC1_HASH.into(), &ErrorContext::default()).unwrap();
-    rom.access_proc(PROC1_HASH.into(), &ErrorContext::default()).unwrap();
+    rom.access_proc(PROC1_HASH.into(), &()).unwrap();
+    rom.access_proc(PROC1_HASH.into(), &()).unwrap();
 
     let expected_trace_len = 4;
     assert_eq!(expected_trace_len, rom.trace_len());

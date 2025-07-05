@@ -1,17 +1,45 @@
 /// Tests in this file make sure that diagnostics presented to the user are as expected.
 use alloc::string::ToString;
 
-use assembly::{Assembler, assert_diagnostic_lines, regex, source_file, testing::TestContext};
+use assembly::{
+    Assembler, LibraryPath,
+    ast::Module,
+    diagnostics::SourceLanguage,
+    testing::{TestContext, assert_diagnostic_lines, regex, source_file},
+};
 use test_utils::{
-    build_test_by_mode,
+    build_test, build_test_by_mode,
     crypto::{init_merkle_leaves, init_merkle_store},
 };
 use vm_core::{
     AdviceMap,
     crypto::merkle::{MerkleStore, MerkleTree},
+    debuginfo::{SourceContent, Uri},
 };
 
 use super::*;
+
+// AdviceMap inlined in the script
+// ------------------------------------------------------------------------------------------------
+
+#[ignore] // tracked by https://github.com/0xMiden/miden-vm/issues/1886
+#[test]
+fn test_advice_map_inline() {
+    let source = "\
+adv_map.A=2
+
+begin
+  push.A
+  adv.push_mapval
+  adv_push.1
+  push.2
+  assert_eq
+  dropw
+end";
+
+    let build_test = build_test!(source);
+    build_test.execute().unwrap();
+}
 
 // AdviceMapKeyAlreadyPresent
 // ------------------------------------------------------------------------------------------------
@@ -19,6 +47,7 @@ use super::*;
 /// In this test, we load 2 libraries which have a MAST forest with an advice map that contains
 /// different values at the same key (which triggers the `AdviceMapKeyAlreadyPresent` error).
 #[test]
+#[ignore = "program must now call same node from both libraries (Issue #1949)"]
 fn test_diagnostic_advice_map_key_already_present() {
     let test_context = TestContext::new();
 
@@ -30,19 +59,35 @@ fn test_diagnostic_advice_map_key_already_present() {
         let lib = test_context.assemble_library(std::iter::once(module)).unwrap();
         let lib_1 = lib
             .clone()
-            .with_advice_map(AdviceMap::from_iter([(Digest::default(), vec![ZERO])]));
-        let lib_2 = lib.with_advice_map(AdviceMap::from_iter([(Digest::default(), vec![ONE])]));
+            .with_advice_map(AdviceMap::from_iter([(Word::default(), vec![ZERO])]));
+        let lib_2 = lib.with_advice_map(AdviceMap::from_iter([(Word::default(), vec![ONE])]));
 
         (lib_1, lib_2)
     };
 
     let mut host = DefaultHost::default();
     host.load_mast_forest(lib_1.mast_forest().clone()).unwrap();
-    let err = host.load_mast_forest(lib_2.mast_forest().clone()).unwrap_err();
+    host.load_mast_forest(lib_2.mast_forest().clone()).unwrap();
+
+    let mut mast_forest = MastForest::new();
+    let basic_block_id = mast_forest.add_block(vec![Operation::Noop], None).unwrap();
+    mast_forest.make_root(basic_block_id);
+
+    let program = Program::new(mast_forest.into(), basic_block_id);
+
+    let err = Process::new(
+        Kernel::default(),
+        StackInputs::default(),
+        AdviceInputs::default(),
+        ExecutionOptions::default(),
+    )
+    .execute(&program, &mut host)
+    .unwrap_err();
 
     assert_diagnostic_lines!(
         err,
-        "x value for key 0000000000000000000000000000000000000000000000000000000000000000 already present in the advice map when loading MAST forest",
+        "advice provider error at clock cycle",
+        "x value for key 0x0000000000000000000000000000000000000000000000000000000000000000 already present in the advice map",
         "help: previous values at key were '[0]'. Operation would have replaced them with '[1]'"
     );
 }
@@ -61,7 +106,8 @@ fn test_diagnostic_advice_map_key_not_found_1() {
     let err = build_test.execute().expect_err("expected error");
     assert_diagnostic_lines!(
         err,
-        "value for key 00000000000000000000000000000000ffffffff00000000feffffff01000000 not present in the advice map",
+        "advice provider error at clock cycle 3",
+        "value for key 0x0000000000000000000000000000000001000000000000000200000000000000 not present in the advice map",
         regex!(r#",-\[test[\d]+:3:31\]"#),
         " 2 |         begin",
         " 3 |             swap swap trace.2 adv.push_mapval",
@@ -82,7 +128,8 @@ fn test_diagnostic_advice_map_key_not_found_2() {
     let err = build_test.execute().expect_err("expected error");
     assert_diagnostic_lines!(
         err,
-        "value for key 00000000000000000000000000000000ffffffff00000000feffffff01000000 not present in the advice map",
+        "advice provider error at clock cycle 3",
+        "value for key 0x0000000000000000000000000000000001000000000000000200000000000000 not present in the advice map",
         regex!(r#",-\[test[\d]+:3:31\]"#),
         " 2 |         begin",
         " 3 |             swap swap trace.2 adv.push_mapvaln",
@@ -106,7 +153,8 @@ fn test_diagnostic_advice_stack_read_failed() {
     let err = build_test.execute().expect_err("expected error");
     assert_diagnostic_lines!(
         err,
-        "advice stack read failed at clock cycle 2",
+        "advice provider error at clock cycle 2",
+        "stack read failed",
         regex!(r#",-\[test[\d]+:3:18\]"#),
         " 2 |         begin",
         " 3 |             swap adv_push.1 trace.2",
@@ -306,7 +354,7 @@ fn test_diagnostic_merkle_path_verification_failed() {
     let err = build_test.execute().expect_err("expected error");
     assert_diagnostic_lines!(
         err,
-        "merkle path verification failed for value fcffffff03000000000000000000000000000000000000000000000000000000 at index 4 in the Merkle tree with root",
+        "merkle path verification failed for value 0400000000000000000000000000000000000000000000000000000000000000 at index 4 in the Merkle tree with root",
         "| c9b007301fbe49f9c96698ea31f251b61d51674c892fbb2d8d349280bbd4a273 (error code: 0)",
         regex!(r#",-\[test[\d]+:3:13\]"#),
         " 2 |         begin",
@@ -344,7 +392,7 @@ fn test_diagnostic_merkle_path_verification_failed() {
     let err = build_test.execute().expect_err("expected error");
     assert_diagnostic_lines!(
         err,
-        "merkle path verification failed for value fcffffff03000000000000000000000000000000000000000000000000000000 at index 4 in the Merkle tree with root",
+        "merkle path verification failed for value 0400000000000000000000000000000000000000000000000000000000000000 at index 4 in the Merkle tree with root",
         "| c9b007301fbe49f9c96698ea31f251b61d51674c892fbb2d8d349280bbd4a273 (error message: some error message)",
         regex!(r#",-\[test[\d]+:3:13\]"#),
         " 2 |         begin",
@@ -372,6 +420,7 @@ fn test_diagnostic_invalid_merkle_tree_node_index() {
     let err = build_test.execute().expect_err("expected error");
     assert_diagnostic_lines!(
         err,
+        "advice provider error at clock cycle 1",
         "provided node index 16 is out of bounds for a merkle tree node at depth 4",
         regex!(r#",-\[test[\d]+:3:13\]"#),
         " 2 |         begin",
@@ -426,7 +475,7 @@ fn test_diagnostic_invalid_stack_depth_on_return_dyncall() {
         end
 
         begin
-            procref.foo mem_storew.100 dropw push.100 
+            procref.foo mem_storew.100 dropw push.100
             dyncall
         end";
 
@@ -453,7 +502,7 @@ fn test_diagnostic_log_argument_zero() {
     // taking the log of 0 should result in an error
     let source = "
         begin
-            trace.2 ilog2    
+            trace.2 ilog2
         end";
 
     let build_test = build_test_by_mode!(true, source, &[]);
@@ -639,8 +688,10 @@ fn test_diagnostic_merkle_store_lookup_failed() {
     let err = build_test.execute().expect_err("expected error");
     assert_diagnostic_lines!(
         err,
+        "advice provider error at clock cycle 1",
         "failed to lookup value in Merkle store",
-        "  `-> node RpoDigest([1, 0, 0, 0]) with index `depth=10, value=0` not found in the store",
+        "|",
+        "`-> node Word([1, 0, 0, 0]) with index `depth=10, value=0` not found",
         regex!(r#",-\[test[\d]+:3:13\]"#),
         " 2 |         begin",
         " 3 |             mtree_set",
@@ -657,35 +708,40 @@ fn test_diagnostic_merkle_store_lookup_failed() {
 fn test_diagnostic_no_mast_forest_with_procedure() {
     let source_manager = Arc::new(DefaultSourceManager::default());
 
-    let lib_source = {
+    let lib_module = {
         let module_name = "foo::bar";
         let src = "
         export.dummy_proc
             push.1
-        end 
+        end
     ";
-        source_manager.load(module_name, src.to_string())
+        let uri = Uri::from("src.masm");
+        let content = SourceContent::new(SourceLanguage::Masm, uri.clone(), src);
+        let source_file = source_manager.load_from_raw_parts(uri.clone(), content);
+        Module::parse(
+            LibraryPath::new(module_name).unwrap(),
+            assembly::ast::ModuleKind::Library,
+            source_file,
+        )
+        .unwrap()
     };
 
-    let program_source = {
-        let src = "
+    let program_source = "
         use.foo::bar
 
         begin
             call.bar::dummy_proc
         end
     ";
-        source_manager.load("test_program", src.to_string())
-    };
 
     let library = Assembler::new(source_manager.clone())
         .with_debug_mode(true)
-        .assemble_library([lib_source])
+        .assemble_library([lib_module])
         .unwrap();
 
     let program = Assembler::new(source_manager.clone())
         .with_debug_mode(true)
-        .with_library(&library)
+        .with_dynamic_library(&library)
         .unwrap()
         .assemble_program(program_source)
         .unwrap();
@@ -693,6 +749,7 @@ fn test_diagnostic_no_mast_forest_with_procedure() {
     let mut process = Process::new(
         Kernel::default(),
         StackInputs::default(),
+        AdviceInputs::default(),
         ExecutionOptions::default().with_debugging(true),
     )
     .with_source_manager(source_manager.clone());
@@ -700,7 +757,7 @@ fn test_diagnostic_no_mast_forest_with_procedure() {
     assert_diagnostic_lines!(
         err,
         "no MAST forest contains the procedure with root digest 0x1b0a6d4b3976737badf180f3df558f45e06e6d1803ea5ad3b95fa7428caccd02",
-        regex!(r#",-\[test_program:5:13\]"#),
+        regex!(r#",-\[\$exec:5:13\]"#),
         " 4 |         begin",
         " 5 |             call.bar::dummy_proc",
         "   :             ^^^^^^^^^^^^^^^^^^^^",
@@ -896,14 +953,11 @@ fn test_diagnostic_syscall_target_not_in_kernel() {
         end
     ";
 
-    let program_source = {
-        let src = "
+    let program_source = "
         begin
             syscall.dummy_proc
         end
     ";
-        source_manager.load("test_program", src.to_string())
-    };
 
     let kernel_library = Assembler::new(source_manager.clone())
         .with_debug_mode(true)
@@ -919,6 +973,7 @@ fn test_diagnostic_syscall_target_not_in_kernel() {
     let mut process = Process::new(
         Kernel::default(),
         StackInputs::default(),
+        AdviceInputs::default(),
         ExecutionOptions::default().with_debugging(true),
     )
     .with_source_manager(source_manager.clone());
@@ -926,7 +981,7 @@ fn test_diagnostic_syscall_target_not_in_kernel() {
     assert_diagnostic_lines!(
         err,
         "syscall failed: procedure with root d754f5422c74afd0b094889be6b288f9ffd2cc630e3c44d412b1408b2be3b99c was not found in the kernel",
-        regex!(r#",-\[test_program:3:13\]"#),
+        regex!(r#",-\[\$exec:3:13\]"#),
         " 2 |         begin",
         " 3 |             syscall.dummy_proc",
         "   :             ^^^^^^^^^^^^^^^^^^",

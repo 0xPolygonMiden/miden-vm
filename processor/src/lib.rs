@@ -9,7 +9,6 @@ extern crate std;
 use alloc::{sync::Arc, vec::Vec};
 use core::fmt::{Display, LowerHex};
 
-use fast::FastProcessor;
 use miden_air::trace::{
     CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
     SYS_TRACE_WIDTH,
@@ -19,7 +18,6 @@ use utils::resolve_external_node;
 pub use vm_core::{
     AssemblyOp, EMPTY_WORD, Felt, Kernel, ONE, Operation, Program, ProgramInfo, QuadExtension,
     StackInputs, StackOutputs, Word, ZERO,
-    chiplets::hasher::Digest,
     crypto::merkle::SMT_DEPTH,
     debuginfo::{DefaultSourceManager, SourceManager, SourceSpan},
     errors::InputError,
@@ -30,13 +28,13 @@ pub use vm_core::{
 use vm_core::{
     Decorator, DecoratorIterator, FieldElement, WORD_SIZE,
     mast::{
-        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastNodeExt, OP_GROUP_SIZE, OpBatch,
-        SplitNode,
+        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, OP_GROUP_SIZE, OpBatch, SplitNode,
     },
 };
 pub use winter_prover::matrix::ColMatrix;
 
 pub mod fast;
+use fast::FastProcessState;
 
 mod operations;
 
@@ -55,8 +53,8 @@ use range::RangeChecker;
 
 mod host;
 pub use host::{
-    DefaultHost, Host, MastForestStore, MemMastForestStore,
-    advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, RecAdviceProvider},
+    AsyncHost, BaseHost, DefaultHost, MastForestStore, MemMastForestStore, SyncHost,
+    advice::{AdviceError, AdviceInputs, AdviceProvider},
 };
 
 mod chiplets;
@@ -68,7 +66,7 @@ use trace::TraceFragment;
 pub use trace::{ChipletsLengths, ExecutionTrace, NUM_RAND_ROWS, TraceLenSummary};
 
 mod errors;
-pub use errors::{ErrorContext, ExecutionError, Ext2InttError};
+pub use errors::{ErrorContext, ExecutionError};
 
 pub mod utils;
 
@@ -88,9 +86,7 @@ pub mod math {
 
 pub mod crypto {
     pub use vm_core::crypto::{
-        hash::{
-            Blake3_192, Blake3_256, ElementHasher, Hasher, Rpo256, RpoDigest, Rpx256, RpxDigest,
-        },
+        hash::{Blake3_192, Blake3_256, ElementHasher, Hasher, Rpo256, Rpx256},
         merkle::{
             MerkleError, MerklePath, MerkleStore, MerkleTree, NodeIndex, PartialMerkleTree,
             SimpleSmt,
@@ -180,11 +176,12 @@ pub struct ChipletsTrace {
 pub fn execute(
     program: &Program,
     stack_inputs: StackInputs,
-    host: &mut impl Host,
+    advice_inputs: AdviceInputs,
+    host: &mut impl SyncHost,
     options: ExecutionOptions,
     source_manager: Arc<dyn SourceManager>,
 ) -> Result<ExecutionTrace, ExecutionError> {
-    let mut process = Process::new(program.kernel().clone(), stack_inputs, options)
+    let mut process = Process::new(program.kernel().clone(), stack_inputs, advice_inputs, options)
         .with_source_manager(source_manager);
     let stack_outputs = process.execute(program, host)?;
     let trace = ExecutionTrace::new(process, stack_outputs);
@@ -197,10 +194,11 @@ pub fn execute(
 pub fn execute_iter(
     program: &Program,
     stack_inputs: StackInputs,
-    host: &mut impl Host,
+    advice_inputs: AdviceInputs,
+    host: &mut impl SyncHost,
     source_manager: Arc<dyn SourceManager>,
 ) -> VmStateIterator {
-    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs)
+    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs, advice_inputs)
         .with_source_manager(source_manager);
     let result = process.execute(program, host);
     if result.is_ok() {
@@ -227,6 +225,7 @@ pub fn execute_iter(
 /// get the execution trace using [ExecutionTrace::new] using the outputs produced by execution.
 #[cfg(not(any(test, feature = "testing")))]
 pub struct Process {
+    advice: AdviceProvider,
     system: System,
     decoder: Decoder,
     stack: Stack,
@@ -239,6 +238,7 @@ pub struct Process {
 
 #[cfg(any(test, feature = "testing"))]
 pub struct Process {
+    pub advice: AdviceProvider,
     pub system: System,
     pub decoder: Decoder,
     pub stack: Stack,
@@ -256,24 +256,36 @@ impl Process {
     pub fn new(
         kernel: Kernel,
         stack_inputs: StackInputs,
+        advice_inputs: AdviceInputs,
         execution_options: ExecutionOptions,
     ) -> Self {
-        Self::initialize(kernel, stack_inputs, execution_options)
+        Self::initialize(kernel, stack_inputs, advice_inputs, execution_options)
     }
 
     /// Creates a new process with provided inputs and debug options enabled.
-    pub fn new_debug(kernel: Kernel, stack_inputs: StackInputs) -> Self {
+    pub fn new_debug(
+        kernel: Kernel,
+        stack_inputs: StackInputs,
+        advice_inputs: AdviceInputs,
+    ) -> Self {
         Self::initialize(
             kernel,
             stack_inputs,
+            advice_inputs,
             ExecutionOptions::default().with_tracing().with_debugging(true),
         )
     }
 
-    fn initialize(kernel: Kernel, stack: StackInputs, execution_options: ExecutionOptions) -> Self {
+    fn initialize(
+        kernel: Kernel,
+        stack: StackInputs,
+        advice_inputs: AdviceInputs,
+        execution_options: ExecutionOptions,
+    ) -> Self {
         let in_debug_mode = execution_options.enable_debugging();
         let source_manager = Arc::new(DefaultSourceManager::default());
         Self {
+            advice: advice_inputs.into(),
             system: System::new(execution_options.expected_cycles() as usize),
             decoder: Decoder::new(in_debug_mode),
             stack: Stack::new(&stack, execution_options.expected_cycles() as usize, in_debug_mode),
@@ -298,26 +310,15 @@ impl Process {
     pub fn execute(
         &mut self,
         program: &Program,
-        host: &mut impl Host,
+        host: &mut impl SyncHost,
     ) -> Result<StackOutputs, ExecutionError> {
         if self.system.clk() != 0 {
             return Err(ExecutionError::ProgramAlreadyExecuted);
         }
 
-        // Load the program's advice data into the advice provider
-        for (digest, values) in program.mast_forest().advice_map().iter() {
-            if let Some(stored_values) = host.advice_provider().get_mapped_values(digest) {
-                if stored_values != values {
-                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent {
-                        key: digest.into(),
-                        prev_values: stored_values.to_vec(),
-                        new_values: values.clone(),
-                    });
-                }
-            } else {
-                host.advice_provider_mut().insert_into_map(digest.into(), values.clone());
-            }
-        }
+        self.advice
+            .merge_advice_map(program.mast_forest().advice_map())
+            .map_err(|err| ExecutionError::advice_error(err, RowIndex::from(0), &()))?;
 
         self.execute_mast_node(program.entrypoint(), &program.mast_forest().clone(), host)?;
 
@@ -331,7 +332,7 @@ impl Process {
         &mut self,
         node_id: MastNodeId,
         program: &MastForest,
-        host: &mut impl Host,
+        host: &mut impl SyncHost,
     ) -> Result<(), ExecutionError> {
         let node = program
             .get_node_by_id(node_id)
@@ -347,21 +348,22 @@ impl Process {
             MastNode::Split(node) => self.execute_split_node(node, program, host)?,
             MastNode::Loop(node) => self.execute_loop_node(node, program, host)?,
             MastNode::Call(node) => {
-                let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+                let err_ctx = err_ctx!(program, node, self.source_manager.clone());
                 add_error_ctx_to_external_error(
                     self.execute_call_node(node, program, host),
                     err_ctx,
                 )?
             },
             MastNode::Dyn(node) => {
-                let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+                let err_ctx = err_ctx!(program, node, self.source_manager.clone());
                 add_error_ctx_to_external_error(
                     self.execute_dyn_node(node, program, host),
                     err_ctx,
                 )?
             },
             MastNode::External(external_node) => {
-                let (root_id, mast_forest) = resolve_external_node(external_node, host)?;
+                let (root_id, mast_forest) =
+                    resolve_external_node(external_node, &mut self.advice, host)?;
 
                 self.execute_mast_node(root_id, &mast_forest, host)?;
             },
@@ -380,7 +382,7 @@ impl Process {
         &mut self,
         node: &JoinNode,
         program: &MastForest,
-        host: &mut impl Host,
+        host: &mut impl SyncHost,
     ) -> Result<(), ExecutionError> {
         self.start_join_node(node, program, host)?;
 
@@ -397,7 +399,7 @@ impl Process {
         &mut self,
         node: &SplitNode,
         program: &MastForest,
-        host: &mut impl Host,
+        host: &mut impl SyncHost,
     ) -> Result<(), ExecutionError> {
         // start the SPLIT block; this also pops the stack and returns the popped element
         let condition = self.start_split_node(node, program, host)?;
@@ -408,7 +410,7 @@ impl Process {
         } else if condition == ZERO {
             self.execute_mast_node(node.on_false(), program, host)?;
         } else {
-            let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+            let err_ctx = err_ctx!(program, node, self.source_manager.clone());
             return Err(ExecutionError::not_binary_value_if(condition, &err_ctx));
         }
 
@@ -421,7 +423,7 @@ impl Process {
         &mut self,
         node: &LoopNode,
         program: &MastForest,
-        host: &mut impl Host,
+        host: &mut impl SyncHost,
     ) -> Result<(), ExecutionError> {
         // start the LOOP block; this also pops the stack and returns the popped element
         let condition = self.start_loop_node(node, program, host)?;
@@ -441,7 +443,7 @@ impl Process {
             }
 
             if self.stack.peek() != ZERO {
-                let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+                let err_ctx = err_ctx!(program, node, self.source_manager.clone());
                 return Err(ExecutionError::not_binary_value_loop(self.stack.peek(), &err_ctx));
             }
 
@@ -452,7 +454,7 @@ impl Process {
             // already dropped when we started the LOOP block
             self.end_loop_node(node, false, program, host)
         } else {
-            let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+            let err_ctx = err_ctx!(program, node, self.source_manager.clone());
             Err(ExecutionError::not_binary_value_loop(condition, &err_ctx))
         }
     }
@@ -463,7 +465,7 @@ impl Process {
         &mut self,
         call_node: &CallNode,
         program: &MastForest,
-        host: &mut impl Host,
+        host: &mut impl SyncHost,
     ) -> Result<(), ExecutionError> {
         // call or syscall are not allowed inside a syscall
         if self.system.in_syscall() {
@@ -476,10 +478,10 @@ impl Process {
             let callee = program.get_node_by_id(call_node.callee()).ok_or_else(|| {
                 ExecutionError::MastNodeNotFoundInForest { node_id: call_node.callee() }
             })?;
-            let err_ctx = ErrorContext::new(program, call_node, self.source_manager.clone());
+            let err_ctx = err_ctx!(program, call_node, self.source_manager.clone());
             self.chiplets.kernel_rom.access_proc(callee.digest(), &err_ctx)?;
         }
-        let err_ctx = ErrorContext::new(program, call_node, self.source_manager.clone());
+        let err_ctx = err_ctx!(program, call_node, self.source_manager.clone());
 
         self.start_call_node(call_node, program, host)?;
         self.execute_mast_node(call_node.callee(), program, host)?;
@@ -495,46 +497,43 @@ impl Process {
         &mut self,
         node: &DynNode,
         program: &MastForest,
-        host: &mut impl Host,
+        host: &mut impl SyncHost,
     ) -> Result<(), ExecutionError> {
         // dyn calls are not allowed inside a syscall
         if node.is_dyncall() && self.system.in_syscall() {
             return Err(ExecutionError::CallInSyscall("dyncall"));
         }
 
-        let error_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+        let err_ctx = err_ctx!(program, node, self.source_manager.clone());
 
         let callee_hash = if node.is_dyncall() {
-            self.start_dyncall_node(node, &error_ctx)?
+            self.start_dyncall_node(node, &err_ctx)?
         } else {
-            self.start_dyn_node(node, program, host, &error_ctx)?
+            self.start_dyn_node(node, program, host, &err_ctx)?
         };
 
         // if the callee is not in the program's MAST forest, try to find a MAST forest for it in
         // the host (corresponding to an external library loaded in the host); if none are
         // found, return an error.
-        match program.find_procedure_root(callee_hash.into()) {
+        match program.find_procedure_root(callee_hash) {
             Some(callee_id) => self.execute_mast_node(callee_id, program, host)?,
             None => {
-                let mast_forest = host.get_mast_forest(&callee_hash.into()).ok_or_else(|| {
-                    ExecutionError::dynamic_node_not_found(callee_hash.into(), &error_ctx)
-                })?;
+                let mast_forest = host
+                    .get_mast_forest(&callee_hash)
+                    .ok_or_else(|| ExecutionError::dynamic_node_not_found(callee_hash, &err_ctx))?;
 
                 // We limit the parts of the program that can be called externally to procedure
                 // roots, even though MAST doesn't have that restriction.
-                let root_id = mast_forest.find_procedure_root(callee_hash.into()).ok_or(
-                    ExecutionError::malfored_mast_forest_in_host(
-                        callee_hash.into(),
-                        &ErrorContext::default(),
-                    ),
-                )?;
+                let root_id = mast_forest
+                    .find_procedure_root(callee_hash)
+                    .ok_or(ExecutionError::malfored_mast_forest_in_host(callee_hash, &()))?;
 
                 self.execute_mast_node(root_id, &mast_forest, host)?
             },
         }
 
         if node.is_dyncall() {
-            self.end_dyncall_node(node, program, host, &error_ctx)
+            self.end_dyncall_node(node, program, host, &err_ctx)
         } else {
             self.end_dyn_node(node, program, host)
         }
@@ -546,7 +545,7 @@ impl Process {
         &mut self,
         basic_block: &BasicBlockNode,
         program: &MastForest,
-        host: &mut impl Host,
+        host: &mut impl SyncHost,
     ) -> Result<(), ExecutionError> {
         self.start_basic_block_node(basic_block, program, host)?;
 
@@ -611,7 +610,7 @@ impl Process {
         decorators: &mut DecoratorIterator,
         op_offset: usize,
         program: &MastForest,
-        host: &mut impl Host,
+        host: &mut impl SyncHost,
     ) -> Result<(), ExecutionError> {
         let op_counts = batch.op_counts();
         let mut op_idx = 0;
@@ -633,14 +632,10 @@ impl Process {
             }
 
             // decode and execute the operation
-            let error_ctx = ErrorContext::new_with_op_idx(
-                program,
-                basic_block,
-                self.source_manager.clone(),
-                i + op_offset,
-            );
+            let err_ctx =
+                err_ctx!(program, basic_block, self.source_manager.clone(), i + op_offset);
             self.decoder.execute_user_op(op, op_idx);
-            self.execute_op_with_error_ctx(op, program, host, &error_ctx)?;
+            self.execute_op_with_error_ctx(op, program, host, &err_ctx)?;
 
             // if the operation carries an immediate value, the value is stored at the next group
             // pointer; so, we advance the pointer to the following group
@@ -700,12 +695,13 @@ impl Process {
     fn execute_decorator(
         &mut self,
         decorator: &Decorator,
-        host: &mut impl Host,
+        host: &mut impl SyncHost,
     ) -> Result<(), ExecutionError> {
         match decorator {
             Decorator::Debug(options) => {
                 if self.decoder.in_debug_mode() {
-                    host.on_debug(self.into(), options)?;
+                    let process = &mut self.state();
+                    host.on_debug(process, options)?;
                 }
             },
             Decorator::AsmOp(assembly_op) => {
@@ -715,7 +711,8 @@ impl Process {
             },
             Decorator::Trace(id) => {
                 if self.enable_tracing {
-                    host.on_trace(self.into(), *id)?;
+                    let process = &mut self.state();
+                    host.on_trace(process, *id)?;
                 }
             },
         };
@@ -734,32 +731,52 @@ impl Process {
     }
 }
 
-// PROCESS STATE
-// ================================================================================================
-
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub struct SlowProcessState<'a> {
+    advice: &'a mut AdviceProvider,
     system: &'a System,
     stack: &'a Stack,
     chiplets: &'a Chiplets,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct FastProcessState<'a> {
-    processor: &'a FastProcessor,
-    /// the index of the operation in its basic block
-    op_idx: usize,
-}
+// PROCESS STATE
+// ================================================================================================
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub enum ProcessState<'a> {
     Slow(SlowProcessState<'a>),
     Fast(FastProcessState<'a>),
 }
 
+impl Process {
+    #[inline(always)]
+    fn state(&mut self) -> ProcessState<'_> {
+        ProcessState::Slow(SlowProcessState {
+            advice: &mut self.advice,
+            system: &self.system,
+            stack: &self.stack,
+            chiplets: &self.chiplets,
+        })
+    }
+}
+
 impl<'a> ProcessState<'a> {
-    pub fn new_fast(processor: &'a FastProcessor, op_idx: usize) -> Self {
-        Self::Fast(FastProcessState { processor, op_idx })
+    /// Returns a reference to the advice provider.
+    #[inline(always)]
+    pub fn advice_provider(&self) -> &AdviceProvider {
+        match self {
+            ProcessState::Slow(state) => state.advice,
+            ProcessState::Fast(state) => &state.processor.advice,
+        }
+    }
+
+    /// Returns a mutable reference to the advice provider.
+    #[inline(always)]
+    pub fn advice_provider_mut(&mut self) -> &mut AdviceProvider {
+        match self {
+            ProcessState::Slow(state) => state.advice,
+            ProcessState::Fast(state) => &mut state.processor.advice,
+        }
     }
 
     /// Returns the current clock cycle of a process.
@@ -841,13 +858,11 @@ impl<'a> ProcessState<'a> {
     /// # Errors
     /// - If the address is not word aligned.
     #[inline(always)]
-    pub fn get_mem_word(&self, ctx: ContextId, addr: u32) -> Result<Option<Word>, ExecutionError> {
+    pub fn get_mem_word(&self, ctx: ContextId, addr: u32) -> Result<Option<Word>, MemoryError> {
         match self {
-            ProcessState::Slow(state) => {
-                state.chiplets.memory.get_word(ctx, addr).map_err(ExecutionError::MemoryError)
-            },
+            ProcessState::Slow(state) => state.chiplets.memory.get_word(ctx, addr),
             ProcessState::Fast(state) => {
-                Ok(state.processor.memory.read_word_impl(ctx, addr, None)?.copied())
+                state.processor.memory.read_word_impl(ctx, addr, None, &())
             },
         }
     }
@@ -868,37 +883,14 @@ impl<'a> ProcessState<'a> {
     }
 }
 
-// CONVERSIONS
-// ===============================================================================================
-
-impl<'a> From<&'a Process> for ProcessState<'a> {
-    fn from(process: &'a Process) -> Self {
-        Self::Slow(SlowProcessState {
-            system: &process.system,
-            stack: &process.stack,
-            chiplets: &process.chiplets,
-        })
-    }
-}
-
-impl<'a> From<&'a mut Process> for ProcessState<'a> {
-    fn from(process: &'a mut Process) -> Self {
-        Self::Slow(SlowProcessState {
-            system: &process.system,
-            stack: &process.stack,
-            chiplets: &process.chiplets,
-        })
-    }
-}
-
 // HELPERS
 // ================================================================================================
 
 /// For errors generated from processing an `ExternalNode`, returns the same error except with
 /// proper error context.
-fn add_error_ctx_to_external_error(
+pub(crate) fn add_error_ctx_to_external_error(
     result: Result<(), ExecutionError>,
-    err_ctx: ErrorContext<impl MastNodeExt>,
+    err_ctx: impl ErrorContext,
 ) -> Result<(), ExecutionError> {
     match result {
         Ok(_) => Ok(()),

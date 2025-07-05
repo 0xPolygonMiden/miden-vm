@@ -4,10 +4,9 @@ use miette::Diagnostic;
 use vm_core::{
     Felt,
     debuginfo::{SourceFile, SourceSpan},
-    mast::MastNodeExt,
 };
 
-use crate::{ContextId, errors::ErrorContext};
+use crate::{ContextId, ErrorContext};
 
 #[derive(Debug, thiserror::Error, Diagnostic)]
 pub enum MemoryError {
@@ -54,17 +53,14 @@ impl MemoryError {
         addr: u32,
         ctx: ContextId,
         clk: Felt,
-        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        err_ctx: &impl ErrorContext,
     ) -> Self {
-        let (label, source_file) = error_ctx.label_and_source_file();
+        let (label, source_file) = err_ctx.label_and_source_file();
         MemoryError::UnalignedWordAccess { addr, ctx, clk, label, source_file }
     }
 
-    pub fn address_out_of_bounds(
-        addr: u64,
-        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Self {
-        let (label, source_file) = error_ctx.label_and_source_file();
+    pub fn address_out_of_bounds(addr: u64, err_ctx: &impl ErrorContext) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
         MemoryError::AddressOutOfBounds { label, source_file, addr }
     }
 }
