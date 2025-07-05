@@ -38,6 +38,7 @@
 - Remove decorator for interpolating polynomials over degree 2 extension field ([#1875](https://github.com/0xMiden/miden-vm/issues/1875)).
 - Remove MASM code for probabilistic NTT ([#1875](https://github.com/0xMiden/miden-vm/issues/1875)).
 - [BREAKING] Disallow usage of the field modulus as an immediate value ([#1938](https://github.com/0xMiden/miden-vm/pull/1938)).
+- Moved implementation of `miden_core::debuginfo`, `miden_core::sync`, and `miden_assembly_syntax::diagnostics` into a new `miden-core-diagnostics` crate ([#1945](https://github.com/0xMiden/miden-vm/pull/1945))
 
 #### Enhancements
 
